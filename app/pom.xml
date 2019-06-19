@@ -29,6 +29,25 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+
+			<groupId>cn.hyperchain.JAVASDK</groupId>
+
+			<artifactId>hyperchainsdk</artifactId>
+
+			<version>4.1.13</version>
+
+			<scope>system</scope>
+
+			<systemPath>
+
+				${project.basedir}/lib/jdk_ultimate_4.1.13.jar
+
+			</systemPath>
+
+		</dependency>
+
 	</dependencies>
 
 	<build>
