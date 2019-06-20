@@ -1,3 +1,4 @@
+
 contract SimulateBank{
 
     address owner;
@@ -10,7 +11,7 @@ contract SimulateBank{
 
     mapping(address => uint) public accounts;
 
-    function SimulateBank( bytes32 _bankName,uint _bankNum,bool _isInvalid){
+    constructor( bytes32 _bankName,uint _bankNum,bool _isInvalid) public {
 
         bankName = _bankName;
 
@@ -22,7 +23,7 @@ contract SimulateBank{
 
     }
 
-    function issue(address addr,uint number) returns (bool){
+    function issue(address addr,uint number) public returns (bool){
 
         if(msg.sender==owner){
 
@@ -36,7 +37,7 @@ contract SimulateBank{
 
     }
 
-    function transfer(address addr1,address addr2,uint amount) returns (bool){
+    function transfer(address addr1,address addr2,uint amount) public returns (bool){
 
         if(accounts[addr1] >= amount){
 
@@ -52,7 +53,7 @@ contract SimulateBank{
 
     }
 
-    function getAccountBalance(address addr) returns(uint){
+    function getAccountBalance(address addr) public view returns(uint){
 
         return accounts[addr];
 
