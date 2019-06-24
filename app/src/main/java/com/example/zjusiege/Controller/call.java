@@ -34,49 +34,59 @@ public class call {
         Account accountB = new Account(B_ACCOUNT_JSON);
 
         //调用issue接口
-        FuncParamReal addr = new FuncParamReal("address", accountB.getAddress());
-        FuncParamReal number = new FuncParamReal("uint", 10000);
-
-        //方法编码
-        String payloadWithParams = FunctionEncode.encodeFunction("issue", addr, number);
-
-        //合约地址
-        String contractAddress = CONTRACT_ADDRESS;
-        //实例化调用合约
-        Transaction transactionWithParams = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParams, false);
-        transactionWithParams.signWithSM2(DEPLOY_ACCOUNT_JSON, "");
-
-        //同步调用合约
-        ReceiptReturn receiptReturnWithParams = hyperchain.invokeContract(transactionWithParams);
-
-        //获取和解析返回值
-        String rawReturnWithParams;
-        if(!receiptReturnWithParams.isSuccess()){
-            log("合约调用失败,code: ");
-        }
-        int code = receiptReturnWithParams.getRawcode();
-        log("合约调用成功,code: " + code);
-
-        rawReturnWithParams = receiptReturnWithParams.getRet();
-        log("调用合约结果（未解码）：" + rawReturnWithParams);
-
-        //获取abi
-        String abi = Utils.readFile("./contract/SimulateBank.abi").trim();
-        String decodedResultWithParams = FunctionDecode.resultDecode("issue", abi, rawReturnWithParams);
-        log("调用合约结果（解码后）" + decodedResultWithParams);
-
-        //调用getAccountBalance接口
 //        FuncParamReal addr = new FuncParamReal("address", accountA.getAddress());
-//        String payloadWithParams = FunctionEncode.encodeFunction("getAccountBalance", addr);
+//        FuncParamReal number = new FuncParamReal("uint", 10000);
+//
+//        //方法编码
+//        String payloadWithParams = FunctionEncode.encodeFunction("issue", addr, number);
+//
+//        //合约地址
 //        String contractAddress = CONTRACT_ADDRESS;
-//        Transaction transactionWithParams = new Transaction(accountA.getAddress(), contractAddress, payloadWithParams, false);
-//        transactionWithParams.signWithSM2(A_ACCOUNT_JSON,"");
+//        //实例化调用合约
+//        Transaction transactionWithParams = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParams, false);
+//        transactionWithParams.signWithSM2(DEPLOY_ACCOUNT_JSON, "");
+//
+//        //同步调用合约
 //        ReceiptReturn receiptReturnWithParams = hyperchain.invokeContract(transactionWithParams);
 //
-//        String rawReturn = receiptReturnWithParams.getRet();
+//        //获取和解析返回值
+//        String rawReturnWithParams;
+//        if(!receiptReturnWithParams.isSuccess()){
+//            log("合约调用失败,code: ");
+//        }
+//        int code = receiptReturnWithParams.getRawcode();
+//        log("合约调用成功,code: " + code);
+//
+//        rawReturnWithParams = receiptReturnWithParams.getRet();
+//        log("调用合约结果（未解码）：" + rawReturnWithParams);
+//
+//        //获取abi
 //        String abi = Utils.readFile("./contract/SimulateBank.abi").trim();
-//        String decodedResult = FunctionDecode.resultDecode("getAccountBalance", abi, rawReturn);
-//        log("调用getAccountBalance：" + decodedResult);
+//        String decodedResultWithParams = FunctionDecode.resultDecode("issue", abi, rawReturnWithParams);
+//        log("调用合约结果（解码后）" + decodedResultWithParams);
+
+        //调用getAccountBalance接口
+        FuncParamReal addr = new FuncParamReal("address", accountB.getAddress());
+        String payloadWithParams = FunctionEncode.encodeFunction("getAccountBalance", addr);
+        String contractAddress = CONTRACT_ADDRESS;
+        Transaction transactionWithParams = new Transaction(accountB.getAddress(), contractAddress, payloadWithParams, false);
+        transactionWithParams.signWithSM2(B_ACCOUNT_JSON,"");
+        ReceiptReturn receiptReturnWithParams = hyperchain.invokeContract(transactionWithParams);
+
+        String rawReturn = receiptReturnWithParams.getRet();
+        String abi = Utils.readFile("./contract/SimulateBank.abi").trim();
+        String decodedResult = FunctionDecode.resultDecode("getAccountBalance", abi, rawReturn);
+        log("调用getAccountBalance：" + decodedResult);
+
+        //调用newFunc接口(不存在)
+//        String payloadWithoutParams = FunctionEncode.encodeFunction("newFunc");
+//        Transaction transactionWithoutParams = new Transaction(accountB.getAddress(), contractAddress, payloadWithoutParams, false);
+//        transactionWithoutParams.signWithSM2(B_ACCOUNT_JSON, "");
+//        ReceiptReturn receiptReturnWithoutParams = hyperchain.invokeContract(transactionWithoutParams);
+//
+//        String rawReturn1 = receiptReturnWithoutParams.getRet();
+//        String decodeRes = FunctionDecode.resultDecode("newFunc", abi, rawReturn1);
+//        log("调用newFunc: " + decodeRes);
         return "call";
     }
 }

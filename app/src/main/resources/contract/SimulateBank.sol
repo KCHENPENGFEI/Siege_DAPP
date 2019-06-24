@@ -59,4 +59,8 @@ contract SimulateBank{
 
     }
 
+    function newFunc() public pure returns(bool){
+        return true;
+    }
+
 }
