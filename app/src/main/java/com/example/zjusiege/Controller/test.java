@@ -1,6 +1,7 @@
 package com.example.zjusiege.Controller;
 
 import cn.hyperchain.sdk.rpc.HyperchainAPI;
+import cn.hyperchain.sdk.rpc.account.Account;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -126,5 +127,7 @@ public class test {
 //            System.out.println(nodeInfoReturn.getPrimary());
 //            System.out.println(nodeInfoReturn.getDelay());
 //        }
+
+        Account a = new Account(DEPLOY_ACCOUNT_JSON);
     }
 }
