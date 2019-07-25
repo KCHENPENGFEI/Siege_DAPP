@@ -1,0 +1,157 @@
+.zsAuctionOutSide{
+    width:  100%;
+    height: 100vh;
+    background:url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1564050401842&di=7ecaf96dc22ce64bba9f84c57df37cd4&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F0137255b0cdb45a8012181b07829cd.jpg%403000w_1l_0o_100sh.jpg) no-repeat;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.zsAuctionInSide{
+    width: 800px;
+    height:800px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    background: #ff0000;
+}
+.zsAuctionTitle{
+    width: 100%;
+    height:10%;
+    background: #ffff00;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom:2%;
+    font-size: 1rem;
+    font-weight: bolder;
+}
+.zsAuctionRule{
+    width:100%;
+    height:14%;
+    background: #ff00ff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.zsAuctionRuleContent{
+    width:68%;
+    height: auto;
+    background: #00ff00;
+    text-align: center;
+    font-size: 0.8rem;
+}
+.zsAuctionMain{
+    width:100%;
+    height:76%;
+    background: #000fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+.zsAuctionMainTitle{
+    width:auto;
+    height:auto;
+    margin:2%;
+    padding:0.2% 4%;
+    background: #ff0000;
+}
+.zsAuctionMainRanking{
+    width:80%;
+    height:60%;
+    background: #00ff00;
+}
+.scrolldiv{
+    width: 100%;
+    height: 100%;
+    background: #f00;
+    overflow-y: scroll;
+}
+.scrolldiv::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 15px;     /*高宽分别对应横竖滚动条的尺寸*/
+}
+.scrolldiv::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+     -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    background: #535353;
+}
+.scrolldiv::-webkit-scrollbar-track {/*滚动条里面轨道*/
+    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    background: #EDEDED;
+}
+.scrolldiv::-webkit-scrollbar-button{
+    background:#ff00ff;
+}
+
+.zsAuctionMainInfo{
+    width:80%;
+    height:20%;
+    background: #EDEDED;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-end;
+}
+.zsAuctionMainInfoTime{
+    width: 25%;
+    height: 50%;
+    background:#27b356;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.zsAuctionMainInfoTimeTitle{
+    width: auto;
+    height: auto;
+    background:#187737;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    font-size: 0.5rem;
+}
+.zsAuctionMainInfoTimeContent{
+    width: auto;
+    height: auto;
+    background:#17a848;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.zsAuctionMainInfoMoney{
+    width: 40%;
+    height: 50%;
+    background:#27b356;
+    display:flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    
+}
+.zsAuctionMainInfoButton{
+    width: 25%;
+    height: 50%;
+    background:#27b356;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.zsAuctionMainInfoMoneyInput{
+    width:20%;
+    height:20%;
+    background:rgba(184, 21, 21, 255);
+    margin-right: 5%;
+    border:none;
+}
+.zsAuctionMainInfoMoneyLogo{
+    background:#ffff00;
+    width: 20px;
+    height:20px;
+}
