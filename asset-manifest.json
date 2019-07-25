@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/Siege_DAPP/static/css/main.a24077a4.chunk.css",
+    "main.js": "/Siege_DAPP/static/js/main.64bd7bb3.chunk.js",
+    "main.js.map": "/Siege_DAPP/static/js/main.64bd7bb3.chunk.js.map",
+    "runtime~main.js": "/Siege_DAPP/static/js/runtime~main.9a53ec65.js",
+    "runtime~main.js.map": "/Siege_DAPP/static/js/runtime~main.9a53ec65.js.map",
+    "static/js/2.3310f33a.chunk.js": "/Siege_DAPP/static/js/2.3310f33a.chunk.js",
+    "static/js/2.3310f33a.chunk.js.map": "/Siege_DAPP/static/js/2.3310f33a.chunk.js.map",
+    "index.html": "/Siege_DAPP/index.html",
+    "precache-manifest.7845521a5c469957d1bba73cfce3dccb.js": "/Siege_DAPP/precache-manifest.7845521a5c469957d1bba73cfce3dccb.js",
+    "service-worker.js": "/Siege_DAPP/service-worker.js",
+    "static/css/main.a24077a4.chunk.css.map": "/Siege_DAPP/static/css/main.a24077a4.chunk.css.map",
+    "static/media/logo.svg": "/Siege_DAPP/static/media/logo.5d5d9eef.svg"
+  }
+}
