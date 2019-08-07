@@ -1,0 +1,96 @@
+.ACopendiv {
+    height:644px;
+    width:604px;
+    background:url(../../image/Map/AttackChoice/bg.png);
+    background-position: center center;
+    background-size: 100%;
+
+}
+.ACoutside{
+    z-index: 920;
+    position: absolute;
+    left: 0%;
+    top: 0%;
+    height:100%;
+    width:100%;
+    min-width: 1920px;
+}
+.ACcloseButton{
+    height:80px;
+    width:102%;
+    margin-top:36px;
+}
+.ACclose{
+    background:url(../../image/Auction/Close.png);
+    background-position: center center;
+    background-size: 100%;
+    width: 25px;
+    height:25px;
+    cursor: pointer;
+}
+.ACword{
+    color: white;
+    font-size: 12px;
+    width:420px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.ACbutton{
+    width:117px;
+    height:33px;
+    background:url(../../image/Map/AttackChoice/attack.png);
+    background-position: center center;
+    background-size: 100%;
+    cursor: pointer;
+}
+.ACinputData{
+    height:18px;
+    padding: 0px;
+    margin: 15px 0px 15px 10px;
+    border:0px;
+    background: rgba(24,16,12,0.8);
+    width:400px;
+    color:#efefef;
+    font-size: 0.5rem;
+}
+.ACinfoWord{
+    height:38px;
+    padding: 0px;
+    margin: 0px;
+    border:0px;
+    width:38px;
+    background:url(../../image/Map/AttackChoice/DownArrow.png) no-repeat;
+    background-position: center center;
+    background-size: 80%;
+    color:white;
+}
+.ACinfoBar{
+    width:489px;
+    margin:0px 0px;
+}
+.AClist{
+    width:500px;
+    height:340px;
+    flex-wrap: wrap;
+    overflow-y: scroll;
+    margin-bottom: 32px;
+}
+.AClist::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 24px;     /*高宽分别对应横竖滚动条的尺寸*/
+    background: url(../../image/Auction/bar/scrollbar.png) no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+.AClist::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+     width:17px;
+     height:40px;
+    background: url(../../image/Auction/bar/Slider.png) no-repeat;
+    background-position: center center;
+    background-size: 100%;
+}
+.AClist::-webkit-scrollbar-track {/*滚动条里面轨道*/
+    
+}
+.AClist::-webkit-scrollbar-button{
+    height:25px;
+}

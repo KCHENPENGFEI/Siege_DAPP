@@ -1,0 +1,25 @@
+.Successopendiv {
+    height:462px;
+    width:342px;
+    background:url(../../image/result/bg.png);
+    background-position: center center;
+    background-size: 100%;
+
+}
+.Successoutside{
+    z-index: 920;
+    position: absolute;
+    left: 0%;
+    top: 0%;
+    height:100%;
+    width:100%;
+    min-width: 1920px;
+}
+.SuccessTopBar{
+    width:618px;
+    height:256px;
+    background:url(../../image/result/victory.png);
+    background-position: center center;
+    background-size: 100%;
+    margin-top:-203px;
+}

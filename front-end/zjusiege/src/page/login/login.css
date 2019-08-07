@@ -1,0 +1,62 @@
+.login{
+    height:100%;
+    width: 100%;
+
+    background: url(../../image/bg5.png);
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 100%;
+
+}
+.loginInfo{
+    height:40%;
+    width:34%;
+}
+.infoWord{
+    color:white;
+}
+.inputData{
+    height:50px;
+    padding: 0px;
+    margin: 0px;
+    border:0px;
+    background: rgba(24,16,12,0.8);
+    width:400px;
+    color:#efefef;
+    font-size: 1rem;
+}
+.infoBar{
+    margin:12px 0px;
+}
+.checkBox{
+    height:30px;
+    width:30px;
+    margin:0px 20px 0px 0px;
+}
+.infoWord2{
+    font-size: 14px;
+    margin: 0px;
+}
+.LandRButton{
+    height: 58px;
+    width: 215px;
+    margin:0px 29px;
+    cursor: pointer;
+}
+.LButton{
+    background: url(../../image/Button/login.png);
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 100%;
+
+}
+.RButton{
+    background: url(../../image/Button/register.png);
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 100%;
+}
+.RightBar p{
+    font-size: 13px;
+    margin: 0px;
+}

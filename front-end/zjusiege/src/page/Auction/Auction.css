@@ -1,96 +1,89 @@
 .zsAuctionOutSide{
     width:  100%;
     height: 100vh;
-    background:url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1564050401842&di=7ecaf96dc22ce64bba9f84c57df37cd4&imgtype=0&src=http%3A%2F%2Fimg.zcool.cn%2Fcommunity%2F0137255b0cdb45a8012181b07829cd.jpg%403000w_1l_0o_100sh.jpg) no-repeat;
+    background:url(../../image/Auction/background/AuctionBG.png) no-repeat;
     background-size: cover;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
 }
 .zsAuctionInSide{
-    width: 800px;
-    height:800px;
+    width: 873px;
+    height:796px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    background: #ff0000;
+    background: url(../../image/Auction/background/box.png);
 }
 .zsAuctionTitle{
     width: 100%;
-    height:10%;
-    background: #ffff00;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    padding-bottom:2%;
-    font-size: 1rem;
-    font-weight: bolder;
+    height:127px;
+    margin: 0px;
+    border: 0px;
+    padding:0px;
 }
 .zsAuctionRule{
     width:100%;
-    height:14%;
-    background: #ff00ff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    height:72px;
 }
 .zsAuctionRuleContent{
-    width:68%;
+    width:664px;
     height: auto;
-    background: #00ff00;
     text-align: center;
-    font-size: 0.8rem;
+    font-family:SimSun;
+    font-size: 0.9rem;
+    color: white;
 }
 .zsAuctionMain{
     width:100%;
     height:76%;
-    background: #000fff;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
 }
 .zsAuctionMainTitle{
-    width:auto;
-    height:auto;
-    margin:2%;
-    padding:0.2% 4%;
-    background: #ff0000;
+    width:100%;
+    height:72px;
+}
+.MainTitle{
+    width:219px;
+    height:40px;
+    background: url(../../image/Auction/Title.png);
+    margin:14px 0 0 0;
 }
 .zsAuctionMainRanking{
-    width:80%;
-    height:60%;
-    background: #00ff00;
+    width:646px;
+    height:412px;
+    
 }
 .scrolldiv{
-    width: 100%;
-    height: 100%;
-    background: #f00;
+    width: 638px;
+    height: 360px;
     overflow-y: scroll;
+    color: white;
 }
 .scrolldiv::-webkit-scrollbar {/*滚动条整体样式*/
-    width: 15px;     /*高宽分别对应横竖滚动条的尺寸*/
+    width: 29px;     /*高宽分别对应横竖滚动条的尺寸*/
+    background: url(../../image/Auction/bar/scrollbar.png) no-repeat;
+    background-position: center center;
+    background-size: contain;
 }
 .scrolldiv::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
-     -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background: #535353;
+     width:17px;
+     height:40px;
+    background: url(../../image/Auction/bar/Slider.png);
+    background-position: center center;
+    background-size: auto 100%;
 }
 .scrolldiv::-webkit-scrollbar-track {/*滚动条里面轨道*/
-    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background: #EDEDED;
+    
 }
 .scrolldiv::-webkit-scrollbar-button{
-    background:#ff00ff;
+    height:7px;
 }
 
 .zsAuctionMainInfo{
     width:80%;
-    height:20%;
-    background: #EDEDED;
+    height:77px;
     display:flex;
     flex-direction: row;
     justify-content: space-around;
@@ -99,7 +92,7 @@
 .zsAuctionMainInfoTime{
     width: 25%;
     height: 50%;
-    background:#27b356;
+    color: white;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -108,7 +101,6 @@
 .zsAuctionMainInfoTimeTitle{
     width: auto;
     height: auto;
-    background:#187737;
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -117,7 +109,6 @@
 .zsAuctionMainInfoTimeContent{
     width: auto;
     height: auto;
-    background:#17a848;
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -127,7 +118,6 @@
 .zsAuctionMainInfoMoney{
     width: 40%;
     height: 50%;
-    background:#27b356;
     display:flex;
     flex-direction: row;
     justify-content: flex-end;
@@ -137,21 +127,54 @@
 .zsAuctionMainInfoButton{
     width: 25%;
     height: 50%;
-    background:#27b356;
-    display:flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    background:url(../../image/Auction/button.png);
+    background-position: center center;
+    background-size: 100%;
+    cursor: pointer;
 }
 .zsAuctionMainInfoMoneyInput{
-    width:20%;
-    height:20%;
-    background:rgba(184, 21, 21, 255);
+    width:120px;
+    height:30px;
+    color: white;
+    font-size: 1rem;
+    background:rgba(18, 17, 15, 255);
     margin-right: 5%;
     border:none;
 }
 .zsAuctionMainInfoMoneyLogo{
-    background:#ffff00;
-    width: 20px;
-    height:20px;
+    background:url(../../image/Auction/logo-money.png);
+    background-position: center center;
+    background-size: 100%;
+    width: 45px;
+    height:45px;
 }
+.RankingTitle{
+    height:51px;
+    width:100%;
+}
+.RankingTitleReal{
+    height:41px;
+    width:609px;
+    margin-right: 29px;
+    background: url(../../image/Auction/RankingTitle.png);
+}
+.zsAuctionItem{
+    width:609px;
+    height:24px;
+}
+.playerInfo{
+    width:20%;
+}
+.closeButton{
+    width:100%;
+    height:82px;
+}
+.close{
+    background:url(../../image/Auction/Close.png);
+    background-position: center center;
+    background-size: 100%;
+    width: 35px;
+    height:35px;
+    cursor: pointer;
+}
+
