@@ -1,0 +1,178 @@
+.MapOutSide{
+    width:  100%;
+    height: 100vh;
+    background:url(../../image/Map/map3.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+}
+.userInfo{
+    width:400px;
+    height:100%;
+    margin-left: 180px;
+    padding-left:72px;
+}
+.CityInfo{
+    width:510px;
+    height:100%;
+}
+.userBG{
+    width:256px;
+    height:85px;
+    background:url(../../image/Map/User/userBG.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+
+}
+.cityBG{
+    width:246px;
+    height:406px;
+    background:url(../../image/Map/city/citybg.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:105px;
+}
+.enemycityBG{
+    width:191px;
+    height:311px;
+    background:url(../../image/Map/city/Base.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:250px;
+}
+.commonInfo{
+    width:398px;
+    height:135px;
+    background:url(../../image/Map/Info/Body.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+
+}
+.cityPictureBorder{
+    background:url(../../image/Map/city/cityBorder.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:99px;
+}
+.enemycityPictureBorder{
+    background:url(../../image/Map/city/cityBorder.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:12px;
+}
+.cityPicture{
+    width:136px;
+    height:113px;
+    background:url(../../image/Map/city/city.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin:6px;
+}
+.enemycityPicture{
+    width:112px;
+    height:85px;
+    background:url(../../image/Map/city/enemycity.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin:0px;
+}
+.cityName{
+    color:white;
+    font-size:11px;
+    margin-top:7px;
+}
+.enemycityName{
+    width:156px;
+    height:37px;
+    background:url(../../image/Map/city/Combass.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    color:gold;
+    font-size:18px;
+    font-weight: bold;
+    margin-top:18px;
+}
+.cityInfo{
+    width:147px;
+    height:64px;
+    margin-top: 10px;
+    color:white;
+    font-size:12px;
+}
+.enemycityInfo{
+    width:112px;
+    height:81px;
+    margin-top: 15px;
+    color:white;
+    font-size:11px;
+}
+.cityInfo p{
+    margin:0px;
+}
+.enemycityInfo p{
+    margin:0px;
+}
+.cancelButton{
+    width:104px;
+    height:30px;
+    background:url(../../image/Map/city/cancel.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:30px;
+}
+.AttackButton{
+    width:104px;
+    height:30px;
+    background:url(../../image/Map/city/attack.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+    margin-top:15px;
+}
+.SystemInfo{
+    width:398px;
+    height:155px;
+    margin-top:105px;
+}
+.SystemInfoTitle{
+    width:385px;
+    height:15px;
+    padding-left: 13px;
+    padding-top:7px;
+    padding-bottom: 7px;
+
+}
+.SystemInfoTitleReal{
+    width:60px;
+    height:15px;
+    background:url(../../image/Map/Info/title.png) no-repeat;
+    background-position: center center;
+    background-size:cover;
+}
+.commonInfoReal{
+    margin:14px;
+    width:370px;
+    color: white;
+    font-size: 12px;
+    overflow-y: scroll;
+}
+.commonInfoReal p{
+    margin: 0px;
+}
+.commonInfoReal::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 22px;     /*高宽分别对应横竖滚动条的尺寸*/
+    background: url(../../image/Map/bar/scrollbar.png) no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+.commonInfoReal::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    width: 22px; 
+    background: url(../../image/Auction/bar/Slider.png) no-repeat;
+    background-position: center center;
+    background-size: auto 100%;
+}
+.commonInfoReal::-webkit-scrollbar-track {/*滚动条里面轨道*/
+    
+}
+.commonInfoReal::-webkit-scrollbar-button{
+    height:10px;
+    width: 22px; 
+}

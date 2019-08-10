@@ -1,0 +1,12 @@
+.ccOutside{
+    width:231px;
+    height:62px;
+    background: url(../../image/Map/AttackChoice/unchoiced.png);
+    margin:3px 2px;
+}
+.ccOutside2{
+    width:231px;
+    height:62px;
+    background: url(../../image/Map/AttackChoice/choiced.png);
+    margin:3px 2px;
+}

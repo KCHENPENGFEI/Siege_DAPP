@@ -1,0 +1,52 @@
+.opendiv {
+    height:354px;
+    width:474px;
+    background:url(../../image/result/bg.png);
+    background-position: center center;
+    background-size: 100%;
+
+}
+.ASoutside{
+    z-index: 920;
+    position: absolute;
+    left: 0%;
+    top: 0%;
+    height:100%;
+    width:100%;
+    min-width: 1920px;
+}
+.AScloseButton{
+    height:147px;
+    width:102%;
+    margin-top:-5px;
+}
+.ASclose{
+    background:url(../../image/Auction/Close.png);
+    background-position: center center;
+    background-size: 100%;
+    width: 25px;
+    height:25px;
+    cursor: pointer;
+}
+.ASword{
+    color: white;
+    font-size: 1rem;
+    width:265px;
+    text-align: center;
+    margin-bottom: 39px;
+}
+.ASbutton{
+    width:210px;
+    height:56px;
+    background:url(../../image/Auction/success/check.png);
+    background-position: center center;
+    background-size: 100%;
+    cursor: pointer;
+}
+.ASbutton:hover{
+    width:210px;
+    height:56px;
+    background:url(../../image/Auction/success/checkhovered.png);
+    background-position: center center;
+    background-size: 100%;
+}

@@ -1,0 +1,14 @@
+.LoadingOutSide{
+    width:  100%;
+    height: 100vh;
+    background:url(../../image/Loading/bg2.png) no-repeat;
+    background-size: cover;
+    background-position: center center;
+}
+.LoadingWord{
+    width: 764px;
+    height:24px;
+    background:url(../../image/Loading/tips.png) no-repeat;
+    background-size: cover;
+    margin-top: 874px;
+}

@@ -1,0 +1,23 @@
+.MyCheckBoxBG{
+    height: 100%;
+    width: 100%;
+    background:url(./image/CheckBoxbg.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    background-position: center center;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+}
+.MyCheckBoxIn{
+    height: 80%;
+    width: 80%;
+    background:url(./image/Checked.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    background-position: center center;
+}
