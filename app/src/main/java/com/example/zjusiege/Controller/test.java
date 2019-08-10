@@ -1,7 +1,7 @@
 package com.example.zjusiege.Controller;
 
+import cn.hyperchain.sdk.crypto.ECPriv;
 import cn.hyperchain.sdk.rpc.HyperchainAPI;
-import cn.hyperchain.sdk.rpc.account.Account;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,7 +18,7 @@ public class test {
     }
 
 
-    @RequestMapping("test")
+    @RequestMapping("test111")
     public void accountTest() throws Exception {
         HyperchainAPI hyperchain = new HyperchainAPI();
 //        String accountJsonA = HyperchainAPI.newAccountSM2("123");
@@ -128,6 +128,8 @@ public class test {
 //            System.out.println(nodeInfoReturn.getDelay());
 //        }
 
-        Account a = new Account(DEPLOY_ACCOUNT_JSON);
+        ECPriv testAccount = HyperchainAPI.newAccount();
+        log(testAccount.getPrivateKey());
+        String account = HyperchainAPI.newAccountRawSM2();
     }
 }

@@ -30,6 +30,7 @@ public class SiegeUpgrade {
         Account deployAccount = new Account(DEPLOY_ACCOUNT_JSON);
 
         String bin = Utils.readFile("contract/build/Siege.bin");
+
         Transaction transaction = new Transaction(deployAccount.getAddress(), CONTRACT_ADDRESS, bin, 1, VMType.EVM);
         transaction.signWithSM2(DEPLOY_ACCOUNT_JSON, "");
         ReceiptReturn contractUpdateResult = hyperchain.maintainContract(transaction);
