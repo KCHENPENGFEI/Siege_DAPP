@@ -1,12 +1,13 @@
 package com.example.zjusiege.Controller;
 
+import cn.hyperchain.sdk.rpc.HyperchainAPI;
 import com.example.zjusiege.Service.HyperchainService;
 import net.sf.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class SiegeController {
-    public HyperchainService hyperchainService = new HyperchainService();
+    private HyperchainService hyperchainService = new HyperchainService();
 
     // 测试用
     private final String address1 = "65F9B86F4CC7AD56511D7151374A21F0AE016807";
@@ -22,7 +23,7 @@ public class SiegeController {
         Boolean isRegister = params.getBoolean("register");
         if (isRegister){
 //            HyperchainService hyperchainService = new HyperchainService();
-            return hyperchainService.createAccountJson();
+            return hyperchainService.register();
         }
         return "request failed";
     }
@@ -31,7 +32,8 @@ public class SiegeController {
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public String login(@RequestBody JSONObject params) throws Exception{
 //        HyperchainService hyperchainService = new HyperchainService();
-        String result = hyperchainService.login(params);
+        String paramsString = params.toString();
+        String result = hyperchainService.login(paramsString);
         return result;
     }
 
@@ -40,16 +42,109 @@ public class SiegeController {
     public String startGame(@RequestBody JSONObject params) throws  Exception {
         // doSth
 
+        String signature = params.getString("signature");
+
         String[] playersAddresses = new String[]{address1, address2, address3, address4, address5};
-        String result = hyperchainService.startGame(playersAddresses);
+        String result = hyperchainService.startGame(playersAddresses, signature);
         return result;
     }
 
     @ResponseBody
     @RequestMapping(value = "/getPlayersTable", method = RequestMethod.POST)
     public String getPlayersTable(@RequestBody JSONObject params) throws Exception {
-        String result = hyperchainService.getPlayersTable(params);
+
+        String playerAddress = params.getString("playerAddress");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.getPlayersTable1(playerAddress, signature);
         return result;
     }
 
+    /******************************************************  GameItem ***********************************************/
+
+    @ResponseBody
+    @RequestMapping(value = "/createGameItem", method = RequestMethod.POST)
+    public String createGameItem(@RequestBody JSONObject params) throws Exception {
+
+        long initialSupply = params.getLong("initialSupply");
+        String uri = params.getString("uri");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.create(initialSupply, uri, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/issueGameItem", method = RequestMethod.POST)
+    public String issueGameItem(@RequestBody JSONObject params) throws Exception {
+
+        long id = params.getLong("id");
+        String to = params.getString("to");
+        long value = params.getLong("value");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.issue(id, to, value, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/transferGameItem", method = RequestMethod.POST)
+    public String transferGameItem(@RequestBody JSONObject params) throws Exception {
+
+        String from = params.getString("from");
+        String to = params.getString("to");
+        long id = params.getLong("id");
+        long value = params.getLong("value");
+        String data = params.getString("data");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/balanceOfGameItem", method = RequestMethod.POST)
+    public String balanceOfGameItem(@RequestBody JSONObject params) throws Exception {
+
+        String owner = params.getString("owner");
+        long id = params.getLong("id");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.balanceOf(owner, id, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/propertyOfGameItem", method = RequestMethod.POST)
+    public String propertyOfGameItem(@RequestBody JSONObject params) throws Exception {
+
+        String owner = params.getString("owner");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.propertyOf(owner, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getUriGameItem", method = RequestMethod.POST)
+    public String getUriGameItem(@RequestBody JSONObject params) throws Exception {
+
+        long id = params.getLong("id");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.getUri(id, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/rtest", method = RequestMethod.POST)
+    public String test(@RequestBody JSONObject params) throws Exception {
+
+        String accountJson = "";
+        if (params.getBoolean("register")) {
+            HyperchainAPI hyperchainAPI = new HyperchainAPI();
+            accountJson = HyperchainAPI.newAccountRawSM2();
+        }
+        return accountJson;
+    }
 }
