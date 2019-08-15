@@ -105,7 +105,7 @@ public class HyperchainService {
         log("调用login: " + decodeResult);
 
         if (code == 0) {
-            return "loginSuccess";
+            return decodeResult;
         }
         else if (code == -32005) {
             return "contract calling error";
@@ -248,7 +248,7 @@ public class HyperchainService {
         log("调用safeTransferFrom: " + decodeResult);
 
         if (code == 0) {
-            return decodeResult;
+            return "transfer success";
         }
         else if (code == -32005) {
             return "contract calling error";

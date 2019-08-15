@@ -25,6 +25,11 @@ public class SiegeController {
     private final String address4 = "E524B1DC11951BAEF0A58603AB2D2BB3072282A8";
     private final String address5 = "EB24F9CD77222EAB3E5E5F9B785A208530599FE3";
 
+
+
+    //uri 定义
+
+
 //    private HttpServletRequest request;
 //    private HttpSession session;
 //
@@ -49,13 +54,14 @@ public class SiegeController {
 
     @ResponseBody
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public String register(@RequestBody JSONObject params) throws Exception{
+    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
 
         final String sig = "https://siege-token-sig-1";
         final long value = 100;
         boolean isRegister = params.getBoolean("register");
         if (isRegister){
             try {
+                // 考虑加入request验证，防止玩家恶意注册多个账号
                 // 注册新账号
                 String newAccountString = hyperchainService.register();
                 JSONObject newAccountJson = JSONObject.fromObject(newAccountString);
@@ -64,6 +70,9 @@ public class SiegeController {
                 // 获取指定URI的id，此处为SIG金币，玩家注册后，向其分发SIG
                 String getIdResult = hyperchainService.getId(sig, DEPLOY_ACCOUNT_JSON);
                 long id = Long.valueOf(getValue(getIdResult));
+                // 将uri和id的映射写入session
+                session.setAttribute(sig, id);
+
                 String issueResult = hyperchainService.issue(id, address, value, DEPLOY_ACCOUNT_JSON);
                 if (issueResult.equals("issue success")) {
                     return newAccountString;
@@ -83,19 +92,17 @@ public class SiegeController {
 
     @ResponseBody
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public String login(@RequestBody JSONObject params) throws Exception{
+    public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
         String paramsString = params.toString();
         try {
             // 验证玩家是否注册信息，保证gameId = 0
             String loginResult = hyperchainService.login(paramsString);
             int gameId = Integer.valueOf(getValue(loginResult));
-
-            if (gameId == 0) {
-                return "login success";
-            }
-            else {
-                return "login failed";
-            }
+            // 数据放入session中
+            session.setAttribute("isLogin", true);
+            session.setAttribute("playerAddress", params.getString("address"));
+            session.setAttribute("gameId", gameId);
+            return "login success";
         } catch (Exception e) {
             System.out.println("Got a Exception：" + e.getMessage());
             return "login failed";
@@ -104,19 +111,48 @@ public class SiegeController {
 
     @ResponseBody
     @RequestMapping(value = "/startGame", method = RequestMethod.POST)
-    public String startGame(@RequestBody JSONObject params) throws  Exception {
+    public String startGame(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws  Exception {
+
+        // 验证登陆
+        try {
+            boolean isLogin = (boolean) session.getAttribute("isLogin");
+            if (!isLogin) throw new AssertionError();
+        } catch (Exception e) {
+            System.out.println("Got a Exception：" + e.getMessage());
+            return "login expired";
+        }
 
         // 缴纳入场费50SIG
         String from = params.getString("playerAddress");
         String to = deployAccount.getAddress();
-
-        // doSth
-
+        String sig = "https://siege-token-sig-1";
+        long id;
+        try {
+            id = (long) session.getAttribute(sig);
+        } catch (Exception e) {
+            // 从区块链上查找
+            String getIdResult = hyperchainService.getId(sig, DEPLOY_ACCOUNT_JSON);
+            id = Long.valueOf(getValue(getIdResult));
+            // 将uri和id的映射写入session
+            session.setAttribute(sig, id);
+        }
+        long value = 50;
+        String data = "startGame";
         String signature = params.getString("signature");
+        try {
+            String transferResult = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
+            if (transferResult.equals("transfer success")) {
+                // 将玩家加入匹配队列中
 
-        String[] playersAddresses = new String[]{address1, address2, address3, address4, address5};
-        String result = hyperchainService.startGame(playersAddresses, signature);
-        return result;
+                return "transfer success";
+            }
+            else {
+                return "transfer failed";
+            }
+        } catch (Exception e) {
+            System.out.println("Got a Exception：" + e.getMessage());
+            return "startGame failed";
+        }
     }
 
     @ResponseBody
