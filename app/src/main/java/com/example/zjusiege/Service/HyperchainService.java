@@ -16,7 +16,7 @@ import java.util.List;
 public class HyperchainService {
 
     private final String DEPLOY_ACCOUNT_JSON = "{\"address\":\"11BD06F184F3767FC02C7F27E812F51BC6F28B39\",\"publicKey\":\"04D46EDF9AF28D2E911816973805B686539517177EE0598A34A21FA101F511B7AEE9E987509EE033CB1D6C222F44B86C37EC8869F93A551A1CF262D267A0668D56\",\"privateKey\":\"00C744D486012CBE1F32F618967DBCE69B706F9D74FC456A1430EFB94CA43E68AB\",\"privateKeyEncrypted\":false}";
-    public final String CONTRACT_ADDRESS = "0x98242162bfae11dff6a5132ccf67954981e920ef";
+    public final String CONTRACT_ADDRESS = "0xb168af3bb6f3ee53fc0b249bd8b62f5ca0b7f6bb";
     public final String GAME_ITEM_CONTRACT_ADDRESS = "0x429f382e15054439b0bc4fc1139e729d4dc5e578";
 
     private final String ACCOUNT1 = "{\"address\":\"8BCD0D5A2F1E1EE9DBAF9D8C1DCB040EF7F99B6E\",\"publicKey\":\"04572E3C237DD4EB47575F4EE310DF6DE8CBC3608A61550E7F9F8913F662A38CBB5D12A6C3DD40E17AD65983E52C21433446BD8A6F4A4B8CAA1C1B2FBB81D66197\",\"privateKey\":\"00FFBE1052A8033A0F7B2D6FAADC9CE45DB7A92F3A4AB33D15695445F6F8EB1581\",\"privateKeyEncrypted\":false}";
@@ -157,6 +157,34 @@ public class HyperchainService {
         String rawReturn = receiptReturn.getRet();
         String decodeResult = FunctionDecode.resultDecode("getPlayersTablePart1", siegeAbi, rawReturn);
         log("调用getPlayersTablePart1: " + decodeResult);
+
+        if (code == 0) {
+            return decodeResult;
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String getCitiesTable(long gameId, long cityId, String signAccountString) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        Account signAccount = new Account(signAccountString);
+
+        FuncParamReal _gameId = new FuncParamReal("uint64", gameId);
+        FuncParamReal _cityId = new FuncParamReal("uint64", cityId);
+        String payloadWithParam = FunctionEncode.encodeFunction("getCitiesTable", _gameId, _cityId);
+        Transaction transaction = new Transaction(signAccount.getAddress(), CONTRACT_ADDRESS, payloadWithParam, false);
+        transaction.signWithSM2(signAccountString, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("getCitiesTable", siegeAbi, rawReturn);
+        log("调用getCitiesTable: " + decodeResult);
 
         if (code == 0) {
             return decodeResult;

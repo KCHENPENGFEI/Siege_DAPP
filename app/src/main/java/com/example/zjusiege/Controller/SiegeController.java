@@ -25,6 +25,9 @@ public class SiegeController {
     private final String address4 = "E524B1DC11951BAEF0A58603AB2D2BB3072282A8";
     private final String address5 = "EB24F9CD77222EAB3E5E5F9B785A208530599FE3";
 
+    private List<String> matchQueue = new ArrayList<>();
+    private List<String> matchQueueBak = new ArrayList<>();
+
 
 
     //uri 定义
@@ -143,8 +146,22 @@ public class SiegeController {
             String transferResult = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
             if (transferResult.equals("transfer success")) {
                 // 将玩家加入匹配队列中
-
-                return "transfer success";
+                int matchResult = match(from);
+                if (matchResult == 1) {
+                    return "match success";
+                }
+                else if (matchResult == -1) {
+                    return "already in match queue";
+                }
+                else if (matchResult == 0) {
+                    return "match waiting";
+                }
+                else if (matchResult == -2){
+                    return "match error";
+                }
+                else {
+                    return "unknown error";
+                }
             }
             else {
                 return "transfer failed";
@@ -155,6 +172,27 @@ public class SiegeController {
         }
     }
 
+//    @ResponseBody
+//    @RequestMapping(value = "/pipei", method = RequestMethod.POST)
+//    public String pipei(@RequestBody JSONObject params) throws Exception {
+//
+//        String playerAddress = params.getString("playerAddress");
+//        int len = pipei.size();
+//        assert (len < 50);
+//        if (len == 49) {
+//            pipei.add(playerAddress);
+//            System.out.println(pipei.get(0));
+//            System.out.println(pipei.get(1));
+//            System.out.println(pipei.get(2));
+//            pipei.clear();
+//            return "匹配成功";
+//        }
+//        else {
+//            pipei.add(playerAddress);
+//            return "";
+//        }
+//    }
+
     @ResponseBody
     @RequestMapping(value = "/getPlayersTable", method = RequestMethod.POST)
     public String getPlayersTable(@RequestBody JSONObject params) throws Exception {
@@ -164,6 +202,18 @@ public class SiegeController {
 
         String result = hyperchainService.getPlayersTable1(playerAddress, signature);
         return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getCitiesTable", method = RequestMethod.POST)
+    public String getCitiesTable(@RequestBody JSONObject params) throws Exception {
+
+        long gameId = params.getLong("gameId");
+        long cityId = params.getLong("cityId");
+        String signature = params.getString("signature");
+
+        String result = hyperchainService.getCitiesTable(gameId, cityId, signature);
+        return "";
     }
 
     /******************************************************  GameItem ***********************************************/
@@ -349,6 +399,42 @@ public class SiegeController {
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
             return new ArrayList<>();
+        }
+    }
+
+    private int match(String playerAddress) throws Exception {
+        int len = matchQueue.size();
+        // 暂时使用5人匹配做测试
+        assert (len < 5);
+        // 检查是否已经在匹配队列中
+        if (matchQueue.contains(playerAddress)) {
+            // 已经在匹配中，返回错误
+            return -1;
+        }
+        else {
+            // 将其加入匹配队列
+            if (len == 4) {
+                matchQueue.add(playerAddress);
+                String[] array = new String[matchQueue.size()];
+                for (int i = 0; i < matchQueue.size(); ++i) {
+                    array[i] = matchQueue.get(i);
+                }
+                String result = hyperchainService.startGame(array, DEPLOY_ACCOUNT_JSON);
+                if (result.equals("startGameSuccess")) {
+                    matchQueue.clear();
+                    // 匹配人数满，匹配成功
+                    return 1;
+                }
+                else {
+                    // 匹配过程出错
+                    return -2;
+                }
+            }
+            else {
+                matchQueue.add(playerAddress);
+                // 加入队列，匹配等待
+                return 0;
+            }
         }
     }
 }
