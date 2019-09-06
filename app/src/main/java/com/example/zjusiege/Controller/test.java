@@ -2,6 +2,7 @@ package com.example.zjusiege.Controller;
 
 import cn.hyperchain.sdk.crypto.ECPriv;
 import cn.hyperchain.sdk.rpc.HyperchainAPI;
+import com.example.zjusiege.WebSocket.SiegeBattle;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -131,5 +132,12 @@ public class test {
         ECPriv testAccount = HyperchainAPI.newAccount();
         log(testAccount.getPrivateKey());
         String account = HyperchainAPI.newAccountRawSM2();
+    }
+
+    @RequestMapping("/duizhan")
+    public String duizahn() {
+        SiegeBattle siegeWebSocket = new SiegeBattle();
+
+        return "ok";
     }
 }
