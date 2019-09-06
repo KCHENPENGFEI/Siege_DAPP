@@ -25,12 +25,7 @@ contract Siege {
 	uint256 CITY_PRICE;
 	uint256 SOLDIER_NUM;
 	uint256 INTERVAL;
-	uint256 INTERVAL_NUM;  // 300 / 10
-
-	// address deploy_address = 0x72ba7d8e73fe8eb666ea66babc8116a41bfb10e2;
-	// gameItem合约地址
-	//address gameItemAddr = 0x429F382e15054439B0Bc4Fc1139E729D4dC5E578;
-	//address siegeTeamAddr = 0x11BD06F184F3767Fc02c7f27E812f51BC6f28b39;
+	uint256 INTERVAL_NUM;
 
 	// root地址
 	address rootAddr;
@@ -251,25 +246,11 @@ contract Siege {
 		require(soldiersPoint[SOLDIER_NUM] != 0, "please set soldiersPoint");
 		require(bytes(cityName[CITY_NUM]).length != 0, "please set cityName");
 		require(cityDefenseIndex[CITY_NUM] != 0, "please set cityDefenseIndex");
+
+		// 资产地址检查
+		require(gameAssetAddr != address(0x0), "please set asset contract address first");
 		_;
 	}
-
-	// gameInfo gameInfoInit = gameInfo({
-	// 	round_id : 0,
-	// 	all_soldiers_point : 0,
-	// 	current_soldiers_point : 0,
-	// 	solidity_quantity : 0,
-	// 	soldier_selected : 0,
-	// 	stage : gameStage.RUNNING
-	// });
-
-	// gameInfoInit.round_id = 0;
-	// gameInfoInit.all_soldiers_point = 0;
-	// gameInfoInit.current_soldiers_point = 0;
-	// gameInfoInit.solidity_quantity = 0;
-	// gameInfoInit.soldier_selected = 0;
-	// gameInfoInit.stage = RUNNING;
-
 
 	/**
         @notice 设置游戏资产合约地址
@@ -384,53 +365,22 @@ contract Siege {
     	players[playerAddress] = true;
 
     	// 初始化玩家信息
-  //   	playerInfo memory p;
-  //   	gameInfo memory g = gameInfo({
-		// 	round_id: 0,
-		// 	all_soldiers_point: 0,
-		// 	current_soldiers_point: 0,
-		// 	soldiers_quantity: 0,
-		// 	soldiers_cellar: new uint256[](0),
-		// 	soldier_selected: 0,
-		// 	game_stage: gameStage.RUNNING
-		// });
-
-  //   	p.player_address = playerAddress;
-  //   	p.game_id = 0;
-  //   	p.is_attacker = false;
-  //   	p.is_defender = false;
-  //   	p.opponent = address(0x0);
-  //   	p.be_attacked_request = false;
-  //   	p.before_battle = false;
-  //   	p.in_battle = false;
-  //   	p.own_city_id = 0;
-  //   	p.game_data[1] = g;
-
-    	// playersTable[playerAddress] = p;
-    	// gameInfo[] memory aa = new gameInfo[](0);
-    	playersTable[playerAddress] = playerInfo({
-    		player_address: playerAddress,
-    		game_id: 0,
-    		is_attacker: false,
-    		is_defender: false,
-    		opponent: address(0x0),
-    		be_attacked_request: false,
-    		before_battle: false,
-    		in_battle: false,
-    		own_city_id: 0,
-    		pointer: 0
-    	});
-  //   	playersTable[playerAddress].game_id = 0;
-		// playersTable[playerAddress].is_attacker = false;
-		// playersTable[playerAddress].is_defender = false;
-		// playersTable[playerAddress].opponent = address(0x0);
-		// playersTable[playerAddress].be_attacked_request = false;
-		// playersTable[playerAddress].before_battle = false;
-		// playersTable[playerAddress].in_battle = false;
-		// playersTable[playerAddress].own_city_id = 0;
-		// playersTable[playerAddress].game_data = gameInfoInit;
+		// playersTable[playerAddress] = playerInfo({
+  //   		player_address: playerAddress,
+  //   		game_id: 0,
+  //   		is_attacker: false,
+  //   		is_defender: false,
+  //   		opponent: address(0x0),
+  //   		be_attacked_request: false,
+  //   		before_battle: false,
+  //   		in_battle: false,
+  //   		own_city_id: 0,
+  //   		pointer: 0
+  //   	});
+    	initPlayerData(playerAddress);
 		return true;
     }
+
 	/**
         @notice 玩家登录。检查玩家是否注册，并且返回gameId
         @param playerAddress      玩家地址
@@ -562,21 +512,23 @@ contract Siege {
 		}
 
 		// 初始化globalTable表数据
-		globalTable[gameId].cities_remain = CITY_NUM;
-		globalTable[gameId].game_stage = gameStage.BIDDING;
-		globalTable[gameId].bonus_pool = playerAddresses.length * ENTER_FEE;
-		globalTable[gameId].produce_rate = 0;
+		// globalTable[gameId].cities_remain = CITY_NUM;
+		// globalTable[gameId].game_stage = gameStage.BIDDING;
+		// globalTable[gameId].bonus_pool = playerAddresses.length * ENTER_FEE;
+		// globalTable[gameId].produce_rate = 0;
+		initGlobalTable(gameId);
 
 		// 初始化citiesTable表数据
 		for (uint256 i = 1; i <= CITY_NUM; ++i)
 		{
-			citiesTable[gameId][i].city_id = i;
-			citiesTable[gameId][i].city_name = cityName[i];
-			citiesTable[gameId][i].defense_index = cityDefenseIndex[i];
-			citiesTable[gameId][i].realtime_price = CITY_PRICE;
-			citiesTable[gameId][i].if_be_occupied = false;
-			citiesTable[gameId][i].belong_player = address(0x0);
-			citiesTable[gameId][i].produced_bonus = 0;
+			// citiesTable[gameId][i].city_id = i;
+			// citiesTable[gameId][i].city_name = cityName[i];
+			// citiesTable[gameId][i].defense_index = cityDefenseIndex[i];
+			// citiesTable[gameId][i].realtime_price = CITY_PRICE;
+			// citiesTable[gameId][i].if_be_occupied = false;
+			// citiesTable[gameId][i].belong_player = address(0x0);
+			// citiesTable[gameId][i].produced_bonus = 0;
+			initCitiesTable(gameId, i);
 		}
 		return gameId;
 	}
@@ -1115,6 +1067,7 @@ contract Siege {
 	function settlement(uint256 gameId, address[] calldata playerAddresses, string calldata symbol) external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.SETTLING, "game is not in settlement stage");
+		require(playerAddresses.length == PLAYER_NUM, "player number not match");
 
 		for (uint256 i = 0; i < playerAddresses.length; ++i) {
 			address playerAddress = playerAddresses[i];
@@ -1131,11 +1084,26 @@ contract Siege {
 		}
 	}
 
-	function endGame(uint256 gameId) public onlyRoot() {
+	/**
+        @notice 游戏结束，清除数据
+        @param gameId          游戏id
+        @param playerAddresses 该场游戏所有玩家列表地址
+    */
+	function endGame(uint256 gameId, address[] calldata playerAddresses) external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.END, "game is not in end stage");
+		require(playerAddresses.length == PLAYER_NUM, "player number not match");
 
+		clearGlobalTable(gameId);
+		clearCitiesTable(gameId);
 
+		// 删除gameIdArray中指定gameId
+		gameIdArray[gameId] = 0;
+
+		// 清除玩家数据
+		for (uint256 i = 0; i < playerAddresses.length; ++i) {
+			clearPlayerData(playerAddresses[i]);
+		}
 	}
 
 	/**
@@ -1261,8 +1229,33 @@ contract Siege {
     	globalTable[gameId] = GI;
     }
 
+    function initCitiesTable(uint256 gameId, uint256 cityId) internal {
+    	citiesTable[gameId][cityId].city_id = cityId;
+		citiesTable[gameId][cityId].city_name = cityName[cityId];
+		citiesTable[gameId][cityId].defense_index = cityDefenseIndex[cityId];
+		citiesTable[gameId][cityId].realtime_price = CITY_PRICE;
+		citiesTable[gameId][cityId].if_be_occupied = false;
+		citiesTable[gameId][cityId].belong_player = address(0x0);
+		citiesTable[gameId][cityId].produced_bonus = 0;
+    }
+
+    function clearCitiesTable(uint256 gameId) internal {
+    	cityInfo memory CI = cityInfo({
+    		city_id: 0,
+    		city_name: "",
+    		defense_index: 0,
+    		realtime_price: 0,
+    		if_be_occupied: false,
+    		belong_player: address(0x0),
+    		produced_bonus: 0
+    	});
+    	for (uint256 i = 0; i < CITY_NUM + 1; ++i) {
+    		citiesTable[gameId][i] = CI;
+    	}
+    }
+
     function clearGameData(playerInfo storage player) internal {
-    	gameInfo memory g = gameInfo({
+    	gameInfo memory GI = gameInfo({
     		round_id: 0,
 			all_soldiers_point: 0,
 			current_soldiers_point: 0,
@@ -1275,7 +1268,35 @@ contract Siege {
     	uint256 pointer = player.pointer;
     	uint256 newPointer = incPointer(pointer);
     	player.pointer = newPointer;
-    	player.game_data[newPointer] = g;
+    	player.game_data[newPointer] = GI;
+    }
+
+    function initPlayerData(address playerAddress) internal {
+    	playerInfo memory PI = playerInfo({
+    		player_address: playerAddress,
+    		game_id: 0,
+    		is_attacker: false,
+    		is_defender: false,
+    		opponent: address(0x0),
+    		be_attacked_request: false,
+    		before_battle: false,
+    		in_battle: false,
+    		own_city_id: 0,
+    		pointer: 0
+    	});
+    	playersTable[playerAddress] = PI;
+    }
+
+    function clearPlayerData(address playerAddress) internal {
+    	playerInfo storage player = playersTable[playerAddress];
+    	player.game_id = 0;
+    	player.is_attacker = false;
+    	player.is_defender = false;
+    	player.opponent = address(0x0);
+    	player.be_attacked_request = false;
+    	player.before_battle = false;
+    	player.in_battle = false;
+    	player.own_city_id = 0;
     }
 
     function incPointer(uint256 pointer) internal pure returns (uint256){
@@ -1390,13 +1411,6 @@ contract Siege {
     		}
     	}
     }
-
-
-
-
-	// function getGlobalTable() public view returns (uint256){
-	// 	return globalTable.cities_remain;
-	// }
 }
 
 
