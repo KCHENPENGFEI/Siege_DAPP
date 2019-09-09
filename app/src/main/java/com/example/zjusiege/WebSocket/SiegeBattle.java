@@ -63,11 +63,13 @@ public class SiegeBattle {
     /**
      * 收到客户端消息后调用的方法
      *
-     * @param params 客户端发送过来的消息*/
-    @OnMessage
-    public void receiveMsg(@PathParam("battleId") String battleId, JSONObject params, Session session) {
+     * */
 
+    public void receiveMsg(@PathParam("battleId") String battleId, JSONObject params, Session session) throws Exception {
+        String msg = params.getString("add");
+        session.getBasicRemote().sendText(msg);
     }
+
     /**
      * 发生错误时调用
      */

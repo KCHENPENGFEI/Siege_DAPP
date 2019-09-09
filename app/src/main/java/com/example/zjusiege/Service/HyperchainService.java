@@ -197,6 +197,32 @@ public class HyperchainService {
         }
     }
 
+    /*********************************************  Siege Params Configuration **************************************/
+    public String setPrecision(int precision) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _precision = new FuncParamReal("uint256", precision);
+        String payloadWithParams = FunctionEncode.encodeFunction("setPrecision", _precision);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), CONTRACT_ADDRESS, payloadWithParams, false);
+        transaction.signWithSM2(DEPLOY_ACCOUNT_JSON, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("setPrecision", siegeAbi, rawReturn);
+        log("调用setPrecision: " + decodeResult);
+
+        if (code == 0) {
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     /******************************************************  GameItem ***********************************************/
     public String create(long initialSupply, String uri, String signAccountString) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
@@ -255,25 +281,25 @@ public class HyperchainService {
         }
     }
 
-    public String safeTransferFrom(String from, String to, long id, long value, String data, String signAccountString) throws Exception {
+    public String transfer(String from, String to, long value, String symbol, String data, String signAccountString) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
         Account signAccount = new Account(signAccountString);
 
         FuncParamReal _from = new FuncParamReal("address", from);
         FuncParamReal _to = new FuncParamReal("address", to);
-        FuncParamReal _id = new FuncParamReal("uint256", id);
         FuncParamReal _value = new FuncParamReal("uint256", value);
+        FuncParamReal _symbol = new FuncParamReal("string", symbol);
         FuncParamReal _data = new FuncParamReal("bytes", data.getBytes());
-        String payloadWithParams = FunctionEncode.encodeFunction("safeTransferFrom", _from, _to, _id, _value, _data);
+        String payloadWithParams = FunctionEncode.encodeFunction("transfer", _from, _to,  _value, _symbol, _data);
         Transaction transaction = new Transaction(signAccount.getAddress(), GAME_ITEM_CONTRACT_ADDRESS, payloadWithParams, false);
         transaction.signWithSM2(signAccountString, "");
 
         ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
         int code = receiptReturn.getRawcode();
         String rawReturn = receiptReturn.getRet();
-        String decodeResult = FunctionDecode.resultDecode("safeTransferFrom", gameItemAbi, rawReturn);
-        log("调用safeTransferFrom: " + decodeResult);
+        String decodeResult = FunctionDecode.resultDecode("transfer", gameItemAbi, rawReturn);
+        log("transfer: " + decodeResult);
 
         if (code == 0) {
             return "transfer success";

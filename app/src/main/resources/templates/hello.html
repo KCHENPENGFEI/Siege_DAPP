@@ -9,6 +9,8 @@ Welcome<br/>
 <input id="text" type="text" /><button onclick="send()">Send</button>    <button onclick="closeWebSocket()">Close</button>
 <div id="message">
 </div>
+<div id="msg">
+</div>
 </body>
 
 <script type="text/javascript">
@@ -16,7 +18,8 @@ Welcome<br/>
 
     //判断当前浏览器是否支持WebSocket
     if('WebSocket' in window){
-        websocket = new WebSocket("ws://localhost:8088/webSocket");
+        websocket = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
+        //websocket1 = new WebSocket("ws://localhost:8088/WebSocket/Siege");
     }
     else{
         alert('Not support websocket')
@@ -31,6 +34,10 @@ Welcome<br/>
     websocket.onopen = function(event){
         setMessageInnerHTML("open");
     }
+
+    //websocket1.onopen = function(event){
+      //  setMessageInnerHTML1("open1");
+    //}
 
     //接收到消息的回调方法
     websocket.onmessage = function(event){
@@ -52,6 +59,10 @@ Welcome<br/>
         document.getElementById('message').innerHTML += innerHTML + '<br/>';
     }
 
+    function setMessageInnerHTML1(innerHTML){
+        document.getElementById('msg').innerHTML += innerHTML + '<br/>';
+    }
+
     //关闭连接
     function closeWebSocket(){
         websocket.close();
@@ -60,7 +71,13 @@ Welcome<br/>
     //发送消息
     function send(){
         var message = document.getElementById('text').value;
-        websocket.send(message);
+        var message = {
+         time: new Date(),
+         address: message,
+         clientId: "asdfp8734rew"
+         };
+        websocket.send(JSON.stringify(message));
+        //websocket.send(message);
     }
 </script>
 </html>

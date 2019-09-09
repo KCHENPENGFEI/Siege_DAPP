@@ -112,65 +112,65 @@ public class SiegeController {
         }
     }
 
-    @ResponseBody
-    @RequestMapping(value = "/startGame", method = RequestMethod.POST)
-    public String startGame(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws  Exception {
-
-        // 验证登陆
-        try {
-            boolean isLogin = (boolean) session.getAttribute("isLogin");
-            if (!isLogin) throw new AssertionError();
-        } catch (Exception e) {
-            System.out.println("Got a Exception：" + e.getMessage());
-            return "login expired";
-        }
-
-        // 缴纳入场费50SIG
-        String from = params.getString("playerAddress");
-        String to = deployAccount.getAddress();
-        String sig = "https://siege-token-sig-1";
-        long id;
-        try {
-            id = (long) session.getAttribute(sig);
-        } catch (Exception e) {
-            // 从区块链上查找
-            String getIdResult = hyperchainService.getId(sig, DEPLOY_ACCOUNT_JSON);
-            id = Long.valueOf(getValue(getIdResult));
-            // 将uri和id的映射写入session
-            session.setAttribute(sig, id);
-        }
-        long value = 50;
-        String data = "startGame";
-        String signature = params.getString("signature");
-        try {
-            String transferResult = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
-            if (transferResult.equals("transfer success")) {
-                // 将玩家加入匹配队列中
-                int matchResult = match(from);
-                if (matchResult == 1) {
-                    return "match success";
-                }
-                else if (matchResult == -1) {
-                    return "already in match queue";
-                }
-                else if (matchResult == 0) {
-                    return "match waiting";
-                }
-                else if (matchResult == -2){
-                    return "match error";
-                }
-                else {
-                    return "unknown error";
-                }
-            }
-            else {
-                return "transfer failed";
-            }
-        } catch (Exception e) {
-            System.out.println("Got a Exception：" + e.getMessage());
-            return "startGame failed";
-        }
-    }
+//    @ResponseBody
+//    @RequestMapping(value = "/startGame", method = RequestMethod.POST)
+//    public String startGame(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws  Exception {
+//
+//        // 验证登陆
+//        try {
+//            boolean isLogin = (boolean) session.getAttribute("isLogin");
+//            if (!isLogin) throw new AssertionError();
+//        } catch (Exception e) {
+//            System.out.println("Got a Exception：" + e.getMessage());
+//            return "login expired";
+//        }
+//
+//        // 缴纳入场费50SIG
+//        String from = params.getString("playerAddress");
+//        String to = deployAccount.getAddress();
+//        String sig = "https://siege-token-sig-1";
+//        long id;
+//        try {
+//            id = (long) session.getAttribute(sig);
+//        } catch (Exception e) {
+//            // 从区块链上查找
+//            String getIdResult = hyperchainService.getId(sig, DEPLOY_ACCOUNT_JSON);
+//            id = Long.valueOf(getValue(getIdResult));
+//            // 将uri和id的映射写入session
+//            session.setAttribute(sig, id);
+//        }
+//        long value = 50;
+//        String data = "startGame";
+//        String signature = params.getString("signature");
+//        try {
+//            String transferResult = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
+//            if (transferResult.equals("transfer success")) {
+//                // 将玩家加入匹配队列中
+//                int matchResult = match(from);
+//                if (matchResult == 1) {
+//                    return "match success";
+//                }
+//                else if (matchResult == -1) {
+//                    return "already in match queue";
+//                }
+//                else if (matchResult == 0) {
+//                    return "match waiting";
+//                }
+//                else if (matchResult == -2){
+//                    return "match error";
+//                }
+//                else {
+//                    return "unknown error";
+//                }
+//            }
+//            else {
+//                return "transfer failed";
+//            }
+//        } catch (Exception e) {
+//            System.out.println("Got a Exception：" + e.getMessage());
+//            return "startGame failed";
+//        }
+//    }
 
 //    @ResponseBody
 //    @RequestMapping(value = "/pipei", method = RequestMethod.POST)
@@ -216,6 +216,8 @@ public class SiegeController {
         return "";
     }
 
+
+
     /******************************************************  GameItem ***********************************************/
 
     @ResponseBody
@@ -243,20 +245,20 @@ public class SiegeController {
         return result;
     }
 
-    @ResponseBody
-    @RequestMapping(value = "/transferGameItem", method = RequestMethod.POST)
-    public String transferGameItem(@RequestBody JSONObject params) throws Exception {
-
-        String from = params.getString("from");
-        String to = params.getString("to");
-        long id = params.getLong("id");
-        long value = params.getLong("value");
-        String data = params.getString("data");
-        String signature = params.getString("signature");
-
-        String result = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
-        return result;
-    }
+//    @ResponseBody
+//    @RequestMapping(value = "/transferGameItem", method = RequestMethod.POST)
+//    public String transferGameItem(@RequestBody JSONObject params) throws Exception {
+//
+//        String from = params.getString("from");
+//        String to = params.getString("to");
+//        long id = params.getLong("id");
+//        long value = params.getLong("value");
+//        String data = params.getString("data");
+//        String signature = params.getString("signature");
+//
+//        String result = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
+//        return result;
+//    }
 
     @ResponseBody
     @RequestMapping(value = "/balanceOfGameItem", method = RequestMethod.POST)
