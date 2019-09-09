@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./InterfaceAsset.sol";
 import "./SafeMath.sol";
-import "./Utils.sol";
+// import "./Utils.sol";
 import "./strings.sol";
 import "./Address.sol";
 
@@ -95,13 +95,7 @@ contract SiegeAsset is InterfaceAsset {
     	_;
     }
 
-    /**
-        @notice Create a fungible(coin) or non-fungible(nft) token type.
-        @param _issuer  Issuer address
-        @param _value   Token amount
-        @param _symbol  Token symbol
-        @param _type    Token type
-    */
+   
     function create(address _issuer, uint256 _value, string calldata _symbol, uint8 _type) external onlyRoot() {
     	require(assets[_symbol].issuer == address(0x0), "Token has existed");
     	// init the assets table
@@ -118,12 +112,6 @@ contract SiegeAsset is InterfaceAsset {
     	issues[_issuer].push(_symbol);
     }
 
-    /**
-        @notice Issue fungible token (coin).
-        @param _to      Target address
-        @param _value   Token amount
-        @param _symbol  Token symbol
-    */
     function issueCoin(address _to, uint256 _value, string calldata _symbol) external onlyIssuer(_symbol) {
     	gameAsset storage gt = assets[_symbol];
     	require(_to != address(0x0), "_to must be non-zero");
@@ -135,12 +123,6 @@ contract SiegeAsset is InterfaceAsset {
     	addBalance(_to, _value, _symbol);
     }
 
-    /**
-        @notice Issue non-fungible token (nft).
-        @param _to      Target address
-        @param _symbol  Token symbol
-        @param _uris    Universal resource identifier of tokens
-    */
     function issueNFTs(address _to, string calldata _symbol, byte[256][] calldata _uris) external onlyIssuer(_symbol) {
     	gameAsset storage gt = assets[_symbol];
     	require(_uris.length > 0, "uris should not be empty");
@@ -152,7 +134,7 @@ contract SiegeAsset is InterfaceAsset {
     		for (uint256 j = 0; j < 256; ++j) {
     			b[j] = _uris[i][j];
     		}
-    		string memory uri = Utils.bytesToString(b, b.length);
+    		string memory uri = bytesToString(b, b.length);
     		mint(_to, 0, _symbol, uri, byte(0), bytes32(0), bytes32(0));
     	}
     	uint256 quantity = _uris.length;
@@ -160,11 +142,6 @@ contract SiegeAsset is InterfaceAsset {
     	addBalance(_to, quantity, _symbol);
     }
 
-    /**
-        @notice Append issuer public keys.
-        @param _symbol      Token symbol
-        @param _signers     Addresses corresponding to the nft's signature
-    */
     function addSigners(string calldata _symbol, address[] calldata _signers) external onlyIssuer(_symbol) {
     	require(_signers.length > 0, "signer list should not be empty");
     	gameAsset storage gt = assets[_symbol];
@@ -174,13 +151,7 @@ contract SiegeAsset is InterfaceAsset {
     	}
     }
 
-    /**
-        @notice Append signature of NFT for inter-contract transferring.
-        @param _uuids   Batch of token global id
-        @param v        Signature part V
-        @param r        Signature part R
-        @param s        Signature part S
-    */
+    
     function signNFTs( uint256[] calldata _uuids, byte[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external {
     	require(_uuids.length > 0, "nft batch should not be empty");
     	for (uint256 i = 0; i < _uuids.length; ++i) {
@@ -199,14 +170,7 @@ contract SiegeAsset is InterfaceAsset {
     	}
     }
 
-    /**
-        @notice Transfer fungible token (coin).
-        @param _from    Source address
-        @param _to      Target address
-        @param _value   Transfer amount
-        @param _symbol  Token symbol
-        @param _data    Additional data
-    */
+    
     function transfer(address _from, address _to, uint256 _value, string calldata _symbol, bytes calldata _data) external {
     	require(_to != address(0x0), "_to must be non-zero");
     	require(_from == msg.sender || operatorApproval[_from][msg.sender] || operatorApprovalForCoin[_from][msg.sender][_symbol] >= _value,
@@ -218,13 +182,7 @@ contract SiegeAsset is InterfaceAsset {
     	emit TransferCoin(_from, _to, _value);
     }
 
-    /**
-        @notice Transfer batch non-fungible token (nft).
-        @param _from    Source address
-        @param _to      Target address
-        @param _uuids   Global ID of tokens
-        @param _data    Additional data
-    */
+    
     function transferNFTs(address _from, address _to, uint256[] calldata _uuids, bytes calldata _data) external {
     	require(_to != address(0x0), "_to must be non-zero");
     	require(_uuids.length > 0, "nft batch should not be empty");
@@ -245,7 +203,7 @@ contract SiegeAsset is InterfaceAsset {
 
     		// update uuidByOwner
     		uint256[] storage ownerUUIDS = uuidByOwner[_from];
-    		Utils.rmUUIDInArr(ownerUUIDS, uuid);
+    		rmUUIDInArr(ownerUUIDS, uuid);
     		uuidByOwner[_from] = ownerUUIDS;
     		uuidByOwner[_to].push(uuid);
 
@@ -253,20 +211,11 @@ contract SiegeAsset is InterfaceAsset {
     	}
     }
 
-    /**
-        Get balance of a given token for a given address.
-        @param _owner   Onwer of tokens @apram _symbol Token symbol
-        @param _symbol  Token symbol
-    */
+    
     function balanceOf(address _owner, string calldata _symbol) external view returns (uint256) {
     	return balance[_owner][_symbol];
     }
 
-    /**
-        Get supply of a given token for a given symbol and external flag.
-        @param _symbol  Token symbol
-        @param _ext     External flag. `0` means tokens issued by self, `1` means tokens issued by other contracts.
-     */
     function supplyOf(string calldata _symbol, uint8 _ext) external view returns(uint256) {
     	require(_ext == 0 || _ext == 1, "invalid `_ext` param");
     	if (_ext == 0) {
@@ -277,35 +226,25 @@ contract SiegeAsset is InterfaceAsset {
     	}
     }
 
-    /**
-        Returns whether nft exist in contract or not.
-        @param _uuid  Token global id
-     */
     function nftExist(uint256 _uuid) external view returns(bool) {
     	return NFTs[_uuid].uuid != 0;
     }
 
-    /**
-        @notice Enable or disable approval for a third party ("operator") to manage the certain tokens.
-        @param _operator    Address to add to the set of authorized operators
-        @param _value       Token quantity
-        @param _symbol      Token symbol
-        @param _approved    True if the operator is approved, false to revoke approval
-    */
-    function approveCoin(address _operator, uint256 _value, string calldata _symbol, bool _approved) external {
-    	uint256 oldVal = operatorApprovalForCoin[msg.sender][_operator][_symbol];
-    	uint256 newVal = 0;
-    	if (_approved) {
-    		newVal = oldVal.add(_value);
-    	}
-    	else {
-    		require(oldVal > _value, "approved value not enough");
-    		newVal = oldVal.sub(_value);
-    	}
-    	operatorApprovalForCoin[msg.sender][_operator][_symbol] = newVal;
 
-    	emit ApproveForCoin(msg.sender, _operator, _value, _symbol, _approved);
-    }
+    // function approveCoin(address _operator, uint256 _value, string calldata _symbol, bool _approved) external {
+    // 	uint256 oldVal = operatorApprovalForCoin[msg.sender][_operator][_symbol];
+    // 	uint256 newVal = 0;
+    // 	if (_approved) {
+    // 		newVal = oldVal.add(_value);
+    // 	}
+    // 	else {
+    // 		require(oldVal > _value, "approved value not enough");
+    // 		newVal = oldVal.sub(_value);
+    // 	}
+    // 	operatorApprovalForCoin[msg.sender][_operator][_symbol] = newVal;
+
+    // 	emit ApproveForCoin(msg.sender, _operator, _value, _symbol, _approved);
+    // }
 
     function addSupply(string memory _symbol, uint256 _value) internal view {
     	gameAsset memory gt = assets[_symbol];
@@ -344,13 +283,61 @@ contract SiegeAsset is InterfaceAsset {
     function addSign(address _signer, uint256 _uuid, string memory _symbol, byte v, bytes32 r, bytes32 s) internal view returns(bool) {
     	gameNFT memory nft = NFTs[_uuid];
     	require(nft.symbol.toSlice().equals(_symbol.toSlice()), "tokne symbol not match");
-    	if (Utils.verifyNftSign(_signer, _uuid, nft.uri, _symbol, v, r, s)) {
+    	if (verifyNftSign(_signer, _uuid, nft.uri, _symbol, v, r, s)) {
     		nft.v = v;
     		nft.r = r;
     		nft.s = s;
     		return true;
     	}
     	return false;
+    }
+
+    function bytesToString(bytes memory x, uint length) internal pure returns (string memory) {
+        bytes memory bytesString = new bytes(length);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = x[j];
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (uint j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
+    }
+
+    function rmUUIDInArr(uint256[] storage array, uint256 el) internal returns(uint256[] memory) {
+        bool flag = false;
+        for (uint i = 0; i< array.length; i++){
+            if(array[i]==el){
+                flag = true;
+            }
+            if(flag && i != array.length - 1){
+                array[i] = array[i+1];
+            }
+        }
+        if(flag){
+            delete array[array.length-1];
+            array.length--;
+        }
+        return array;
+    }
+
+    function verifyNftSign(
+        address _signer,
+        uint256 _uuid, 
+        string memory _uri,
+        string memory _symbol,
+        byte v, bytes32 r, bytes32 s
+        )
+        internal pure returns (bool){
+        bytes32 params = keccak256(abi.encodePacked(_uuid, _uri, _symbol));
+        string memory prefix = "\x19Ethereum Signed Message:\n32";
+        address rec = ecrecover(keccak256(abi.encodePacked(prefix, params)), uint8(v), r, s);
+        return rec == _signer;
     }
 }
 

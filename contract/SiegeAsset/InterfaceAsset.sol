@@ -76,7 +76,7 @@ interface InterfaceAsset {
         @param _symbol      Token symbol
         @param _approved    True if the operator is approved, false to revoke approval
     */
-    function approveCoin(address _operator, uint256 _value, string calldata _symbol, bool _approved) external;
+    // function approveCoin(address _operator, uint256 _value, string calldata _symbol, bool _approved) external;
 
     /**
         @notice Enable or disable approval for a third party ("operator") to manage the certain tokens.
@@ -84,14 +84,14 @@ interface InterfaceAsset {
         @param _uuids       Global ID of tokens
         @param _approved    Flag list. True if the operator is approved, false to revoke approval
     */
-    function approveNFTs(address _operator, uint256[] calldata _uuids, bool[] calldata _approved) external;
+    // function approveNFTs(address _operator, uint256[] calldata _uuids, bool[] calldata _approved) external;
 
     /**
         Enable or disable approval for a third party ("operator") to manage all of caller's tokens.
         @param _operator Address to add to the set of authorized operators
         @param _approved True if the operator is approved, false to revoke approval
     */
-    function approve(address _operator, bool _approved) external;
+    // function approve(address _operator, bool _approved) external;
 
     /**
         Queries the approval status of an operator for a given owner and uuids.
@@ -99,7 +99,7 @@ interface InterfaceAsset {
         @param _operator    Address to add to the set of authorized operators
         @return             True if the operator is approved, false if not
     */
-    function isApprovedForNFTs(address _owner, address _operator, uint256[] calldata _uuid) external returns (bool);
+    // function isApprovedForNFTs(address _owner, address _operator, uint256[] calldata _uuid) external returns (bool);
 
     /**
         Queries the approval status of an operator for a given owner and uuids.
@@ -108,14 +108,14 @@ interface InterfaceAsset {
         @param _symbol      Token symbol
         @return             True if the operator is approved, false if not
     */
-    function isApprovedForCoin(address _owner, address _operator, string calldata _symbol) external returns(bool);
+    // function isApprovedForCoin(address _owner, address _operator, string calldata _symbol) external returns(bool);
     /**
         Queries the approval status of an operator for a given owner.
         @param _owner       The owner of the tokens
         @param _operator    Address of authorized operator
         @return             True if the operator is approved, false if not
     */
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool);
+    // function isApprovedForAll(address _owner, address _operator) external view returns (bool);
 
     /** Getter interface */
 
