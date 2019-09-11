@@ -155,8 +155,8 @@ contract SiegeAsset is InterfaceAsset {
     function signNFTs( uint256[] calldata _uuids, byte[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external {
     	require(_uuids.length > 0, "nft batch should not be empty");
     	for (uint256 i = 0; i < _uuids.length; ++i) {
-    		gameNFT memory nft = NFTs[_uuids[i]];
-    		gameAsset memory gt = assets[nft.symbol];
+    		gameNFT storage nft = NFTs[_uuids[i]];
+    		gameAsset storage gt = assets[nft.symbol];
     		require(msg.sender == gt.issuer, "only asset issuer can do this action");
     		require(gt.signers.length > 0, "signer list is empty");
     		bool valid = false;
@@ -246,8 +246,8 @@ contract SiegeAsset is InterfaceAsset {
     // 	emit ApproveForCoin(msg.sender, _operator, _value, _symbol, _approved);
     // }
 
-    function addSupply(string memory _symbol, uint256 _value) internal view {
-    	gameAsset memory gt = assets[_symbol];
+    function addSupply(string memory _symbol, uint256 _value) internal {
+    	gameAsset storage gt = assets[_symbol];
     	require(gt.infinite || gt.supply + _value < gt.maxSupply, "supply more than maxSupply");
     	gt.supply = gt.supply.add(_value);
     }
@@ -280,8 +280,8 @@ contract SiegeAsset is InterfaceAsset {
         uuidByOwner[_owner].push(uuid);
     }
 
-    function addSign(address _signer, uint256 _uuid, string memory _symbol, byte v, bytes32 r, bytes32 s) internal view returns(bool) {
-    	gameNFT memory nft = NFTs[_uuid];
+    function addSign(address _signer, uint256 _uuid, string memory _symbol, byte v, bytes32 r, bytes32 s) internal returns(bool) {
+    	gameNFT storage nft = NFTs[_uuid];
     	require(nft.symbol.toSlice().equals(_symbol.toSlice()), "tokne symbol not match");
     	if (verifyNftSign(_signer, _uuid, nft.uri, _symbol, v, r, s)) {
     		nft.v = v;

@@ -70,10 +70,11 @@ Welcome<br/>
 
     //发送消息
     function send(){
-        var message = document.getElementById('text').value;
+        var data = document.getElementById('text').value;
         var message = {
          time: new Date(),
-         address: message,
+         match: true,
+         signature: data,
          clientId: "asdfp8734rew"
          };
         websocket.send(JSON.stringify(message));

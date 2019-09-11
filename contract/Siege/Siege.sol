@@ -24,6 +24,7 @@ contract Siege {
 	uint256 ENTER_FEE;
 	uint256 CITY_PRICE;
 	uint256 SOLDIER_NUM;
+	uint256 DURATION;
 	uint256 INTERVAL;
 	uint256 INTERVAL_NUM;
 
@@ -252,6 +253,42 @@ contract Siege {
 		_;
 	}
 
+	function getPrecision() public returns(uint256) {
+		return(PRECISION);
+	}
+
+	function getCityNum() public returns(uint256) {
+		return(CITY_NUM);
+	}
+
+	function getEnterFee() public returns(uint256) {
+		return(ENTER_FEE);
+	}
+
+	function getCityPrice() public returns(uint256) {
+		return(CITY_PRICE);
+	}
+
+	function getSoldierNum() public returns(uint256) {
+		return(SOLDIER_NUM);
+	}
+
+	function getInterval() public returns(uint256) {
+		return(INTERVAL);
+	}
+
+	function getCityName() public returns(uint256) {
+		return(bytes(cityName[CITY_NUM]).length);
+	}
+
+	function getSo() public returns(uint256) {
+		return(soldiersPoint[SOLDIER_NUM]);
+	}
+
+	function getDe() public returns(uint256) {
+		return(cityDefenseIndex[CITY_NUM]);
+	}
+
 	/**
         @notice 设置游戏资产合约地址
         @param addr      游戏资产合约地址
@@ -283,7 +320,7 @@ contract Siege {
     */
     function setEnterFee(uint256 enterFee) public onlyRoot() {
     	require(PRECISION != 0, "please set precision first");
-    	ENTER_FEE = enterFee * 10 ** PRECISION;
+    	ENTER_FEE = enterFee * PRECISION;
     }
 
     /**
@@ -292,7 +329,7 @@ contract Siege {
     */
     function setCityPrice(uint256 cityPrice) public onlyRoot() {
     	require(PRECISION != 0, "please set precision first");
-    	CITY_PRICE = cityPrice * 10 ** PRECISION;
+    	CITY_PRICE = cityPrice * PRECISION;
     }
 
     /**
@@ -304,12 +341,14 @@ contract Siege {
     }
 
     /**
-        @notice 设置出产率更新时间间隔
+        @notice 设置出产率更新时间间隔以及游戏时间(s)
         @param interval          出产率每隔interval秒(10 s)更新一次
+        @param duration          游戏时长(s)
     */
-    function setInterval(uint256 interval) public onlyRoot() {
+    function setTime(uint256 interval, uint256 duration) public onlyRoot() {
     	INTERVAL = interval;
-    	INTERVAL_NUM = 3600 / interval;
+    	DURATION = duration;
+    	INTERVAL_NUM = duration / interval;
     }
 
     /**
@@ -321,7 +360,7 @@ contract Siege {
     	require(soldiersPointList.length == SOLDIER_NUM + 1, "soldiersPoint length not match");
 
     	for (uint256 i = 0; i < soldiersPointList.length; ++i) {
-    		soldiersPoint[i] = soldiersPointList[i] * 10 ** PRECISION;
+    		soldiersPoint[i] = soldiersPointList[i] * PRECISION;
     	}
     }
 
@@ -329,13 +368,13 @@ contract Siege {
         @notice 设置城池名称
         @param cityNameList             城池名称列表
     */
-    function setCityName(byte[64][] memory cityNameList) public onlyRoot() {
+    function setCityName(bytes32[] memory cityNameList) public onlyRoot() {
     	require(CITY_NUM != 0, "please set the number of city first");
     	require(cityNameList.length == CITY_NUM + 1, "the numbber of city not match");
 
     	for (uint256 i = 0; i < cityNameList.length; ++i) {
-    		bytes memory b = new bytes(64);
-    		for (uint256 j = 0; j < 64; ++j) {
+    		bytes memory b = new bytes(32);
+    		for (uint256 j = 0; j < 32; ++j) {
     			b[j] = cityNameList[i][j];
     		}
     		string memory cityNameStr = bytesToString(b, b.length);
@@ -354,6 +393,13 @@ contract Siege {
     	for (uint256 i = 0; i < cityDefenseIndexList.length; ++i) {
     		cityDefenseIndex[i] = cityDefenseIndexList[i];
     	}
+    }
+
+    /**
+        @notice 获取root地址
+    */
+    function getRoot() public view returns(address) {
+    	return(rootAddr);
     }
 
 	/**
@@ -799,7 +845,7 @@ contract Siege {
 		require(player.before_battle == true, "not in preparing stage");
 
 		require(amount == allSoldiersPoint, "soldiersPoint and soldiersPrice not match");
-		require(amount <= 100 * 10 ** PRECISION && amount >= 30 * 10 ** PRECISION, "invalid bought");
+		require(amount <= 100 * PRECISION && amount >= 30 * PRECISION, "invalid bought");
 
 		// 购买转账，此时奖池不增加，战斗结束后统一结算
 		SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);

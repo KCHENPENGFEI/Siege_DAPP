@@ -8,9 +8,9 @@ public class Config {
     private static Account deployAccount = new Account(deployAccountJson);
 
     // 游戏合约地址
-    private static String contractAddress = "0x604ae11cb00aadb4f7998dc75b8c4b06f9903d44";
+    private static String contractAddress = "0x096044db6676d6d4eeb375186478da4c6e7b3002";
     // 资产地址
-    private static String AssetAddress = "0x8dea8924a7e0c5718220a634eae881ac2c9797e1";
+    private static String AssetAddress = "0x326af0f9b6869264d0a56b671d6a02e9d86c0887";
 
     public static String getDeployAccountJson() {
         return deployAccountJson;

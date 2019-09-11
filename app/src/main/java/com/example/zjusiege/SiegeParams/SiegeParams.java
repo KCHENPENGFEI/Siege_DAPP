@@ -1,14 +1,45 @@
 package com.example.zjusiege.SiegeParams;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class SiegeParams {
+
+    /******************************************************  游戏参数设置 ***********************************************/
     private static int precision = 10000;
     private static int cityNum = 5;
     private static int playerNum = 10;
-    private static int enterFee = 100;
+    private static int enterFee = 50;
     private static int cityPrice = 6;
     private static int soldierNum = 5;
     private static int interval = 10;
     private static int gameDuration = 3600;
+
+    private static List<Integer> soldiersPoint = Arrays.asList(0, 10, 15, 20, 25, 30);
+//    private static List<String> cityName = Arrays.asList(
+//            "长安",
+//            "燕京",
+//            "洛阳",
+//            "金陵",
+//            "荆州",
+//            "汴州",
+//            "临安",
+//            "徐州",
+//            "襄阳",
+//            "汉中",
+//            "咸阳",
+//            "益州",
+//            "晋阳"
+//    );
+    private static List<String> cityName = Arrays.asList(
+            "",
+            "长安",
+            "燕京",
+            "洛阳",
+            "金陵",
+            "荆州"
+    );
+    private static List<Integer> cityDefenseIndex = Arrays.asList(0, 115, 110, 106, 100, 100);
 
     public void setPrecision(int pre) {
         precision = pre;
@@ -43,6 +74,19 @@ public class SiegeParams {
         gameDuration = gd;
     }
 
+    public void setSoldiersPoint(List<Integer> sp) {
+        soldiersPoint = sp;
+    }
+
+    public void setCityName(List<String> cn) {
+        cityName = cn;
+    }
+
+    public void setCityDefenseIndex(List<Integer> cdi) {
+        cityDefenseIndex = cdi;
+    }
+
+
     public static int getEnterFee() {
         return enterFee;
     }
@@ -73,6 +117,30 @@ public class SiegeParams {
 
     public static int getGameDuration() {
         return gameDuration;
+    }
+
+    public static List<Integer> getSoldiersPoint() {
+        return soldiersPoint;
+    }
+
+    public static List<String> getCityName() {
+        return cityName;
+    }
+
+    public static List<Integer> getCityDefenseIndex() {
+        return cityDefenseIndex;
+    }
+
+
+    /******************************************************  游戏细节参数设置 ***********************************************/
+    private static long registrationReward = 100;
+
+    public void setRegistrationReward(long rr) {
+        registrationReward = rr;
+    }
+
+    public static long getRegistrationReward() {
+        return registrationReward;
     }
 
 }

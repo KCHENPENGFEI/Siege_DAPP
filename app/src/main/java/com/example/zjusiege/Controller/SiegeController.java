@@ -1,7 +1,9 @@
 package com.example.zjusiege.Controller;
 
 import cn.hyperchain.sdk.rpc.account.Account;
+import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.SiegeParams.SiegeParams;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
@@ -59,8 +61,11 @@ public class SiegeController {
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
 
-        final String sig = "https://siege-token-sig-1";
-        final long value = 100;
+        final int precision = SiegeParams.getPrecision();
+        final String deployAccountJson = Config.getDeployAccountJson();
+
+        final String symbol = "SIG";   // 以后保存到参数类中
+        final long value = SiegeParams.getRegistrationReward() * precision;
         boolean isRegister = params.getBoolean("register");
         if (isRegister){
             try {
@@ -70,13 +75,8 @@ public class SiegeController {
                 JSONObject newAccountJson = JSONObject.fromObject(newAccountString);
                 // 获取账号地址
                 String address = newAccountJson.getString("address");
-                // 获取指定URI的id，此处为SIG金币，玩家注册后，向其分发SIG
-                String getIdResult = hyperchainService.getId(sig, DEPLOY_ACCOUNT_JSON);
-                long id = Long.valueOf(getValue(getIdResult));
-                // 将uri和id的映射写入session
-                session.setAttribute(sig, id);
-
-                String issueResult = hyperchainService.issue(id, address, value, DEPLOY_ACCOUNT_JSON);
+                // 发放注册奖励
+                String issueResult = hyperchainService.issueCoin(address, value, symbol, deployAccountJson);
                 if (issueResult.equals("issue success")) {
                     return newAccountString;
                 }
@@ -110,6 +110,49 @@ public class SiegeController {
             System.out.println("Got a Exception：" + e.getMessage());
             return "login failed";
         }
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/startGame", method = RequestMethod.POST)
+    public String startGame(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws  Exception {
+        String[] a = new String[]{"D817B5187CCDDDC2DB1B5118BDA5103458E2182E",
+                "A550ABB4D96C7036944AB27F1FCA4438F93920A3",
+                "6754B4E3C346E714195C0DA6B27566F615A0D06C",
+                "545B7E7F41C744F8109847BF4621EBAF7EC56B26",
+                "37908FB0843370549C584EE54EAE1B9FBB1D663D",
+                "94267A422EA798F1573E949B8B17BD821D11E2C1",
+                "F4D1DD19224BAF6BD65B5022E9B04844F25BB609",
+                "E7817E353D66255400BB4AC8460E464EEDE5956A",
+                "B5444F8A2C1BFF6A7DDA3EC7894D37C62B2BDE68",
+                "80EC87A061EB915E52ADB1A4E05B3B7EE69A8DA7"};
+        String result = hyperchainService.startGame(a);
+        return result;
+    }
+
+
+    @ResponseBody
+    @RequestMapping(value = "/get", method = RequestMethod.POST)
+    public String gett() throws Exception {
+        String result1 = hyperchainService.getCity();
+        String result2 = hyperchainService.getSo();
+        String result3 = hyperchainService.getDe();
+        String result4 = hyperchainService.getPrecision();
+        String result5 = hyperchainService.getCityNum();
+        String result6 = hyperchainService.getEnterFee();
+        String result7 = hyperchainService.getCityPrice();
+        String result8 = hyperchainService.getSoldierNum();
+        String result9 = hyperchainService.getInterval();
+
+        System.out.println("result1" + result1);
+        System.out.println("result2" + result2);
+        System.out.println("result3" + result3);
+        System.out.println("result4" + result4);
+        System.out.println("result5" + result5);
+        System.out.println("result6" + result6);
+        System.out.println("result7" + result7);
+        System.out.println("result8" + result8);
+        System.out.println("result9" + result9);
+        return "11";
     }
 
 //    @ResponseBody
@@ -217,59 +260,124 @@ public class SiegeController {
     }
 
 
+    /*********************************************  Siege Params Configuration **************************************/
+
+    @ResponseBody
+    @RequestMapping(value = "/siegeParamsConfig", method = RequestMethod.POST)
+    public String siegeParamsConfig() throws Exception {
+        String assetAddress = Config.getAssetAddress();
+        int precision = SiegeParams.getPrecision();
+        int cityNum = SiegeParams.getCityNum();
+        int enterFee = SiegeParams.getEnterFee();
+        int cityPrice = SiegeParams.getCityPrice();
+        int soldierNum = SiegeParams.getSoldierNum();
+        int interval = SiegeParams.getInterval();
+        int duration = SiegeParams.getGameDuration();
+        List<Integer> soldiersPoint = SiegeParams.getSoldiersPoint();
+        List<String> cityName = SiegeParams.getCityName();
+        List<Integer> cityDefenseIndex = SiegeParams.getCityDefenseIndex();
+
+        try {
+            String result1 = hyperchainService.setAssetAddr(assetAddress);
+            String result2 = hyperchainService.setPrecision(precision);
+            String result3 = hyperchainService.setCityNum(cityNum);
+            String result4 = hyperchainService.setEnterFee(enterFee);
+            String result5 = hyperchainService.setCityPrice(cityPrice);
+            String result6 = hyperchainService.setSoldierNum(soldierNum);
+            String result7 = hyperchainService.setTime(interval, duration);
+            String result8 = hyperchainService.setSoldiersPoint(soldiersPoint);
+            List<byte[]> cityNameBytes = new ArrayList<>();
+            for (String name : cityName) {
+                cityNameBytes.add(name.getBytes());
+            }
+            String result9 = hyperchainService.setCityName(cityNameBytes);
+            String result10 = hyperchainService.setCityDefenseIndex(cityDefenseIndex);
+
+            if (result1.equals("success")
+                    && result2.equals("success")
+                    && result3.equals("success")
+                    && result4.equals("success")
+                    && result5.equals("success")
+                    && result6.equals("success")
+                    && result7.equals("success")
+                    && result8.equals("success")
+                    && result9.equals("success")
+                    && result10.equals("success")) {
+                return "set params success";
+            }
+            else {
+                return "set params failed";
+            }
+        } catch (Exception e) {
+            System.out.println("Got a Exception：" + e.getMessage());
+            return "set params failed";
+        }
+    }
 
     /******************************************************  GameItem ***********************************************/
 
     @ResponseBody
-    @RequestMapping(value = "/createGameItem", method = RequestMethod.POST)
-    public String createGameItem(@RequestBody JSONObject params) throws Exception {
+    @RequestMapping(value = "/createAsset", method = RequestMethod.POST)
+    public String createAsset(@RequestBody JSONObject params) throws Exception {
 
-        long initialSupply = params.getLong("initialSupply");
-        String uri = params.getString("uri");
-        String signature = params.getString("signature");
+        String issuer = params.getString("issuer");
+        long value = params.getLong("value") * SiegeParams.getPrecision();
+        String symbol = params.getString("symbol");
+        int type = params.getInt("type");
 
-        String result = hyperchainService.create(initialSupply, uri, signature);
+        String result = hyperchainService.create(issuer, value, symbol, type);
         return result;
     }
 
     @ResponseBody
-    @RequestMapping(value = "/issueGameItem", method = RequestMethod.POST)
-    public String issueGameItem(@RequestBody JSONObject params) throws Exception {
+    @RequestMapping(value = "/issueCoin", method = RequestMethod.POST)
+    public String issueCoin(@RequestBody JSONObject params) throws Exception {
 
-        long id = params.getLong("id");
         String to = params.getString("to");
         long value = params.getLong("value");
+        String symbol = params.getString("symbol");
         String signature = params.getString("signature");
 
-        String result = hyperchainService.issue(id, to, value, signature);
+        String result = hyperchainService.issueCoin(to, value, symbol, signature);
         return result;
     }
 
-//    @ResponseBody
-//    @RequestMapping(value = "/transferGameItem", method = RequestMethod.POST)
-//    public String transferGameItem(@RequestBody JSONObject params) throws Exception {
-//
-//        String from = params.getString("from");
-//        String to = params.getString("to");
-//        long id = params.getLong("id");
-//        long value = params.getLong("value");
-//        String data = params.getString("data");
-//        String signature = params.getString("signature");
-//
-//        String result = hyperchainService.safeTransferFrom(from, to, id, value, data, signature);
-//        return result;
-//    }
-
     @ResponseBody
-    @RequestMapping(value = "/balanceOfGameItem", method = RequestMethod.POST)
-    public String balanceOfGameItem(@RequestBody JSONObject params) throws Exception {
+    @RequestMapping(value = "/transferCoin", method = RequestMethod.POST)
+    public String transferCoin(@RequestBody JSONObject params) throws Exception {
 
-        String owner = params.getString("owner");
-        long id = params.getLong("id");
+        int precision = SiegeParams.getPrecision();
+        String from = params.getString("from");
+        String to = params.getString("to");
+        long value = params.getLong("value") * precision;
+        String symbol = "SIG";
+        String data = params.getString("data");
         String signature = params.getString("signature");
 
-        String result = hyperchainService.balanceOf(owner, id, signature);
+        String result = hyperchainService.transfer(from, to, value, symbol, data, signature);
         return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/balanceOfAsset", method = RequestMethod.POST)
+    public String balanceOfAsset(@RequestBody JSONObject params) throws Exception {
+
+        String owner = params.getString("owner");
+        String symbol = params.getString("symbol");
+
+        String result = hyperchainService.balanceOf(owner, symbol);
+        return getValue(result);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/supplyOfAsset", method = RequestMethod.POST)
+    public String supplyOfAsset(@RequestBody JSONObject params) throws Exception {
+
+        String symbol = params.getString("symbol");
+        int ext = params.getInt("ext");
+
+        String result = hyperchainService.supplyOf(symbol, ext);
+        return getValue(result);
     }
 
     @ResponseBody
@@ -404,39 +512,39 @@ public class SiegeController {
         }
     }
 
-    private int match(String playerAddress) throws Exception {
-        int len = matchQueue.size();
-        // 暂时使用5人匹配做测试
-        assert (len < 5);
-        // 检查是否已经在匹配队列中
-        if (matchQueue.contains(playerAddress)) {
-            // 已经在匹配中，返回错误
-            return -1;
-        }
-        else {
-            // 将其加入匹配队列
-            if (len == 4) {
-                matchQueue.add(playerAddress);
-                String[] array = new String[matchQueue.size()];
-                for (int i = 0; i < matchQueue.size(); ++i) {
-                    array[i] = matchQueue.get(i);
-                }
-                String result = hyperchainService.startGame(array, DEPLOY_ACCOUNT_JSON);
-                if (result.equals("startGameSuccess")) {
-                    matchQueue.clear();
-                    // 匹配人数满，匹配成功
-                    return 1;
-                }
-                else {
-                    // 匹配过程出错
-                    return -2;
-                }
-            }
-            else {
-                matchQueue.add(playerAddress);
-                // 加入队列，匹配等待
-                return 0;
-            }
-        }
-    }
+//    private int match(String playerAddress) throws Exception {
+//        int len = matchQueue.size();
+//        // 暂时使用5人匹配做测试
+//        assert (len < 5);
+//        // 检查是否已经在匹配队列中
+//        if (matchQueue.contains(playerAddress)) {
+//            // 已经在匹配中，返回错误
+//            return -1;
+//        }
+//        else {
+//            // 将其加入匹配队列
+//            if (len == 4) {
+//                matchQueue.add(playerAddress);
+//                String[] array = new String[matchQueue.size()];
+//                for (int i = 0; i < matchQueue.size(); ++i) {
+//                    array[i] = matchQueue.get(i);
+//                }
+//                String result = hyperchainService.startGame(array, DEPLOY_ACCOUNT_JSON);
+//                if (result.equals("startGameSuccess")) {
+//                    matchQueue.clear();
+//                    // 匹配人数满，匹配成功
+//                    return 1;
+//                }
+//                else {
+//                    // 匹配过程出错
+//                    return -2;
+//                }
+//            }
+//            else {
+//                matchQueue.add(playerAddress);
+//                // 加入队列，匹配等待
+//                return 0;
+//            }
+//        }
+//    }
 }
