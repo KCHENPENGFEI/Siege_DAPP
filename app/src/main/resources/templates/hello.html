@@ -72,10 +72,8 @@ Welcome<br/>
     function send(){
         var data = document.getElementById('text').value;
         var message = {
-         time: new Date(),
          match: true,
-         signature: data,
-         clientId: "asdfp8734rew"
+         signature: data
          };
         websocket.send(JSON.stringify(message));
         //websocket.send(message);

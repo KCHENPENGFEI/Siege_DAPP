@@ -253,39 +253,39 @@ contract Siege {
 		_;
 	}
 
-	function getPrecision() public returns(uint256) {
+	function getPrecision() public view returns(uint256) {
 		return(PRECISION);
 	}
 
-	function getCityNum() public returns(uint256) {
+	function getCityNum() public view returns(uint256) {
 		return(CITY_NUM);
 	}
 
-	function getEnterFee() public returns(uint256) {
+	function getEnterFee() public view returns(uint256) {
 		return(ENTER_FEE);
 	}
 
-	function getCityPrice() public returns(uint256) {
+	function getCityPrice() public view returns(uint256) {
 		return(CITY_PRICE);
 	}
 
-	function getSoldierNum() public returns(uint256) {
+	function getSoldierNum() public view returns(uint256) {
 		return(SOLDIER_NUM);
 	}
 
-	function getInterval() public returns(uint256) {
+	function getInterval() public view returns(uint256) {
 		return(INTERVAL);
 	}
 
-	function getCityName() public returns(uint256) {
+	function getCityName() public view returns(uint256) {
 		return(bytes(cityName[CITY_NUM]).length);
 	}
 
-	function getSo() public returns(uint256) {
+	function getSo() public view returns(uint256) {
 		return(soldiersPoint[SOLDIER_NUM]);
 	}
 
-	function getDe() public returns(uint256) {
+	function getDe() public view returns(uint256) {
 		return(cityDefenseIndex[CITY_NUM]);
 	}
 
@@ -1153,34 +1153,53 @@ contract Siege {
 	}
 
 	/**
-        @notice 查询玩家信息表
+        @notice 查询玩家当前状态
         @param playerAddress      玩家地址
     */
-    function getPlayersTablePart1(address playerAddress) public view returns (uint256, bool, bool, address, uint256) {
-    	// 验证权限
+    function getPlayersStatus(address playerAddress) public view returns (
+    	uint256 gameId, 
+    	string memory identity, 
+    	address opponent, 
+    	uint256 city, 
+    	string memory status) {
 
-    	uint256 game_id = playersTable[playerAddress].game_id;
-    	bool is_attacker = playersTable[playerAddress].is_attacker;
-    	bool is_defender = playersTable[playerAddress].is_defender;
-    	address opponent = playersTable[playerAddress].opponent;
+    	playerInfo memory player = playersTable[playerAddress];
+
+    	gameId = playersTable[playerAddress].game_id;
+    	bool isAttacker = player.is_attacker;
+    	bool isDefender = player.is_defender;
+    	if (isDefender && !isAttacker) {
+    		identity = "defender";
+    	}
+    	else if (isAttacker && !isDefender) {
+    		identity = "attacker";
+    	}
+    	else if (!isAttacker && !isDefender) {
+    		identity = "vagrant";
+    	}
+    	else {
+    		identity = "error";
+    	}
+    	opponent = player.opponent;
+    	city = player.own_city_id;
+
+    	bool beAttackedRequest = player.be_attacked_request;
+    	bool beforeBattle = player.before_battle;
+    	bool inBattle = player.in_battle;
+    	if (beAttackedRequest && !beforeBattle && !inBattle) {
+    		status = "beAttackedRequest";
+    	}
+    	else if (!beAttackedRequest && beforeBattle && !inBattle) {
+    		status = "beforeBattle";
+    	}
+    	else if (!beAttackedRequest && !beforeBattle && inBattle) {
+    		status = "inBattle";
+    	}
+    	else {
+    		status = "error";
+    	}
     	
-    	uint256 own_city_id = playersTable[playerAddress].own_city_id;
-
-    	return(game_id, is_attacker, is_defender, opponent, own_city_id);
-    }
-
-    /**
-        @notice 查询玩家信息表
-        @param playerAddress      玩家地址
-    */
-    function getPlayersTablePart2(address playerAddress) public view returns (bool, bool, bool) {
-    	// 验证权限
-
-    	bool be_attacked_request = playersTable[playerAddress].be_attacked_request;
-    	bool before_battle = playersTable[playerAddress].before_battle;
-    	bool in_battle = playersTable[playerAddress].in_battle;
-
-    	return(be_attacked_request, before_battle, in_battle);
+    	return(gameId, identity, opponent, city, status);
     }
 
     /**
@@ -1345,9 +1364,13 @@ contract Siege {
     	player.own_city_id = 0;
     }
 
-    function incPointer(uint256 pointer) internal pure returns (uint256){
+    function incPointer(uint256 pointer) internal pure returns (uint256) {
     	return (pointer + 1) % 5;
     }
+
+    // function decPointer(uint256 pointer, uint256 offset) internal pure returns (uint256) {
+    // 	return (pointer + 5 - offset) % 5;
+    // }
 
     function roundResult(soldierType aType, soldierType dType) internal pure returns (int8) {
     	require(aType == soldierType.none 
