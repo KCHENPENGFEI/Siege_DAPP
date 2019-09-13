@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PlayersMatch {
     private HyperchainService hyperchainService = new HyperchainService();
-    private final String deployAccountJson = Config.getDeployAccountJson();
+//    private final String deployAccountJson = Config.getDeployAccountJson();
     private Account deployAccount = Config.getDeployAccount();
 
     private static int matched = 10;
@@ -70,19 +70,28 @@ public class PlayersMatch {
                 while(true) {
                     // 判断是否在匹配队列中
                     if (playersSession.containsKey(address)) {
-                        sendMsg(session, "already in matching queue");
+                        JSONObject jsonObject = new JSONObject()
+                                .element("match", "already in matching queue")
+                                .element("gameId", 0);
+                        sendMsg(session, jsonObject.toString());
                         break;
                     }
                     else {
                         if (!matchWaiting) {
                             playersSession.put(address, session);
                             playersNum += 1;
-                            sendMsg(session, "enter matching queue");
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("match", "enter matching queue")
+                                    .element("gameId", 0);
+                            sendMsg(session, jsonObject.toString());
                             match();
                             break;
                         }
                         else {
-                            sendMsg(session, "match waiting");
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("match", "match waiting")
+                                    .element("gameId", 0);
+                            sendMsg(session, jsonObject.toString());
                         }
                     }
                     try {
@@ -93,11 +102,18 @@ public class PlayersMatch {
                 }
             }
             else {
+                JSONObject jsonObject = new JSONObject()
+                        .element("match", "transfer failed")
+                        .element("gameId", 0);
                 System.out.println("transfer failed");
+                sendMsg(session, jsonObject.toString());
             }
         }
         else {
-            sendMsg(session, "match error");
+            JSONObject jsonObject = new JSONObject()
+                    .element("match", "match error")
+                    .element("gameId", 0);
+            sendMsg(session, jsonObject.toString());
         }
     }
 
@@ -136,12 +152,18 @@ public class PlayersMatch {
                 playersNum -= matched;
                 for (String address: map.keySet()) {
                     Session session = map.get(address);
-                    sendMsg(session, "match success");
+                    JSONObject jsonObject = new JSONObject()
+                            .element("match", "match success")
+                            .element("gameId", gameId);
+                    sendMsg(session, jsonObject.toString());
                 }
             } catch (Exception e) {
                 for (String address: map.keySet()) {
                     Session session = map.get(address);
-                    sendMsg(session, "match error");
+                    JSONObject jsonObject = new JSONObject()
+                            .element("match", "match error")
+                            .element("gameId", 0);
+                    sendMsg(session, jsonObject.toString());
                 }
             }
         }
@@ -149,5 +171,9 @@ public class PlayersMatch {
 
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
+    }
+
+    public static Map getmatchedPlayersSession(int index) {
+        return matchedPlayersSession.get(index);
     }
 }

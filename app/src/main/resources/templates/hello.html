@@ -18,8 +18,9 @@ Welcome<br/>
 
     //判断当前浏览器是否支持WebSocket
     if('WebSocket' in window){
-        websocket = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
+        //websocket = new WebSocket("ws://10.180.86.169:8088/WebSocket/bidding/1");
         //websocket1 = new WebSocket("ws://localhost:8088/WebSocket/Siege");
+        websocket = new WebSocket("ws://localhost:8088/WebSocket/bidding/1");
     }
     else{
         alert('Not support websocket')
@@ -72,8 +73,8 @@ Welcome<br/>
     function send(){
         var data = document.getElementById('text').value;
         var message = {
-         match: true,
-         signature: data
+         first: true,
+         address: data
          };
         websocket.send(JSON.stringify(message));
         //websocket.send(message);

@@ -1,6 +1,7 @@
 package com.example.zjusiege.Controller;
 
 import cn.hyperchain.sdk.rpc.account.Account;
+import com.example.zjusiege.AsyncTaskService;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
@@ -334,7 +335,7 @@ public class SiegeController {
     public String issueCoin(@RequestBody JSONObject params) throws Exception {
 
         String to = params.getString("to");
-        long value = params.getLong("value");
+        long value = params.getLong("value") * SiegeParams.getPrecision();
         String symbol = params.getString("symbol");
         String signature = params.getString("signature");
 
@@ -446,6 +447,16 @@ public class SiegeController {
             System.out.println("存在session，browser=" + sessionBrowser.toString());
         }
         return "111";
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/thread", method = RequestMethod.POST)
+    public String thread(@RequestBody JSONObject params) {
+        AsyncTaskService asyncTaskService = new AsyncTaskService();
+        for (int i = 0; i < 20; i++) {
+            asyncTaskService.executeAsyncTask(i);
+        }
+        return "ss";
     }
 
     @ResponseBody
