@@ -1,5 +1,7 @@
 package com.example.zjusiege.WebSocket;
 
+import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.SiegeParams.SiegeParams;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +22,7 @@ public class Bidding {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int playersPerGame = 4;
+    private static int playersPerGame = 10;
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 30;
     private static int biddingTimes = 10;
@@ -76,10 +78,35 @@ public class Bidding {
                                             .element("stage", "publicity")
                                             .element("timer", 0)
                                             .element("biddingTable", topNPrice.toString());
-                                    sendAll(playerSession.get(gameId), jsonObject.toString());
+                                    sendAll(playerSession.get(gameId), jsonObject1.toString());
                                 } catch (Exception e) {
                                     System.out.println("Got an exception: " + e.getMessage());
                                 }
+                                // 开启一个线程将数据发送至链上
+                                new Thread(() -> {
+                                    int i = 1;
+                                    List<Integer> ranking = new ArrayList<>();
+                                    List<String> playerAddresses = new ArrayList<>();
+                                    List<Long> price = new ArrayList<>();
+                                    List<Long> time = new ArrayList<>();
+                                    for (JSONObject item: topNPrice) {
+                                        ranking.add(i);
+                                        playerAddresses.add(item.getString("address"));
+                                        price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
+                                        time.add(item.getLong("time"));
+                                        i += 1;
+                                    }
+//                                    System.out.println(ranking);
+//                                    System.out.println(playerAddresses);
+//                                    System.out.println(price);
+//                                    System.out.println(time);
+                                    try {
+                                        HyperchainService hyperchainService = new HyperchainService();
+                                        hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
+                                    } catch (Exception e) {
+                                        System.out.println("Got an exception: " + e.getMessage());
+                                    }
+                                }).start();
                             }
                             TimeUnit.SECONDS.sleep(3);
                         } catch (InterruptedException e) {
@@ -105,10 +132,11 @@ public class Bidding {
                         .element("price", price)
                         .element("address", address)
                         .element("time", date.getTime());
+                // 由前端保证一轮内只能竞标一次
                 topNPrice.add(jsonObject);
             }
             else {
-
+                // 缴纳尾款阶段
             }
         }
     }

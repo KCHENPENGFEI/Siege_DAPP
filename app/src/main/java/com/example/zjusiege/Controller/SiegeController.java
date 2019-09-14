@@ -249,6 +249,17 @@ public class SiegeController {
     }
 
     @ResponseBody
+    @RequestMapping(value = "/getBiddingTb", method = RequestMethod.POST)
+    public String getBiddingTb(@RequestBody JSONObject params) throws Exception {
+
+        int gameId = params.getInt("gameId");
+        int rankId = params.getInt("rankId");
+
+        String result = hyperchainService.getBiddingTb(gameId, rankId);
+        return result;
+    }
+
+    @ResponseBody
     @RequestMapping(value = "/getCitiesTable", method = RequestMethod.POST)
     public String getCitiesTable(@RequestBody JSONObject params) throws Exception {
 
@@ -258,6 +269,16 @@ public class SiegeController {
 
         String result = hyperchainService.getCitiesTable(gameId, cityId, signature);
         return "";
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getPlayersStatus", method = RequestMethod.POST)
+    public String getPlayersStatus(@RequestBody JSONObject params) throws Exception {
+
+        String address = params.getString("address");
+
+        String result = hyperchainService.getPlayersStatus(address);
+        return result;
     }
 
 
