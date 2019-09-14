@@ -9,9 +9,8 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -21,40 +20,18 @@ public class Bidding {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int playersPerGame = 10;
-    private int biddingTimer = 30;
+    private static int playersPerGame = 4;
+    private static int N = playersPerGame / 2;
+    private static int biddingTimer = 30;
+    private static int biddingTimes = 10;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
     // 使用map来收集各个gameId的用户的Session
     private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
+    // 保存出价最高的n个数据
+    private static List<JSONObject> topNPrice = new ArrayList<>();
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
 //    private Session session;
-    public Bidding() {
-//        AsyncTaskService asyncTaskService = new AsyncTaskService();
-//        for (int i = 0; i < 20; i++) {
-//            asyncTaskService.executeAsyncTask(i);
-//        }
-//        new Thread(()->doReplace("test")).start();
-//        new Thread(()->doReplace("test")).start();
-//        new Thread(()->doReplace("test")).start();
-//        new Thread(()->doReplace("test")).start();
-    }
-
-//    public void doReplace(String replaceLog){
-//        System.out.println("线程" + Thread.currentThread().getName() + " 执行异步任务：" + replaceLog);
-//    }
-//
-//    public Runnable doReplace(String msg){
-//        Runnable runnable = new Runnable() {
-//            @Override
-//            public void run() {
-//                System.out.println("新开线程中处理:"+msg);
-//            }
-//        };
-//
-//        return runnable;
-//    }
-
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, Session session) {
         // 增加在线人数
@@ -84,18 +61,55 @@ public class Bidding {
                 sendAll(playerSession.get(gameId), jsonObject.toString());
                 // 延迟3s开始倒计时
                 TimeUnit.SECONDS.sleep(3);
-                // 开启一个线程
                 new Thread(()-> {
-                    try {
-                        countDown(biddingTimer, gameId);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    // 开启计时器
+                    while (biddingTimes > 0) {
+                        try {
+                            countDown(biddingTimer, gameId);
+                            System.out.println("Times" + biddingTimes);
+                            // 对竞标价格进行排序
+                            if (topNPrice.size() > 0) {
+                                sortedTopNPrice();
+                                // 发送竞标结果
+                                try {
+                                    JSONObject jsonObject1 = new JSONObject()
+                                            .element("stage", "publicity")
+                                            .element("timer", 0)
+                                            .element("biddingTable", topNPrice.toString());
+                                    sendAll(playerSession.get(gameId), jsonObject.toString());
+                                } catch (Exception e) {
+                                    System.out.println("Got an exception: " + e.getMessage());
+                                }
+                            }
+                            TimeUnit.SECONDS.sleep(3);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        biddingTimes -= 1;
                     }
                 }).start();
             }
         }
         else {
-            //
+            // 不是第一次连接
+            if (params.getBoolean("bidding")) {
+                // 竞标阶段
+                String address = params.getString("address");
+                // 查询是否注册
+                assert (playerSession.get(gameId).containsKey(address));
+                double price = params.getDouble("price");
+                SimpleDateFormat sdf = new SimpleDateFormat();  // 格式化时间
+                sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");  // a为am/pm的标记
+                Date date = new Date();
+                JSONObject jsonObject = new JSONObject()
+                        .element("price", price)
+                        .element("address", address)
+                        .element("time", date.getTime());
+                topNPrice.add(jsonObject);
+            }
+            else {
+
+            }
         }
     }
 
@@ -151,6 +165,30 @@ public class Bidding {
         TimeUnit.SECONDS.sleep(seconds);
         timer.cancel();
         System.out.println("Time is out");
+    }
 
+    private void sortedTopNPrice() {
+        System.out.println("排序前----: " + topNPrice.toString());
+        topNPrice.sort(new Comparator<JSONObject>() {
+            @Override
+            public int compare(JSONObject o1, JSONObject o2) {
+                double p1 = o1.getDouble("price");
+                double p2 = o2.getDouble("price");
+                long d1 = o1.getLong("time");
+                long d2 = o2.getLong("time");
+                if (p1 < p2) {
+                    return 1;
+                } else if (p1 > p2) {
+                    return -1;
+                } else {
+                    return Long.compare(d1, d2);
+                }
+            }
+        });
+        System.out.println("排序后----: " + topNPrice.toString());
+        if (topNPrice.size() > N) {
+            topNPrice = topNPrice.subList(0, N);
+        }
+        System.out.println("截取后----: " + topNPrice.toString());
     }
 }
