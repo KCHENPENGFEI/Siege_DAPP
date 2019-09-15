@@ -44,8 +44,11 @@ public class PlayersMatch {
     }
 
     @OnClose
-    public void disConnect() {
+    public void disConnect(Session session) {
         System.out.println("disConnect");
+        for (String addr: playersSession.keySet()) {
+            playersSession.remove(addr);
+        }
     }
 
     @OnMessage

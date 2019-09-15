@@ -597,7 +597,7 @@ contract Siege {
 			require(playersTable[playerAddresses[i]].game_id == gameId, "player gameId not match");
 
 			// 更新ranking table
-			rankingTable[gameId][ranking[i]].ranking = i;
+			rankingTable[gameId][ranking[i]].ranking = i + 1;
 			rankingTable[gameId][ranking[i]].player_address = playerAddresses[i];
 			rankingTable[gameId][ranking[i]].bidding_price = price[i];
 			rankingTable[gameId][ranking[i]].bidding_time = time[i];
@@ -1203,7 +1203,7 @@ contract Siege {
     }
 
     /**
-        @notice 查询指定gameId、cityId的城池信息，未返回城池的名称和守城指数
+        @notice 查询指定gameId、cityId的城池信息，返回城池的名称和守城指数
         @param gameId      游戏id
         @param cityId      城池id
     */
@@ -1216,6 +1216,20 @@ contract Siege {
     	uint256 produced_bonus = citiesTable[gameId][cityId].produced_bonus;
 
     	return(city_name, defense_index, realtime_price, if_be_occupied, belong_player, produced_bonus);
+    }
+
+    /**
+        @notice 查询指定gameId、rankId的竞标表信息
+        @param gameId      游戏id
+        @param rankId      竞标榜排名
+    */
+    function getBiddingTb(uint256 gameId, uint256 rankId) public view returns (uint256 ranking, address playerAddress, uint256 price, uint256 time) {
+    	ranking = rankingTable[gameId][rankId].ranking;
+    	playerAddress = rankingTable[gameId][rankId].player_address;
+    	price = rankingTable[gameId][rankId].bidding_price;
+    	time = rankingTable[gameId][rankId].bidding_time;
+
+    	return(ranking, playerAddress, price, time);
     }
 
 	/**

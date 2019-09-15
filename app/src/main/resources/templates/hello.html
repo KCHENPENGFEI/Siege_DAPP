@@ -7,7 +7,7 @@
 <body>
 Welcome<br/>
 <input id="text" type="text" />
-<input id="text1" type="text" />
+<!--<input id="text1" type="text" />-->
 <button onclick="send()">Send</button>    <button onclick="closeWebSocket()">Close</button>
 <div id="message">
 </div>
@@ -22,7 +22,8 @@ Welcome<br/>
     if('WebSocket' in window){
         //websocket = new WebSocket("ws://10.180.86.169:8088/WebSocket/bidding/1");
         //websocket1 = new WebSocket("ws://localhost:8088/WebSocket/Siege");
-        websocket = new WebSocket("ws://localhost:8088/WebSocket/bidding/1");
+        //websocket = new WebSocket("ws://localhost:8088/WebSocket/bidding/1");
+        websocket = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
     }
     else{
         alert('Not support websocket')
@@ -73,18 +74,18 @@ Welcome<br/>
 
     //发送消息
     function send(){
-        var f = document.getElementById('text1').value;
-        var f1;
-        if (f == 'true') {
-            f1 = true;
-        }
-        else {
-            f1 = false;
-        }
+        //var f = document.getElementById('text1').value;
+        //var f1;
+        //if (f == 'true') {
+        //    f1 = true;
+        //}
+        //else {
+        //    f1 = false;
+        //}
         var data = document.getElementById('text').value;
         var message = {
-         first: f1,
-         address: data
+         match: true,
+         signature: data
          };
         websocket.send(JSON.stringify(message));
         //websocket.send(message);

@@ -10,6 +10,7 @@ import net.sf.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,9 +60,12 @@ public class SiegeController {
 //    }
 
     @ResponseBody
+    @CrossOrigin
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
+    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) throws Exception{
 
+
+//        response.setHeader("Access-Control-Allow-Origin","*");
         final int precision = SiegeParams.getPrecision();
         final String deployAccountJson = Config.getDeployAccountJson();
 
@@ -79,22 +83,32 @@ public class SiegeController {
                 // 发放注册奖励
                 String issueResult = hyperchainService.issueCoin(address, value, symbol, deployAccountJson);
                 if (issueResult.equals("issue success")) {
-                    return newAccountString;
+                    JSONObject jsonObject = new JSONObject()
+                            .element("status", "success")
+                            .element("account", newAccountJson);
+                    return jsonObject.toString();
                 }
                 else {
                     return "register failed";
                 }
             } catch (Exception e) {
                 System.out.println("Got a Exception：" + e.getMessage());
-                return "register failed";
+                JSONObject jsonObject = new JSONObject()
+                        .element("status", "failed")
+                        .element("account", "");
+                return jsonObject.toString();
             }
         }
         else {
-            return "request failed";
+            JSONObject jsonObject = new JSONObject()
+                    .element("status", "failed")
+                    .element("account", "");
+            return jsonObject.toString();
         }
     }
 
     @ResponseBody
+    @CrossOrigin
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
         String paramsString = params.toString();
@@ -106,10 +120,14 @@ public class SiegeController {
             session.setAttribute("isLogin", true);
             session.setAttribute("playerAddress", params.getString("address"));
             session.setAttribute("gameId", gameId);
-            return "login success";
+            JSONObject jsonObject = new JSONObject()
+                    .element("status", "success");
+            return jsonObject.toString();
         } catch (Exception e) {
             System.out.println("Got a Exception：" + e.getMessage());
-            return "login failed";
+            JSONObject jsonObject = new JSONObject()
+                    .element("status", "failed");
+            return jsonObject.toString();
         }
     }
 
