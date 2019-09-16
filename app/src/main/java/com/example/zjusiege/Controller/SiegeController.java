@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -172,6 +173,41 @@ public class SiegeController {
         System.out.println("result8" + result8);
         System.out.println("result9" + result9);
         return "11";
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/updateRankingTb", method = RequestMethod.POST)
+    public void up() throws Exception {
+        List<Integer> ranking = new ArrayList<>();
+        List<String> playerAddresses = new ArrayList<>();
+        List<Long> price = new ArrayList<>();
+        List<Long> time = new ArrayList<>();
+
+        ranking.add(1);
+        ranking.add(2);
+        playerAddresses.add("6754B4E3C346E714195C0DA6B27566F615A0D06C");
+        playerAddresses.add("545B7E7F41C744F8109847BF4621EBAF7EC56B26");
+        price.add(Long.valueOf(10000));
+        price.add(Long.valueOf(200000));
+        time.add(new Date().getTime());
+        time.add(new Date().getTime());
+        String result = hyperchainService.updateRankingTb(10, ranking, playerAddresses, price, time);
+        System.out.println(result);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getGlobalTb", method = RequestMethod.POST)
+    public String getG() throws Exception {
+        String result = hyperchainService.getGlobalTb(9);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getFrozenTb", method = RequestMethod.POST)
+    public String getFrozenTb(@RequestBody JSONObject params) throws Exception {
+        String address = params.getString("address");
+        String result = hyperchainService.getFrozenTb(address);
+        return result;
     }
 
 //    @ResponseBody

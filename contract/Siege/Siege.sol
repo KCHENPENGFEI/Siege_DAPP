@@ -1207,7 +1207,7 @@ contract Siege {
         @param gameId      游戏id
         @param cityId      城池id
     */
-    function getCitiesTable(uint256 gameId, uint256 cityId) public view returns (string memory name, uint256, uint256, bool, address, uint256) {
+    function getCitiesTb(uint256 gameId, uint256 cityId) public view returns (string memory name, uint256, uint256, bool, address, uint256) {
     	string memory city_name = cityName[cityId];
     	uint256 defense_index = cityDefenseIndex[cityId];
     	uint256 realtime_price = citiesTable[gameId][cityId].realtime_price;
@@ -1230,6 +1230,29 @@ contract Siege {
     	time = rankingTable[gameId][rankId].bidding_time;
 
     	return(ranking, playerAddress, price, time);
+    }
+
+    /**
+        @notice 查询指定gameId的全局数据表
+        @param gameId      游戏id
+    */
+    function getGlobalTb(uint256 gameId) public view returns (uint256 citiesRemain, gameStage stage, uint256 bonusPool, uint256 produceRate) {
+    	citiesRemain = globalTable[gameId].cities_remain;
+    	stage = globalTable[gameId].game_stage;
+    	bonusPool = globalTable[gameId].bonus_pool;
+    	produceRate = globalTable[gameId].produce_rate;
+
+    	return(citiesRemain, stage, bonusPool, produceRate);
+    }
+
+    /**
+        @notice 查询指定用户地址是否被禁用，后期修改为可迭代的map
+    */
+    function getFrozenTb(address playerAddress) public view returns (uint256 rank, uint256 time) {
+    	rank = frozenTable[playerAddress].frozen_rank;
+    	time = frozenTable[playerAddress].frozen_time;
+
+    	return(rank, time);
     }
 
 	/**

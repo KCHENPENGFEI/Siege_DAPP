@@ -25,8 +25,8 @@ public class Bidding {
     private static int playerNum = 0;
     private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
-    private static int biddingTimer = 30;
-    private static int biddingTimes = 10;
+    private static int biddingTimer = 10;
+    private static int biddingTimes = 1;
     private static int payingTimer = 60;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
@@ -59,6 +59,8 @@ public class Bidding {
             register(gameId, address, session);
             // 玩家都已经注册
             if (playerSession.get(gameId).size() == playersPerGame) {
+                // 此处需要解决玩家同一个玩家重复发送"first": true的信息
+                // 以及玩家不属于该gameId时的处理
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "ready")
                         .element("timer", biddingTimer);
@@ -131,12 +133,11 @@ public class Bidding {
 //                            System.out.println("Got an exception: " + e.getMessage());
 //                        }
 //                    }
-                    // 需要解决线程问题
-//                    try {
-//                        payBiddingFee(payingTimer, gameId);
-//                    } catch (Exception e) {
-//                        System.out.println("Got an exception: " + e.getMessage());
-//                    }
+                    try {
+                        payBiddingFee(payingTimer, gameId);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
                 }).start();
             }
         }
@@ -202,7 +203,18 @@ public class Bidding {
                             String symbol = "SIG";
                             String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
                             if (result.equals("transfer success")) {
-
+                                // 告知转账成功
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "pay")
+                                        .element("transfer", true);
+                                sendMsg(session, jsonObject.toString());
+                            }
+                            else {
+                                // 告知转账失败
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "pay")
+                                        .element("transfer", false);
+                                sendMsg(session, jsonObject.toString());
                             }
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
@@ -210,10 +222,36 @@ public class Bidding {
                     }
                     else {
                         // 价格不匹配，说明未上交尾款，进行冻结用户
+                        List<String> addr = new ArrayList<>();
+                        List<Integer> rank = new ArrayList<>();
+                        List<Long> time = new ArrayList<>();
+                        addr.add(address);
+                        rank.add(1);
+                        time.add(new Date().getTime());
+                        HyperchainService hyperchainService = new HyperchainService();
+                        String result = hyperchainService.freezePlayer(addr, rank, time);
+                        if (result.equals("success")) {
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "pay")
+                                    .element("frozen", true);
+                            try {
+                                sendMsg(session, jsonObject.toString());
+                            }
+                             catch (Exception e) {
+                                 System.out.println("Got an exception: " + e.getMessage());
+                             }
+                        }
+                        // 将玩家移出map
+                        playerSession.get(gameId).remove(address);
+                        System.out.println(playerSession.get(gameId).size());
                     }
                 }
             }
         }
+    }
+
+    public int getPlayersSessionSize(String gameId) {
+        return playerSession.get(gameId).size();
     }
 
     private void register(String gameId, String address, Session session) {

@@ -121,6 +121,60 @@ public class HyperchainService {
         }
     }
 
+    public String freezePlayer(List<String> playerAddresses, List<Integer> rank, List<Long> time) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _playerAddresses = new FuncParamReal("address[]", playerAddresses);
+        FuncParamReal _rank = new FuncParamReal("uint256[]", rank);
+        FuncParamReal _time = new FuncParamReal("uint256[]", time);
+        String payloadWithParam = FunctionEncode.encodeFunction("freezePlayer", _playerAddresses, _rank, _time);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("freezePlayer", siegeAbi, rawReturn);
+//        log("调用freezePlayer: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String getFrozenTb(String playerAddress) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _playerAddress = new FuncParamReal("address", playerAddress);
+        String payloadWithParam = FunctionEncode.encodeFunction("getFrozenTb", _playerAddress);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("getFrozenTb", siegeAbi, rawReturn);
+        log("调用getFrozenTb: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return decodeResult;
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     public String startGame(String[] playersAddresses) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
@@ -168,6 +222,32 @@ public class HyperchainService {
         if (code == 0) {
             System.out.println("code: " + code);
             return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String getGlobalTb(int gameId) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        String payloadWithParam = FunctionEncode.encodeFunction("getGlobalTb", _gameId);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("getGlobalTb", siegeAbi, rawReturn);
+        log("调用getGlobalTb: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return decodeResult;
         }
         else if (code == -32005) {
             return "contract calling error";
@@ -489,15 +569,15 @@ public class HyperchainService {
 
         FuncParamReal _gameId = new FuncParamReal("uint64", gameId);
         FuncParamReal _cityId = new FuncParamReal("uint64", cityId);
-        String payloadWithParam = FunctionEncode.encodeFunction("getCitiesTable", _gameId, _cityId);
+        String payloadWithParam = FunctionEncode.encodeFunction("getCitiesTb", _gameId, _cityId);
         Transaction transaction = new Transaction(signAccount.getAddress(), CONTRACT_ADDRESS, payloadWithParam, false);
         transaction.signWithSM2(signAccountString, "");
 
         ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
         int code = receiptReturn.getRawcode();
         String rawReturn = receiptReturn.getRet();
-        String decodeResult = FunctionDecode.resultDecode("getCitiesTable", siegeAbi, rawReturn);
-        log("调用getCitiesTable: " + decodeResult);
+        String decodeResult = FunctionDecode.resultDecode("getCitiesTb", siegeAbi, rawReturn);
+        log("调用getCitiesTb: " + decodeResult);
 
         if (code == 0) {
             return decodeResult;
