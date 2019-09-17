@@ -119,20 +119,6 @@ public class Bidding {
                         biddingTimes -= 1;
                     }
                     // 竞标结束，向得标者发送缴纳尾款数据
-//                    for (JSONObject item: topNPrice) {
-//                        String addr = item.getString("address");
-//                        double deal = item.getDouble("price");
-//                        Session ses = playerSession.get(gameId).get(addr);
-//                        JSONObject pay = new JSONObject()
-//                                .element("stage", "pay")
-//                                .element("timer", 0)
-//                                .element("deal", deal);
-//                        try {
-//                            sendMsg(ses, pay.toString());
-//                        } catch (Exception e) {
-//                            System.out.println("Got an exception: " + e.getMessage());
-//                        }
-//                    }
                     try {
                         payBiddingFee(payingTimer, gameId);
                     } catch (Exception e) {
