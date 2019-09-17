@@ -6,10 +6,7 @@ import com.example.zjusiege.SiegeParams.SiegeParams;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
 
-import javax.websocket.OnClose;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
+import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.text.SimpleDateFormat;
@@ -27,7 +24,8 @@ public class Bidding {
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 10;
     private static int biddingTimes = 1;
-    private static int payingTimer = 60;
+    private static int payingTimer = 10;
+    private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
     // 使用map来收集各个gameId的用户的Session
@@ -71,7 +69,7 @@ public class Bidding {
                     // 开启计时器
                     while (biddingTimes > 0) {
                         try {
-                            countDown(biddingTimer, gameId);
+                            countDown(biddingTimer, gameId, 10 - biddingTimes + 1);
                             System.out.println("Times" + biddingTimes);
                             // 对竞标价格进行排序
                             if (topNPrice.size() > 0) {
@@ -121,6 +119,12 @@ public class Bidding {
                     // 竞标结束，向得标者发送缴纳尾款数据
                     try {
                         payBiddingFee(payingTimer, gameId);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                    // 尾款缴纳结束，分配城池
+                    try {
+                        allocateCity(allocateTimer, gameId);
                     } catch (Exception e) {
                         System.out.println("Got an exception: " + e.getMessage());
                     }
@@ -228,15 +232,30 @@ public class Bidding {
                              }
                         }
                         // 将玩家移出map
+                        // 并且从topNPrice中移出
                         playerSession.get(gameId).remove(address);
-                        System.out.println(playerSession.get(gameId).size());
+                        // System.out.println(playerSession.get(gameId).size());
+                        System.out.println("topNPrice---: " + topNPrice);
+                        for (JSONObject item: topNPrice) {
+                            if (item.getString("address").equals(address)) {
+                                topNPrice.remove(item);
+                                break;
+                            }
+                        }
+                        System.out.println("topNPrice---: " + topNPrice);
                     }
                 }
             }
         }
     }
 
-    public int getPlayersSessionSize(String gameId) {
+    @OnError
+    public void connectError(Throwable error) {
+        System.out.println("connect error");
+        error.printStackTrace();
+    }
+
+    public static int getPlayersSessionSize(String gameId) {
         return playerSession.get(gameId).size();
     }
 
@@ -269,7 +288,7 @@ public class Bidding {
         }
     }
 
-    private void countDown(int seconds, String gameId) throws InterruptedException {
+    private void countDown(int seconds, String gameId, int round) throws InterruptedException {
         System.out.println("count down from " + seconds + " s ");
 
         Timer timer = new Timer();
@@ -280,7 +299,8 @@ public class Bidding {
                 System.out.println("Time remains "+ --curSec +" s");
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "bidding")
-                        .element("timer", curSec);
+                        .element("timer", curSec)
+                        .element("round", round);
                 try {
                     sendAll(map, jsonObject.toString());
                 } catch (Exception e) {
@@ -338,6 +358,47 @@ public class Bidding {
         TimeUnit.SECONDS.sleep(seconds);
         timer.cancel();
         System.out.println("payBiddingFee----- Time is out");
+    }
+
+    private void allocateCity(int seconds, String gameId) throws InterruptedException {
+        System.out.println("allocateCity---- count down from " + seconds + " s ");
+        Map<String, Session> map = playerSession.get(gameId);
+        new Thread(() -> {
+            // 分配城池
+            List<String> playerAddresses = new ArrayList<>();
+            List<Integer> cityId = new ArrayList<>();
+            List<Long> price = new ArrayList<>();
+            int i = 1;
+            for (JSONObject item: topNPrice) {
+                playerAddresses.add(item.getString("address"));
+                cityId.add(i);
+                price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
+                i += 1;
+            }
+            System.out.println(playerAddresses);
+            System.out.println(cityId);
+            System.out.println(price);
+            try {
+                HyperchainService hyperchainService = new HyperchainService();
+                String result = hyperchainService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
+                if (result.equals("success")) {
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "pay")
+                            .element("allocate", true);
+                    sendAll(map, jsonObject.toString());
+                }
+                else {
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "pay")
+                            .element("allocate", false);
+                    sendAll(map, jsonObject.toString());
+                }
+            } catch (Exception e) {
+                System.out.println("Got an exception: " + e.getMessage());
+            }
+        }).start();
+        TimeUnit.SECONDS.sleep(seconds);
+        System.out.println("allocateCity----- Time is out" + new Date());
     }
 
     private void sortedTopNPrice() {

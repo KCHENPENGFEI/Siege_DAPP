@@ -455,10 +455,15 @@ contract Siege {
         @param gameId              游戏id
         @param leftIntervalNum     游戏剩余周期数(10秒为单位)
     */
-	function updateCityBonus(uint256 gameId, uint256 leftIntervalNum) public onlyRoot() returns(uint256) {
+	function updateCityBonus(uint256 gameId, uint256 leftIntervalNum) public onlyRoot() returns(
+		uint256 produceRate, 
+		uint256 bonusPool, 
+		uint256[] memory) {
 		// 更新出产率
-		uint256 produceRate = globalTable[gameId].produce_rate;
-		uint256 bonusPool = globalTable[gameId].bonus_pool;
+		produceRate = globalTable[gameId].produce_rate;
+		bonusPool = globalTable[gameId].bonus_pool;
+
+		uint256 incBonus = produceRate;
 		uint256 citiesRemain = globalTable[gameId].cities_remain;
 		if (citiesRemain == CITY_NUM) 
 		{
@@ -468,19 +473,23 @@ contract Siege {
 		else 
 		{
 			// 更新
-			globalTable[gameId].produce_rate = bonusPool / (CITY_NUM - citiesRemain) / leftIntervalNum;
+			produceRate = bonusPool / (CITY_NUM - citiesRemain) / leftIntervalNum;
+			globalTable[gameId].produce_rate = produceRate;
 		}
 
-		// 更新城池bonus
-		uint256 incBonus = produceRate;
+		// // 更新城池bonus
+		uint256[] memory producedBonus = new uint256[](CITY_NUM);
 		for (uint256 i = 1; i <= CITY_NUM; ++i) 
 		{
 			if (citiesTable[gameId][i].if_be_occupied) 
 			{
 				citiesTable[gameId][i].produced_bonus += incBonus;
+				bonusPool -= incBonus;
+				producedBonus[i - 1] = citiesTable[gameId][i].produced_bonus;
 			}
 		}
-		return globalTable[gameId].produce_rate;
+		globalTable[gameId].bonus_pool = bonusPool;
+		return (produceRate, bonusPool, producedBonus);
 	}
 
 	/**

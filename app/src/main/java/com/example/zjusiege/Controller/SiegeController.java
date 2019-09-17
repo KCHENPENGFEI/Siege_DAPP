@@ -197,8 +197,9 @@ public class SiegeController {
 
     @ResponseBody
     @RequestMapping(value = "/getGlobalTb", method = RequestMethod.POST)
-    public String getG() throws Exception {
-        String result = hyperchainService.getGlobalTb(9);
+    public String getG(@RequestBody JSONObject params) throws Exception {
+        int gameId = params.getInt("gameId");
+        String result = hyperchainService.getGlobalTb(gameId);
         return result;
     }
 
@@ -207,6 +208,23 @@ public class SiegeController {
     public String getFrozenTb(@RequestBody JSONObject params) throws Exception {
         String address = params.getString("address");
         String result = hyperchainService.getFrozenTb(address);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/allocate", method = RequestMethod.POST)
+    public String allocate(@RequestBody JSONObject params) throws Exception {
+
+        List<String> players = new ArrayList<>();
+        List<Integer> cityId = new ArrayList<>();
+        List<Long> price = new ArrayList<>();
+        players.add("545B7E7F41C744F8109847BF4621EBAF7EC56B26");
+        players.add("6754B4E3C346E714195C0DA6B27566F615A0D06C");
+        cityId.add(1);
+        cityId.add(2);
+        price.add(Long.valueOf(99200));
+        price.add(Long.valueOf(80000));
+        String result = hyperchainService.allocateCity(10, players, cityId, price);
         return result;
     }
 
@@ -319,10 +337,9 @@ public class SiegeController {
 
         long gameId = params.getLong("gameId");
         long cityId = params.getLong("cityId");
-        String signature = params.getString("signature");
 
-        String result = hyperchainService.getCitiesTable(gameId, cityId, signature);
-        return "";
+        String result = hyperchainService.getCitiesTable(gameId, cityId);
+        return result;
     }
 
     @ResponseBody
@@ -332,6 +349,17 @@ public class SiegeController {
         String address = params.getString("address");
 
         String result = hyperchainService.getPlayersStatus(address);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/updateCityBonus", method = RequestMethod.POST)
+    public String updateCityBonus(@RequestBody JSONObject params) throws Exception {
+
+        int gameId = params.getInt("gameId");
+        long leftIntervalNum = params.getLong("leftIntervalNum");
+
+        String result = hyperchainService.updateCityBonus(gameId, leftIntervalNum);
         return result;
     }
 
