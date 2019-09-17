@@ -1,0 +1,24 @@
+2019-09-07 16:23:18  [ http-nio-8088-exec-1:0 ] - [ DEBUG ]  Couldn't find template in cache for "error.ftl"("zh_CN", UTF-8, parsed); will try to load it.
+2019-09-07 16:23:18  [ http-nio-8088-exec-1:6 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("error_zh_CN.ftl"): Not found
+2019-09-07 16:23:18  [ http-nio-8088-exec-1:9 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("error_zh.ftl"): Not found
+2019-09-07 16:23:18  [ http-nio-8088-exec-1:9 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("error.ftl"): Not found
+2019-09-07 16:23:30  [ http-nio-8088-exec-3:11222 ] - [ DEBUG ]  Couldn't find template in cache for "hello.ftl"("zh_CN", UTF-8, parsed); will try to load it.
+2019-09-07 16:23:30  [ http-nio-8088-exec-3:11224 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh_CN.ftl"): Not found
+2019-09-07 16:23:30  [ http-nio-8088-exec-3:11225 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh.ftl"): Not found
+2019-09-07 16:23:30  [ http-nio-8088-exec-3:11227 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello.ftl"): Not found
+2019-09-07 16:24:40  [ http-nio-8088-exec-1:0 ] - [ DEBUG ]  Couldn't find template in cache for "hello.ftl"("zh_CN", UTF-8, parsed); will try to load it.
+2019-09-07 16:24:40  [ http-nio-8088-exec-1:3 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh_CN.ftl"): Not found
+2019-09-07 16:24:40  [ http-nio-8088-exec-1:6 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh.ftl"): Not found
+2019-09-07 16:24:40  [ http-nio-8088-exec-1:7 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello.ftl"): Not found
+2019-09-07 16:25:02  [ http-nio-8088-exec-1:21422 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh_CN.ftl"): Not found
+2019-09-07 16:25:02  [ http-nio-8088-exec-1:21423 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh.ftl"): Not found
+2019-09-07 16:25:02  [ http-nio-8088-exec-1:21424 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello.ftl"): Not found
+2019-09-07 16:25:02  [ http-nio-8088-exec-1:21425 ] - [ DEBUG ]  "hello.ftl"("zh_CN", UTF-8, parsed) no source found.
+2019-09-07 16:31:30  [ http-nio-8088-exec-1:0 ] - [ DEBUG ]  Couldn't find template in cache for "hello.ftl"("zh_CN", UTF-8, parsed); will try to load it.
+2019-09-07 16:31:30  [ http-nio-8088-exec-1:4 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh_CN.ftl"): Not found
+2019-09-07 16:31:30  [ http-nio-8088-exec-1:6 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh.ftl"): Not found
+2019-09-07 16:31:30  [ http-nio-8088-exec-1:7 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello.ftl"): Not found
+2019-09-07 16:40:46  [ http-nio-8088-exec-10:556437 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh_CN.ftl"): Not found
+2019-09-07 16:40:46  [ http-nio-8088-exec-10:556438 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello_zh.ftl"): Not found
+2019-09-07 16:40:46  [ http-nio-8088-exec-10:556439 ] - [ DEBUG ]  TemplateLoader.findTemplateSource("hello.ftl"): Not found
+2019-09-07 16:40:46  [ http-nio-8088-exec-10:556440 ] - [ DEBUG ]  "hello.ftl"("zh_CN", UTF-8, parsed) no source found.
