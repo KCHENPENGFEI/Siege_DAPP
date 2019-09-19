@@ -4,16 +4,16 @@ pragma solidity ^0.5.0;
  * Siege合约
  */
 
-contract SiegeAsset {
-	function transfer(address _from, address _to, uint256 _value, string calldata _symbol, bytes calldata _data) external;
-	function transferNFTs(address _from, address _to, uint256[] calldata _uuids, bytes calldata _data) external;
-	function balanceOf(address _owner, string calldata _symbol) external;
-	function supplyOf(string calldata _symbol, uint8 _ext) external;
+// contract SiegeAsset {
+// 	function transfer(address _from, address _to, uint256 _value, string calldata _symbol, bytes calldata _data) external;
+// 	function transferNFTs(address _from, address _to, uint256[] calldata _uuids, bytes calldata _data) external;
+// 	function balanceOf(address _owner, string calldata _symbol) external;
+// 	function supplyOf(string calldata _symbol, uint8 _ext) external;
 
-	// event
-    event TransferCoin(address indexed _from, address indexed _to, uint256 _value);
-    event TransferNFT(address indexed _from, address indexed _to, uint256 _uuid);
-}
+// 	// event
+//     event TransferCoin(address indexed _from, address indexed _to, uint256 _value);
+//     event TransferNFT(address indexed _from, address indexed _to, uint256 _uuid);
+// }
 
 contract Siege {
 
@@ -402,6 +402,13 @@ contract Siege {
     	return(rootAddr);
     }
 
+    /**
+        @notice 获取gameAsset地址
+    */
+    function getGameAssetAddr() public view returns(address) {
+    	return(gameAssetAddr);
+    }
+
 	/**
         @notice 玩家注册后，将玩家地址注册游戏，并且初始化玩家信息表
         @param playerAddress      玩家地址
@@ -661,9 +668,8 @@ contract Siege {
         @param playerAddress       玩家地址
         @param cityId              城池id
         @param amount              城池当前价格
-        @param symbol              SIG金币的symbol
     */
-	function occupyCity(uint256 gameId, address playerAddress, uint256 cityId, uint256 amount, string calldata symbol) external {
+	function occupyCity(uint256 gameId, address playerAddress, uint256 cityId, uint256 amount) external {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
 		require(globalTable[gameId].cities_remain > 0, "no city left");
@@ -675,12 +681,12 @@ contract Siege {
 		// 确保玩家身份
 		require(player.is_attacker == false && player.is_defender == false, "not a vagrant");
 		// 确保城池为空
-		require(city.if_be_occupied = false, "city not empty");
+		require(city.if_be_occupied == false, "city not empty");
 		// 确保价格正确
 		require(amount == city.realtime_price, "city price not match");
 		// 缴纳占领费
-		SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
-		siegeAsset.transfer(msg.sender, rootAddr, amount, symbol, "player occupies city");
+		// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+		// siegeAsset.transfer(msg.sender, rootAddr, amount, symbol, "player occupies city");
 
 		// 更新数据
 		player.is_defender = true;
@@ -697,9 +703,8 @@ contract Siege {
         @notice 玩家离开城池
         @param gameId              游戏id
         @param playerAddress       城主地址
-        @param symbol              SIG金币的symbol
     */
-	function leaveCity(uint256 gameId, address playerAddress, string calldata symbol) external onlyRoot() {
+	function leaveCity(uint256 gameId, address playerAddress) external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
 		require(globalTable[gameId].cities_remain < CITY_NUM, "All the city is not occupied!");
@@ -714,13 +719,13 @@ contract Siege {
 		// 验证该城池是否为玩家所拥有
 		require(city.belong_player == playerAddress, "You don't have this city!");
 
-		uint256 producedBonus = city.produced_bonus;
+		// uint256 producedBonus = city.produced_bonus;
 		// 使用底层call调用gameItem合约中的safeTransferFrom函数
 		// bytes4 methodId = bytes4(keccak256("safeTransferFrom(address, address, uint256, uint256, bytes)"));
 		// gameItemAddr.call(methodId, siegeTeamAddr, playerAddress, sigId, producedBonus / PRECISION, "player leave city");
 		// GameItem(gameItemAddr).safeTransferFrom(siegeTeamAddr, playerAddress, sigId, 1, "player leave city");
-		SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
-		siegeAsset.transfer(rootAddr, playerAddress, producedBonus, symbol, "player leave city");
+		// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+		// siegeAsset.transfer(rootAddr, playerAddress, producedBonus, symbol, "player leave city");
 
 		// 重置玩家数据
 		player.is_attacker = false;
@@ -739,13 +744,13 @@ contract Siege {
 		// 更新全局数据
 		globalTable[gameId].cities_remain += 1;
 		// 如果所有玩家都离开城池，则出产率为0
-		if (globalTable[gameId].cities_remain == CITY_NUM) {
-			globalTable[gameId].produce_rate = 0;
-		}
-		else {
-			// 出产率更新(由于玩家离开而提高)
-			// 由于每十秒自动更新，此处不予设计
-		}
+		// if (globalTable[gameId].cities_remain == CITY_NUM) {
+		// 	globalTable[gameId].produce_rate = 0;
+		// }
+		// else {
+		// 	// 出产率更新(由于玩家离开而提高)
+		// 	// 由于每十秒自动更新，此处不予设计
+		// }
 	}
 
 	/**
@@ -790,9 +795,8 @@ contract Siege {
         @param attackerAddress     进攻者地址
         @param cityId              城池id
         @param choice              防御者选择: 0 弃城; 1 防守
-        @param symbol              SIG金币的symbol
     */
-	function defense(uint256 gameId, address defenderAddress, address attackerAddress, uint256 cityId, uint256 choice, string calldata symbol) external onlyRoot() {
+	function defense(uint256 gameId, address defenderAddress, address attackerAddress, uint256 cityId, uint256 choice) external onlyRoot() {
 		require(choice == 0 || choice == 1, "choice must be 0 or 1");
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
@@ -811,14 +815,17 @@ contract Siege {
 
 		if (choice == 0) {
 			// 城主离开城池
-			this.leaveCity(gameId, defenderAddress, symbol);
+			_leaveCity(gameId, defenderAddress);
 			// 更新attacker数据
 			attacker.is_defender = true;
 			attacker.is_attacker = false;
 			attacker.opponent = address(0x0);
 			attacker.own_city_id = cityId;
 			// 更新城池数据
+			city.if_be_occupied = true;
 			city.belong_player = attackerAddress;
+			// 更新global数据
+			globalTable[gameId].cities_remain -= 1;
 		}
 		else {
 			// 城主选择防御
@@ -836,15 +843,13 @@ contract Siege {
         @param soldiersbought      玩家购买的士兵(加密后)
         @param allSoldiersPoint    士兵总战力
         @param soldiersQuantity    士兵数量
-        @param symbol              SIG金币的symbol
     */
 	function buySoldiers(
 		uint256 gameId,
 		uint256 amount, 
 		uint256[] calldata soldiersbought, 
 		uint256 allSoldiersPoint, 
-		uint256 soldiersQuantity, 
-		string calldata symbol) external {
+		uint256 soldiersQuantity) external {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
 
@@ -857,8 +862,8 @@ contract Siege {
 		require(amount <= 100 * PRECISION && amount >= 30 * PRECISION, "invalid bought");
 
 		// 购买转账，此时奖池不增加，战斗结束后统一结算
-		SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
-		siegeAsset.transfer(msg.sender, rootAddr, amount, symbol, "player buys soldiers");
+		// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+		// siegeAsset.transfer(msg.sender, rootAddr, amount, symbol, "player buys soldiers");
 
 		// 添加战斗数据
 		uint256 pointer = player.pointer;
@@ -989,18 +994,12 @@ contract Siege {
         @param attackerAddress     进攻方地址
         @param defenderAddress     防守方地址
         @param cityId              进攻城池id
-        @param aAmount             进攻者购买士兵费用
-        @param dAmount             防守者购买士兵费用
-        @param symbol              金币SIG的symbol
     */
 	function battleEnd(
 		uint256 gameId, 
 		address attackerAddress, 
 		address defenderAddress, 
-		uint256 cityId, 
-		uint256 aAmount, 
-		uint256 dAmount, 
-		string calldata symbol) external onlyRoot() returns (string memory){
+		uint256 cityId) external onlyRoot() returns (string memory){
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
 
@@ -1032,7 +1031,7 @@ contract Siege {
 		if (result == 1) {
 			// 进攻者获胜
 			// 城主离开城池
-			this.leaveCity(gameId, defenderAddress, symbol);
+			_leaveCity(gameId, defenderAddress);
 			// 修改城池数据
 			city.belong_player = attackerAddress;
 			// 修改进攻者数据
@@ -1042,11 +1041,11 @@ contract Siege {
 			attacker.in_battle = false;
 			attacker.own_city_id = cityId;
 			// 资产转移分配
-			SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+			// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
 			// 进攻者拿回80%的购买士兵费用
-			siegeAsset.transfer(rootAddr, attackerAddress, aAmount * 4 / 5, symbol, "attacker get back the paid fee");
+			// siegeAsset.transfer(rootAddr, attackerAddress, aAmount * 4 / 5, symbol, "attacker get back the paid fee");
 			// 防守者将70%的购买士兵费用转移给进攻者
-			siegeAsset.transfer(rootAddr, attackerAddress, dAmount * 7 / 10 , symbol, "defender pay the fee to attacker");
+			// siegeAsset.transfer(rootAddr, attackerAddress, dAmount * 7 / 10 , symbol, "defender pay the fee to attacker");
 			// // 双方战斗记录指针加1
 			// uint256 attackerNewPoint = incPointer(attacker.pointer);
 			// uint256 defenderNewPoint = incPointer(defender.pointer);
@@ -1077,11 +1076,11 @@ contract Siege {
 			attacker.in_battle = false;
 			attacker.own_city_id = 0;
 			// 资产转移分配
-			SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+			// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
 			// 防守者拿回80%的购买士兵费用
-			siegeAsset.transfer(rootAddr, defenderAddress, dAmount * 4 / 5, symbol, "defender get back the paid fee");
+			// siegeAsset.transfer(rootAddr, defenderAddress, dAmount * 4 / 5, symbol, "defender get back the paid fee");
 			// 进攻者将70%的购买士兵费用转移给防守者
-			siegeAsset.transfer(rootAddr, defenderAddress, aAmount * 7 / 10, symbol, "attacker pay the fee to defender");
+			// siegeAsset.transfer(rootAddr, defenderAddress, aAmount * 7 / 10, symbol, "attacker pay the fee to defender");
 
 			clearGameData(attacker);
 			clearGameData(defender);
@@ -1102,9 +1101,9 @@ contract Siege {
 			attacker.in_battle = false;
 			attacker.own_city_id = 0;
 			// 资产返还
-			SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
-			siegeAsset.transfer(rootAddr, attackerAddress, aAmount, symbol, "attacker get back the paid fee");
-			siegeAsset.transfer(rootAddr, defenderAddress, dAmount, symbol, "defender get back the paid fee");
+			// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+			// siegeAsset.transfer(rootAddr, attackerAddress, aAmount, symbol, "attacker get back the paid fee");
+			// siegeAsset.transfer(rootAddr, defenderAddress, dAmount, symbol, "defender get back the paid fee");
 
 			clearGameData(attacker);
 			clearGameData(defender);
@@ -1117,9 +1116,8 @@ contract Siege {
         @notice 游戏结束，分发奖金
         @param gameId          游戏id
         @param playerAddresses 城主列表地址
-        @param symbol          SIG金币的symbol
     */
-	function settlement(uint256 gameId, address[] calldata playerAddresses, string calldata symbol) external onlyRoot() {
+	function settlement(uint256 gameId, address[] calldata playerAddresses) view external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.SETTLING, "game is not in settlement stage");
 		require(playerAddresses.length == PLAYER_NUM, "player number not match");
@@ -1132,10 +1130,10 @@ contract Siege {
 			cityInfo storage city = citiesTable[gameId][player.own_city_id];
 
 			require(city.belong_player == playerAddress, "player not owns this city");
-			uint256 producedBonus = city.produced_bonus;
+			// uint256 producedBonus = city.produced_bonus;
 			// 将受益转账给玩家
-			SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
-			siegeAsset.transfer(rootAddr, playerAddress, producedBonus,symbol, "got bonus");
+			// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+			// siegeAsset.transfer(rootAddr, playerAddress, producedBonus,symbol, "got bonus");
 		}
 	}
 
@@ -1262,6 +1260,10 @@ contract Siege {
     	time = frozenTable[playerAddress].frozen_time;
 
     	return(rank, time);
+    }
+
+    function getStage(uint256 gameId) public view returns(gameStage) {
+    	return(globalTable[gameId].game_stage);
     }
 
 	/**
@@ -1409,6 +1411,60 @@ contract Siege {
     	player.in_battle = false;
     	player.own_city_id = 0;
     }
+
+    /**
+        @notice 玩家离开城池(内部函数)
+        @param gameId              游戏id
+        @param playerAddress       城主地址
+    */
+    function _leaveCity(uint256 gameId, address playerAddress) internal onlyRoot() {
+		// 确保游戏状态正确
+		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
+		require(globalTable[gameId].cities_remain < CITY_NUM, "All the city is not occupied!");
+
+		playerInfo storage player = playersTable[playerAddress];
+		// 游戏id正确
+		require(player.game_id == gameId, "gameId not match");
+
+		// 查找玩家拥有的城池
+		uint256 cityId = player.own_city_id;
+		cityInfo storage city = citiesTable[gameId][cityId];
+		// 验证该城池是否为玩家所拥有
+		require(city.belong_player == playerAddress, "You don't have this city!");
+
+		// uint256 producedBonus = city.produced_bonus;
+		// 使用底层call调用gameItem合约中的safeTransferFrom函数
+		// bytes4 methodId = bytes4(keccak256("safeTransferFrom(address, address, uint256, uint256, bytes)"));
+		// gameItemAddr.call(methodId, siegeTeamAddr, playerAddress, sigId, producedBonus / PRECISION, "player leave city");
+		// GameItem(gameItemAddr).safeTransferFrom(siegeTeamAddr, playerAddress, sigId, 1, "player leave city");
+		// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
+		// siegeAsset.transfer(rootAddr, playerAddress, producedBonus, symbol, "player leave city");
+
+		// 重置玩家数据
+		player.is_attacker = false;
+		player.is_defender = false;
+		player.opponent = address(0x0);
+		player.be_attacked_request = false;
+		player.before_battle = false;
+		player.in_battle = false;
+		player.own_city_id = 0;
+
+		// 重置城池数据
+		city.if_be_occupied = false;
+		city.belong_player = address(0x0);
+		city.produced_bonus = 0;
+
+		// 更新全局数据
+		globalTable[gameId].cities_remain += 1;
+		// // 如果所有玩家都离开城池，则出产率为0
+		// if (globalTable[gameId].cities_remain == CITY_NUM) {
+		// 	globalTable[gameId].produce_rate = 0;
+		// }
+		// else {
+		// 	// 出产率更新(由于玩家离开而提高)
+		// 	// 由于每十秒自动更新，此处不予设计
+		// }
+	}
 
     function incPointer(uint256 pointer) internal pure returns (uint256) {
     	return (pointer + 1) % 5;

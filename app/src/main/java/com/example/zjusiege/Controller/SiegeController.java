@@ -162,6 +162,7 @@ public class SiegeController {
         String result7 = hyperchainService.getCityPrice();
         String result8 = hyperchainService.getSoldierNum();
         String result9 = hyperchainService.getInterval();
+        String result10 = hyperchainService.getGameAssetAddr();
 
         System.out.println("result1" + result1);
         System.out.println("result2" + result2);
@@ -172,7 +173,40 @@ public class SiegeController {
         System.out.println("result7" + result7);
         System.out.println("result8" + result8);
         System.out.println("result9" + result9);
+        System.out.println("result10" + result10);
         return "11";
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/assetTest", method = RequestMethod.POST)
+    public String assetTest(@RequestBody JSONObject params) throws Exception {
+        String sig = params.getString("signature");
+        String result = hyperchainService.assetTest(sig);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/setTestAddr", method = RequestMethod.POST)
+    public String setTestAddr(@RequestBody JSONObject params) throws Exception {
+        String address = params.getString("address");
+        String result = hyperchainService.setTestAddr(address);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getTestAddr", method = RequestMethod.POST)
+    public String getTestAddr(@RequestBody JSONObject params) throws Exception {
+//        String address = params.getString("address");
+        String result = hyperchainService.getTestAddr();
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/callTest", method = RequestMethod.POST)
+    public String callTest(@RequestBody JSONObject params) throws Exception {
+//        String address = params.getString("address");
+        String result = hyperchainService.callTest();
+        return result;
     }
 
     @ResponseBody
@@ -362,6 +396,44 @@ public class SiegeController {
         String result = hyperchainService.updateCityBonus(gameId, leftIntervalNum);
         return result;
     }
+
+    @ResponseBody
+    @RequestMapping(value = "/occupy", method = RequestMethod.POST)
+    public String occupy(@RequestBody JSONObject params) throws Exception {
+
+        int gameId = params.getInt("gameId");
+        String address = params.getString("address");
+        int cityId = params.getInt("cityId");
+        long amount = new Double(params.getDouble("amount") * SiegeParams.getPrecision()).longValue();
+        String signature = params.getString("signature");
+
+
+        String result = hyperchainService.occupyCity(gameId, address, cityId, amount, signature);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/updateGameStage", method = RequestMethod.POST)
+    public String updateGameStage(@RequestBody JSONObject params) throws Exception {
+
+        int gameId = params.getInt("gameId");
+        int stage = params.getInt("stage");
+
+
+        String result = hyperchainService.updateGameStage(gameId, stage);
+        return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getStage", method = RequestMethod.POST)
+    public String getStage(@RequestBody JSONObject params) throws Exception {
+
+        int gameId = params.getInt("gameId");
+
+        String result = hyperchainService.getStage(gameId);
+        return result;
+    }
+
 
 
     /*********************************************  Siege Params Configuration **************************************/

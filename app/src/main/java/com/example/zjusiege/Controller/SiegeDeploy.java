@@ -16,6 +16,8 @@ public class SiegeDeploy {
         System.out.println("Siege ====== " + s);
     }
 
+//    private static String bin;
+
     /**
      * @description Contract deployment
      * @param
@@ -29,8 +31,10 @@ public class SiegeDeploy {
         Account deployAccount = Config.getDeployAccount();
 
         String bin = Utils.readFile("contract/build/Siege.bin");
+
         Transaction transaction = new Transaction(deployAccount.getAddress(), bin, false);
         transaction.signWithSM2(deployAccountJson, "");
+
 
         ReceiptReturn receiptReturn = hyperchain.deployContract(transaction);
         String contractAddress = receiptReturn.getContractAddress();
