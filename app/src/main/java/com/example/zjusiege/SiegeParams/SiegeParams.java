@@ -16,6 +16,8 @@ public class SiegeParams {
     private static int gameDuration = 3600;
 
     private static List<Integer> soldiersPoint = Arrays.asList(0, 10, 15, 20, 25, 30);
+    private static List<String> soldiersName = Arrays.asList("none", "infantry", "spearman", "shieldman", "archer", "cavalry");
+    private static List<String> soldiersDescription = Arrays.asList("", "", "", "", "", "");
 //    private static List<String> cityName = Arrays.asList(
 //            "长安",
 //            "燕京",
@@ -121,6 +123,14 @@ public class SiegeParams {
 
     public static List<Integer> getSoldiersPoint() {
         return soldiersPoint;
+    }
+
+    public static List<String> getSoldiersName() {
+        return soldiersName;
+    }
+
+    public static List<String> getSoldiersDescription() {
+        return soldiersDescription;
     }
 
     public static List<String> getCityName() {

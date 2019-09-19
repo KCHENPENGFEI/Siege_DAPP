@@ -440,7 +440,7 @@ public class CityMap {
                 JSONObject item = (JSONObject) mayValue.get(i);
                 JSONObject bonus = new JSONObject()
                         .element("cityId", i + 1)
-                        .element("bonus", item.getLong("value"));
+                        .element("bonus", ((double) item.getLong("value")) / SiegeParams.getPrecision());
                 cityBonus.add(bonus);
             }
             return cityBonus;
