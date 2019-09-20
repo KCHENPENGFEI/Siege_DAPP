@@ -846,15 +846,16 @@ contract Siege {
     */
 	function buySoldiers(
 		uint256 gameId,
+		address playerAddress,
 		uint256 amount, 
 		uint256[] calldata soldiersbought, 
 		uint256 allSoldiersPoint, 
-		uint256 soldiersQuantity) external {
+		uint256 soldiersQuantity) external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
 
 		// 确保玩家状态正确
-		playerInfo storage player = playersTable[msg.sender];
+		playerInfo storage player = playersTable[playerAddress];
 		require(player.game_id == gameId, "gameId not match");
 		require(player.before_battle == true, "not in preparing stage");
 

@@ -456,15 +456,16 @@ public class HyperchainService {
         }
     }
 
-    public String buySoldiers(int gameId, long amount, List<Integer> soldiersBought, long point, int quantity) throws Exception {
+    public String buySoldiers(int gameId, String playerAddress, long amount, List<Integer> soldiersBought, long point, int quantity) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
         FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _playerAddress = new FuncParamReal("address", playerAddress);
         FuncParamReal _amount = new FuncParamReal("uint256", amount);
         FuncParamReal _soldiersBought = new FuncParamReal("uint256[]", soldiersBought);
         FuncParamReal _point = new FuncParamReal("uint256", point);
         FuncParamReal _quantity = new FuncParamReal("uint256", quantity);
-        String payloadWithParam = FunctionEncode.encodeFunction("buySoldiers", _gameId, _amount, _soldiersBought, _point, _quantity);
+        String payloadWithParam = FunctionEncode.encodeFunction("buySoldiers", _gameId, _playerAddress, _amount, _soldiersBought, _point, _quantity);
         Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
         transaction.signWithSM2(deployAccountJson, "");
 

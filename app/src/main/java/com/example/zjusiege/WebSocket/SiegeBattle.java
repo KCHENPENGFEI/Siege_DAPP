@@ -5,31 +5,11 @@ import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECPublicKeyParameters;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECNamedCurveSpec;
-import org.bouncycastle.jce.spec.IESParameterSpec;
-import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve;
-import org.bouncycastle.math.ec.custom.sec.SecP256K1FieldElement;
-import org.bouncycastle.math.ec.custom.sec.SecP256K1Point;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.NoSuchPaddingException;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.*;
-import java.security.spec.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -51,6 +31,8 @@ public class SiegeBattle {
     private static String defenderAddress;
     private static int playersPerGame = 2;
     private static int buySoldiersTimer = 60;
+    private static int round = 5;
+    private static int roundTimer = 20;
 
 
     @OnOpen
@@ -177,26 +159,42 @@ public class SiegeBattle {
                 int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
                 try {
                     HyperchainService hyperchainService = new HyperchainService();
-                    String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), price, type, price, quantity);
-                    String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
+                    // 考虑将buySoldiers放在购买士兵部分
+                    // 后续改进代码，将两个操作用if else进行嵌套
+//                    String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, price, type, price, quantity);
+//                    String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
+                    String buyResult = "success";
+                    String departureResult = "success";
                     if (buyResult.equals("success") && (departureResult.equals("success"))) {
                         // 告知玩家
                         JSONObject jsonObject = new JSONObject()
                                 .element("operation", "departure")
                                 .element("status", true);
                         sendMsg(session, jsonObject.toString());
+                        // 前端构建战斗界面
+                        // 发送战斗初始化信息(只需要发对手信息即可，玩家自己的信息可以保存在前端)
+                        String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
+                        JSONObject opponentJson = new JSONObject()
+                                .element("opponent", opponent)
+                                .element("point", playerSoldiers.get(battleId).get(opponent).getDouble("price"))
+                                .element("quantity", playerSoldiers.get(battleId).get(opponent).getDouble("quantity"));
+                        sendMsg(session, opponentJson.toString());
                     }
                     else {
                         // 告知玩家失败
                         JSONObject jsonObject = new JSONObject()
                                 .element("operation", "departure")
-                                .element("status", true);
+                                .element("status", false);
                         sendMsg(session, jsonObject.toString());
-                        // 进行退款
+                        // 进行退款，后续实现
+
                     }
                 } catch (Exception e) {
                     System.out.println("Got an exception: " + e.getMessage());
                 }
+            }
+            else if (operation.equals("test")) {
+//                encryptWithPubKey("044107987A7C6271BBADC66A16B3C9EF7B69B445BBF0273D43B51DCF48FCE4E481C46CAEFA701A670D31D0FF5CEAD10F0A1DAC45D5A0F82B67B8F14C6E2E1BF369","778076014E4B5D1430BB3A4F6FE14A6FC2D1C2FD973EC7077E62D25B02F2C05D");
             }
         }
     }
@@ -328,65 +326,66 @@ public class SiegeBattle {
         sendAll(map, jsonArray.toString());
     }
 
-    private void encryptWithPubKey(String publicKey, String privateKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchPaddingException, InvalidKeyException, IOException {
-        // ECDSA secp256k1 algorithm constants
-        BigInteger pointGPre = new BigInteger("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16);
-        BigInteger pointGPost = new BigInteger("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16);
-        BigInteger factorN = new BigInteger("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16);
-        BigInteger fieldP = new BigInteger("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16);
-
-        Security.addProvider(new BouncyCastleProvider());
-        Cipher cipher = Cipher.getInstance("ECIES", "BC");
-        IESParameterSpec iesParams = new IESParameterSpec(null, null, 64);
-
-        //----------------------------
-        // Encrypt with public key
-        //----------------------------
-        String prePublicKeyStr = publicKey.substring(0, 64);
-        String postPublicKeyStr = publicKey.substring(64);
-
-        EllipticCurve ellipticCurve = new EllipticCurve(new ECFieldFp(fieldP), new BigInteger("0"), new BigInteger("7"));
-        ECPoint pointG = new ECPoint(pointGPre, pointGPost);
-        ECNamedCurveSpec namedCurveSpec = new ECNamedCurveSpec("secp256k1", ellipticCurve, pointG, factorN);
-
-        SecP256K1Curve secP256K1Curve = new SecP256K1Curve();
-        SecP256K1Point secP256K1Point = new SecP256K1Point(secP256K1Curve, new SecP256K1FieldElement(new BigInteger(prePublicKeyStr, 16)), new SecP256K1FieldElement(new BigInteger(postPublicKeyStr, 16)));
-        SecP256K1Point secP256K1PointG = new SecP256K1Point(secP256K1Curve, new SecP256K1FieldElement(pointGPre), new SecP256K1FieldElement(pointGPost));
-        ECDomainParameters domainParameters = new ECDomainParameters(secP256K1Curve, secP256K1PointG, factorN);
-        ECPublicKeyParameters publicKeyParameters = new ECPublicKeyParameters(secP256K1Point, domainParameters);
-        BCECPublicKey publicKeySelf = new BCECPublicKey("ECDSA", publicKeyParameters, namedCurveSpec, BouncyCastleProvider.CONFIGURATION);
-
-        // begin encrypt
-        cipher.init(Cipher.ENCRYPT_MODE, publicKeySelf, iesParams);
-        String cleartextFile = "contract/source.txt";
-        String ciphertextFile = "contract/cipher.txt";
-        byte[] block = new byte[64];
-        FileInputStream fis = new FileInputStream(cleartextFile);
-        FileOutputStream fos = new FileOutputStream(ciphertextFile);
-        CipherOutputStream cos = new CipherOutputStream(fos, cipher);
-
-        int i;
-        while ((i = fis.read(block)) != -1) {
-            cos.write(block, 0, i);
-        }
-        cos.close();
-
-        //----------------------------
-        // Decrypt with private key
-        //----------------------------
-        BigInteger privateKeyValue = new BigInteger(privateKey, 16);
-
-        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(privateKeyValue, namedCurveSpec);
-        BCECPrivateKey privateKeySelf = new BCECPrivateKey("ECDSA", privateKeySpec, BouncyCastleProvider.CONFIGURATION);
-        // begin decrypt
-        String cleartextAgainFile = "contract/decrypt.txt";
-        cipher.init(Cipher.DECRYPT_MODE, privateKeySelf, iesParams);
-        fis = new FileInputStream(ciphertextFile);
-        CipherInputStream cis = new CipherInputStream(fis, cipher);
-        fos = new FileOutputStream(cleartextAgainFile);
-        while ((i = cis.read(block)) != -1) {
-            fos.write(block, 0, i);
-        }
-        fos.close();
-    }
+//    private void encryptWithPubKey(String publicKey, String privateKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchPaddingException, InvalidKeyException, IOException, InvalidKeyException {
+//        // ECDSA secp256k1 algorithm constants
+//        BigInteger pointGPre = new BigInteger("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16);
+//        BigInteger pointGPost = new BigInteger("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16);
+//        BigInteger factorN = new BigInteger("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16);
+//        BigInteger fieldP = new BigInteger("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16);
+//
+//        Security.addProvider(new BouncyCastleProvider());
+//        Cipher cipher = Cipher.getInstance("ECIES", "BC");
+//        IESParameterSpec iesParams = new IESParameterSpec(null, null, 64);
+//
+//        //----------------------------
+//        // Encrypt with public key
+//        //----------------------------
+//        String prePublicKeyStr = publicKey.substring(0, 64);
+//        String postPublicKeyStr = publicKey.substring(64);
+//
+//        EllipticCurve ellipticCurve = new EllipticCurve(new ECFieldFp(fieldP), new BigInteger("0"), new BigInteger("7"));
+//        ECPoint pointG = new ECPoint(pointGPre, pointGPost);
+//        ECNamedCurveSpec namedCurveSpec = new ECNamedCurveSpec("secp256k1", ellipticCurve, pointG, factorN);
+//
+//        SecP256K1Curve secP256K1Curve = new SecP256K1Curve();
+//        SecP256K1Point secP256K1Point = new SecP256K1Point(secP256K1Curve, new SecP256K1FieldElement(new BigInteger(prePublicKeyStr, 16)), new SecP256K1FieldElement(new BigInteger(postPublicKeyStr, 16)));
+//        SecP256K1Point secP256K1PointG = new SecP256K1Point(secP256K1Curve, new SecP256K1FieldElement(pointGPre), new SecP256K1FieldElement(pointGPost));
+//        ECDomainParameters domainParameters = new ECDomainParameters(secP256K1Curve, secP256K1PointG, factorN);
+//        ECPublicKeyParameters publicKeyParameters = new ECPublicKeyParameters(secP256K1Point, domainParameters);
+//        BCECPublicKey publicKeySelf = new BCECPublicKey("ECDSA", publicKeyParameters, namedCurveSpec, BouncyCastleProvider.CONFIGURATION);
+////        BCECPublicKey publicKeySelf = new BCECPublicKey();
+//
+//        // begin encrypt
+//        cipher.init(Cipher.ENCRYPT_MODE, publicKeySelf, iesParams);
+//        String cleartextFile = "contract/source.txt";
+//        String ciphertextFile = "contract/cipher.txt";
+//        byte[] block = new byte[64];
+//        FileInputStream fis = new FileInputStream(cleartextFile);
+//        FileOutputStream fos = new FileOutputStream(ciphertextFile);
+//        CipherOutputStream cos = new CipherOutputStream(fos, cipher);
+//
+//        int i;
+//        while ((i = fis.read(block)) != -1) {
+//            cos.write(block, 0, i);
+//        }
+//        cos.close();
+//
+//        //----------------------------
+//        // Decrypt with private key
+//        //----------------------------
+//        BigInteger privateKeyValue = new BigInteger(privateKey, 16);
+//
+//        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(privateKeyValue, namedCurveSpec);
+//        BCECPrivateKey privateKeySelf = new BCECPrivateKey("ECDSA", privateKeySpec, BouncyCastleProvider.CONFIGURATION);
+//        // begin decrypt
+//        String cleartextAgainFile = "contract/decrypt.txt";
+//        cipher.init(Cipher.DECRYPT_MODE, privateKeySelf, iesParams);
+//        fis = new FileInputStream(ciphertextFile);
+//        CipherInputStream cis = new CipherInputStream(fis, cipher);
+//        fos = new FileOutputStream(cleartextAgainFile);
+//        while ((i = cis.read(block)) != -1) {
+//            fos.write(block, 0, i);
+//        }
+//        fos.close();
+//    }
 }
