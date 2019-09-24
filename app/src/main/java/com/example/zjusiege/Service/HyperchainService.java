@@ -514,6 +514,36 @@ public class HyperchainService {
         }
     }
 
+    public String pickAndBattle(int gameId, String attackerAddress, String defenderAddress, int aType, int dType) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _attackerAddress = new FuncParamReal("String", attackerAddress);
+        FuncParamReal _defenderAddress = new FuncParamReal("String", defenderAddress);
+        FuncParamReal _aType = new FuncParamReal("uint256", aType);
+        FuncParamReal _dType = new FuncParamReal("uint256", dType);
+        String payloadWithParam = FunctionEncode.encodeFunction("pickAndBattle", _gameId, _attackerAddress, _defenderAddress, _aType, _dType);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("pickAndBattle", siegeAbi, rawReturn);
+        log("调用pickAndBattle: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return decodeResult;
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     public String getGlobalTb(int gameId) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
