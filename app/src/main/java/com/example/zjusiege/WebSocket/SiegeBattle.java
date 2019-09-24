@@ -161,24 +161,43 @@ public class SiegeBattle {
                     HyperchainService hyperchainService = new HyperchainService();
                     // 考虑将buySoldiers放在购买士兵部分
                     // 后续改进代码，将两个操作用if else进行嵌套
-//                    String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, price, type, price, quantity);
-//                    String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
-                    String buyResult = "success";
-                    String departureResult = "success";
+                    String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, price, type, price, quantity);
+                    String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
+//                    String buyResult = "success";
+//                    String departureResult = "success";
                     if (buyResult.equals("success") && (departureResult.equals("success"))) {
-                        // 告知玩家
-                        JSONObject jsonObject = new JSONObject()
-                                .element("operation", "departure")
-                                .element("status", true);
-                        sendMsg(session, jsonObject.toString());
-                        // 前端构建战斗界面
-                        // 发送战斗初始化信息(只需要发对手信息即可，玩家自己的信息可以保存在前端)
                         String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
-                        JSONObject opponentJson = new JSONObject()
-                                .element("opponent", opponent)
-                                .element("point", playerSoldiers.get(battleId).get(opponent).getDouble("price"))
-                                .element("quantity", playerSoldiers.get(battleId).get(opponent).getDouble("quantity"));
-                        sendMsg(session, opponentJson.toString());
+                        // 更新状态
+                        playerSoldiers.get(battleId).get(address).replace("ready", true);
+                        // 检查对方状态
+                        boolean allReady = playerSoldiers.get(battleId).get(opponent).getBoolean("ready");
+                        if (allReady) {
+                            // 告知玩家结果以及对面的信息
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("operation", "departure")
+                                    .element("status", true)
+                                    .element("ready", true)
+                                    .element("opponent", opponent)
+                                    .element("point", playerSoldiers.get(battleId).get(opponent).getDouble("price"))
+                                    .element("quantity", playerSoldiers.get(battleId).get(opponent).getDouble("quantity"));
+                            sendMsg(session, jsonObject.toString());
+                            // 告知对面自己的信息
+                            JSONObject jsonObject1 = new JSONObject()
+                                    .element("operation", "departure")
+                                    .element("status", true)
+                                    .element("ready", true)
+                                    .element("opponent", address)
+                                    .element("point", playerSoldiers.get(battleId).get(address).getDouble("price"))
+                                    .element("quantity", playerSoldiers.get(battleId).get(address).getDouble("quantity"));
+                            sendMsg(playerSession.get(battleId).get(opponent), jsonObject1.toString());
+                        }
+                        else {
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("operation", "departure")
+                                    .element("status", true)
+                                    .element("ready", false);
+                            sendMsg(session, jsonObject.toString());
+                        }
                     }
                     else {
                         // 告知玩家失败
@@ -193,8 +212,8 @@ public class SiegeBattle {
                     System.out.println("Got an exception: " + e.getMessage());
                 }
             }
-            else if (operation.equals("test")) {
-//                encryptWithPubKey("044107987A7C6271BBADC66A16B3C9EF7B69B445BBF0273D43B51DCF48FCE4E481C46CAEFA701A670D31D0FF5CEAD10F0A1DAC45D5A0F82B67B8F14C6E2E1BF369","778076014E4B5D1430BB3A4F6FE14A6FC2D1C2FD973EC7077E62D25B02F2C05D");
+            else {
+                System.out.println("invalid operation");
             }
         }
     }
