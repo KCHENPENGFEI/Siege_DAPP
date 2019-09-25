@@ -150,15 +150,28 @@ public class PlayersMatch {
                 // 匹配完成后获取gameId
                 int gameId = Integer.valueOf(Utils.getValue(result));
                 assert (gameId != 0);
-                // 将本场匹配的玩家数据保存
-                matchedPlayersSession.put(gameId, map);
-                playersNum -= matched;
-                for (String address: map.keySet()) {
-                    Session session = map.get(address);
-                    JSONObject jsonObject = new JSONObject()
-                            .element("match", "match success")
-                            .element("gameId", gameId);
-                    sendMsg(session, jsonObject.toString());
+                // 更新游戏阶段值bidding
+                String updateStage = hyperchainService.updateGameStage(gameId, SiegeParams.gameStage.BIDDING.ordinal());
+                if (updateStage.equals("success")) {
+                    // 将本场匹配的玩家数据保存
+                    matchedPlayersSession.put(gameId, map);
+                    playersNum -= matched;
+                    for (String address: map.keySet()) {
+                        Session session = map.get(address);
+                        JSONObject jsonObject = new JSONObject()
+                                .element("match", "match success")
+                                .element("gameId", gameId);
+                        sendMsg(session, jsonObject.toString());
+                    }
+                }
+                else {
+                    for (String address: map.keySet()) {
+                        Session session = map.get(address);
+                        JSONObject jsonObject = new JSONObject()
+                                .element("match", "match error")
+                                .element("gameId", 0);
+                        sendMsg(session, jsonObject.toString());
+                    }
                 }
             } catch (Exception e) {
                 for (String address: map.keySet()) {

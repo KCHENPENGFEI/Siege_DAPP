@@ -544,6 +544,35 @@ public class HyperchainService {
         }
     }
 
+    public String battleEnd(int gameId, String attackerAddress, String defenderAddress, int cityId) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _attackerAddress = new FuncParamReal("String", attackerAddress);
+        FuncParamReal _defenderAddress = new FuncParamReal("String", defenderAddress);
+        FuncParamReal _cityId = new FuncParamReal("uint256", cityId);
+        String payloadWithParam = FunctionEncode.encodeFunction("battleEnd", _gameId, _attackerAddress, _defenderAddress, _cityId);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("battleEnd", siegeAbi, rawReturn);
+        log("调用battleEnd: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return decodeResult;
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     public String getGlobalTb(int gameId) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 

@@ -18,6 +18,13 @@ public class SiegeParams {
     private static List<Integer> soldiersPoint = Arrays.asList(0, 10, 15, 20, 25, 30);
     private static List<String> soldiersName = Arrays.asList("none", "infantry", "spearman", "shieldman", "archer", "cavalry");
     private static List<String> soldiersDescription = Arrays.asList("", "", "", "", "", "");
+    public enum gameStage {
+        START,
+        BIDDING,
+        RUNNING,
+        SETTLING,
+        ENDING
+    }
 //    private static List<String> cityName = Arrays.asList(
 //            "长安",
 //            "燕京",
@@ -139,6 +146,10 @@ public class SiegeParams {
 
     public static List<Integer> getCityDefenseIndex() {
         return cityDefenseIndex;
+    }
+
+    public static int getGameStage(gameStage stage) {
+        return stage.ordinal();
     }
 
 

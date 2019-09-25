@@ -378,6 +378,9 @@ public class Bidding {
                 String result = hyperchainService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
 //                String result = "success";
                 if (result.equals("success")) {
+                    // 更新游戏阶段值RUNNING
+                    String updateStage = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.RUNNING.ordinal());
+                    assert (updateStage.equals("success"));
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "pay")
                             .element("allocate", true);

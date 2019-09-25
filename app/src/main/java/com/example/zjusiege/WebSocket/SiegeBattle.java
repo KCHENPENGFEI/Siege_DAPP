@@ -1,6 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
+import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
+import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -28,6 +30,7 @@ public class SiegeBattle {
 //    private Session session;
     private static String attackerAddress;
     private static String defenderAddress;
+    private static int cityId;
     private static int playersPerGame = 2;
     private static int buySoldiersTimer = 120;
     private static int round = 1;
@@ -38,9 +41,10 @@ public class SiegeBattle {
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, @PathParam("battleId") String battleId, Session session) throws Exception{
         // 创建战场以及添加用户
-        String[] addresses = battleId.split("&&");
-        attackerAddress = addresses[0];
-        defenderAddress = addresses[1];
+        String[] information = battleId.split("&&");
+        attackerAddress = information[0];
+        defenderAddress = information[1];
+        cityId = Integer.valueOf(information[2]);
 
         if (!playerSoldiers.containsKey(battleId)) {
             Map<String, JSONObject> map = new ConcurrentHashMap<>();
@@ -457,16 +461,50 @@ public class SiegeBattle {
                     List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
                     List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
                     if (attackerSoldiers.size() == 0 || defenderSoldiers.size() == 0) {
-                        // 游戏提前结束
+                        // 游戏结束
                         isOver = true;
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "battle")
-                                .element("round", round)
-                                .element("timer", 0)
-                                .element("isOver", isOver);
+                        String winner;
+                        String loser;
+                        // 链上判定谁获胜
                         try {
-                            sendMsg(attackerSession, jsonObject.toString());
-                            sendMsg(defenderSession, jsonObject.toString());
+                            HyperchainService hyperchainService = new HyperchainService();
+                            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
+                            if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
+                                switch (Utils.getValue(battleResult)) {
+                                    case "attacker wins the battle":
+                                        winner = attackerAddress;
+                                        loser = defenderAddress;
+                                        break;
+                                    case "defender wins the battle":
+                                        winner = defenderAddress;
+                                        loser = attackerAddress;
+                                        break;
+                                    case "tie":
+                                        winner = "nobody";
+                                        loser = "nobody";
+                                        break;
+                                    default:
+                                        winner = "";
+                                        loser = "";
+                                        break;
+                                }
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "battle")
+                                        .element("round", round)
+                                        .element("timer", 0)
+                                        .element("isOver", isOver)
+                                        .element("winner", winner)
+                                        .element("loser", loser);
+                                sendMsg(attackerSession, jsonObject.toString());
+                                sendMsg(defenderSession, jsonObject.toString());
+                            }
+                            else {
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "battle")
+                                        .element("status", "error");
+                                sendMsg(attackerSession, jsonObject.toString());
+                                sendMsg(defenderSession, jsonObject.toString());
+                            }
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
@@ -598,6 +636,9 @@ public class SiegeBattle {
         int defenderQuantity = playerSoldiers.get(battleId).get(defenderAddress).getInt("quantity");
         playerSoldiers.get(battleId).get(attackerAddress).element("quantity", attackerQuantity - 1);
         playerSoldiers.get(battleId).get(defenderAddress).element("quantity", defenderQuantity - 1);
+        // 双方战力
+        double attackerPoint = playerSoldiers.get(battleId).get(attackerAddress).getDouble("price");
+        double defenderPoint = playerSoldiers.get(battleId).get(defenderAddress).getDouble("price");
         // 士兵仓库减少
         int attackerSoldier = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
         int defenderSoldier = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
@@ -623,12 +664,16 @@ public class SiegeBattle {
         JSONObject jsonObject = new JSONObject()
                 .element("status", "judge")
                 .element("result", "tie")
+                .element("myPoint", attackerPoint)
+                .element("opponentPoint", defenderPoint)
                 .element("myQuantity", attackerQuantity - 1)
                 .element("opponentQuantity", defenderQuantity - 1);
 
         JSONObject jsonObject1 = new JSONObject()
-                .element("result", "judge")
+                .element("status", "judge")
                 .element("result", "tie")
+                .element("myPoint", defenderPoint)
+                .element("opponentPoint", attackerPoint)
                 .element("myQuantity", defenderQuantity - 1)
                 .element("opponentQuantity", attackerQuantity - 1);
         try {
