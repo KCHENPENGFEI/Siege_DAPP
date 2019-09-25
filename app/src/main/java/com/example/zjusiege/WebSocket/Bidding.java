@@ -24,7 +24,7 @@ public class Bidding {
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 10;
     private static int biddingTimes = 1;
-    private static int payingTimer = 10;
+    private static int payingTimer = 20;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
@@ -124,6 +124,7 @@ public class Bidding {
                     }
                     // 尾款缴纳结束，分配城池
                     try {
+//                        TimeUnit.SECONDS.sleep(3);
                         allocateCity(allocateTimer, gameId);
                     } catch (Exception e) {
                         System.out.println("Got an exception: " + e.getMessage());
@@ -168,6 +169,7 @@ public class Bidding {
                 String address = params.getString("address");
                 double price = params.getDouble("price");
                 String signature = params.getString("signature");
+                System.out.println("address");
                 // 验证缴纳款是否正确
                 boolean exist = false;
                 boolean match = false;
@@ -192,20 +194,11 @@ public class Bidding {
                             String to = Config.getDeployAccount().getAddress();
                             String symbol = "SIG";
                             String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
-                            if (result.equals("transfer success")) {
-                                // 告知转账成功
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "pay")
-                                        .element("transfer", true);
-                                sendMsg(session, jsonObject.toString());
-                            }
-                            else {
-                                // 告知转账失败
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "pay")
-                                        .element("transfer", false);
-                                sendMsg(session, jsonObject.toString());
-                            }
+//                            String result = "transfer success";
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "pay")
+                                    .element("transfer", result.equals("transfer success"));
+                            sendMsg(session, jsonObject.toString());
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
@@ -220,6 +213,7 @@ public class Bidding {
                         time.add(new Date().getTime());
                         HyperchainService hyperchainService = new HyperchainService();
                         String result = hyperchainService.freezePlayer(addr, rank, time);
+//                        String result = "success";
                         if (result.equals("success")) {
                             JSONObject jsonObject = new JSONObject()
                                     .element("stage", "pay")
@@ -332,6 +326,7 @@ public class Bidding {
                                     .element("stage", "pay")
                                     .element("timer", curSec)
                                     .element("deal", item.getDouble("price"));
+//                            System.out.println(item.getDouble("price"));
                             try {
                                 sendMsg(map.get(address), jsonObject.toString());
                             } catch (Exception e) {
@@ -381,6 +376,7 @@ public class Bidding {
             try {
                 HyperchainService hyperchainService = new HyperchainService();
                 String result = hyperchainService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
+//                String result = "success";
                 if (result.equals("success")) {
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "pay")

@@ -13,8 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 public class SiegeController {
@@ -130,6 +132,38 @@ public class SiegeController {
                     .element("status", "failed");
             return jsonObject.toString();
         }
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/listRemove", method = RequestMethod.GET)
+    public String listR() {
+        List<Integer> list = Arrays.asList(4,3,2,1);
+//        a.remove(3);
+//        System.out.println(a);
+//        int[] arr = { 1, 2, 3, 4, 5, 4 };
+//        arr = remove(arr, 4);
+//        arr = remove(arr, 2);
+//        show(arr);
+        final CopyOnWriteArrayList<Integer> cowList = new CopyOnWriteArrayList<>(list);
+        for (Integer item : cowList) {
+            if (item.equals(3)) {
+                cowList.remove(item);
+            }
+        }
+        System.out.println(cowList);
+        list = cowList;
+        System.out.println(list);
+//        for(int i = list.size() - 1; i >= 0; i--){
+//            Integer item = list.get(i);
+//            if(item == 3){
+//                list.remove(item);
+//            }
+//        }
+//        System.out.println(list);
+//        list.removeIf(item -> item == 3);
+        System.out.println(list);
+
+        return "";
     }
 
     @ResponseBody
