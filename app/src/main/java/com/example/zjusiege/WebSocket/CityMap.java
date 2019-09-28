@@ -85,7 +85,7 @@ public class CityMap {
                     double realtimePrice = returnDouble(result, 2);
                     boolean ifBeOccupied = returnBool(result, 3);
                     String belongPlayer = returnString(result, 4);
-                    double produecBonus = returnDouble(result, 5);
+                    double producedBonus = returnDouble(result, 5);
 //                    System.out.println(result);
                     JSONObject jsonObject = new JSONObject()
                             .element("cityId", i)
@@ -94,7 +94,7 @@ public class CityMap {
                             .element("realtimePrice", realtimePrice)
                             .element("ifBeOccupied", ifBeOccupied)
                             .element("belongPlayer", belongPlayer)
-                            .element("producedBonus", produecBonus);
+                            .element("producedBonus", producedBonus);
                     jsonArray.add(jsonObject);
                 }
                 sendMsg(session, jsonArray.toString());
@@ -114,8 +114,10 @@ public class CityMap {
                     try {
                         HyperchainService hyperchainService = new HyperchainService();
                         String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
+//                        String transferResult = "transfer success";
                         if (transferResult.equals("transfer success")) {
                             String result = hyperchainService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
+//                            String result = "success";
                             if (result.equals("success")) {
                                 // 告知玩家占领成功
                                 JSONObject response = new JSONObject()
@@ -137,7 +139,7 @@ public class CityMap {
                                         .element("status", false);
                                 sendMsg(session, response.toString());
                                 // 给用户退款
-                                hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "Refund", Config.getDeployAccountJson());
+//                                hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "Refund", Config.getDeployAccountJson());
                             }
                         }
                         else {
@@ -161,8 +163,10 @@ public class CityMap {
                     try {
                         HyperchainService hyperchainService = new HyperchainService();
                         String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+//                        String transferResult = "transfer success";
                         if (transferResult.equals("transfer success")) {
                             String result = hyperchainService.leaveCity(Integer.valueOf(gameId), address);
+//                            String result = "success";
                             JSONObject response = new JSONObject()
                                     .element("operation", "leave")
                                     .element("status", result.equals("success"));
@@ -196,6 +200,7 @@ public class CityMap {
                     try {
                         HyperchainService hyperchainService = new HyperchainService();
                         String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
+//                        String result = "success";
                         if (result.equals("success")) {
                             // 告知攻击者
                             JSONObject response = new JSONObject()
@@ -236,8 +241,10 @@ public class CityMap {
                         if (choice == 0) {
                             // 玩家离城
                             String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+//                            String transferResult = "transfer success";
                             if (transferResult.equals("transfer success")) {
                                 String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+//                                String result = "success";
                                 if (result.equals("success")) {
                                     // 告知进攻者获得城池
                                     JSONObject jsonObject = new JSONObject()
@@ -279,6 +286,7 @@ public class CityMap {
                         }
                         else {
                             String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+//                            String result = "success";
                             if (result.equals("success")) {
                                 // 玩家选择防守
                                 // 告知进攻者

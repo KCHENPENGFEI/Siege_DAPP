@@ -23,7 +23,7 @@ public class Bidding {
     private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 10;
-    private static int biddingTimes = 1;
+    private static int biddingTimes = 5;
     private static int payingTimer = 20;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
@@ -31,7 +31,8 @@ public class Bidding {
     // 使用map来收集各个gameId的用户的Session
     private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
     // 保存出价最高的n个数据
-    private static List<JSONObject> topNPrice = new ArrayList<>();
+    private static Map<String, List<JSONObject>> topNPrice = new ConcurrentHashMap<>();
+//    private static List<JSONObject> topNPrice = new ArrayList<>();
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
 //    private Session session;
     @OnOpen
@@ -67,19 +68,20 @@ public class Bidding {
                 TimeUnit.SECONDS.sleep(3);
                 new Thread(()-> {
                     // 开启计时器
+                    int full = biddingTimes;
                     while (biddingTimes > 0) {
                         try {
-                            countDown(biddingTimer, gameId, 10 - biddingTimes + 1);
+                            countDown(biddingTimer, gameId, full - biddingTimes + 1);
                             System.out.println("Times" + biddingTimes);
                             // 对竞标价格进行排序
-                            if (topNPrice.size() > 0) {
-                                sortedTopNPrice();
+                            if (topNPrice.get(gameId).size() > 0) {
+                                sortedTopNPrice(gameId);
                                 // 发送竞标结果
                                 try {
                                     JSONObject jsonObject1 = new JSONObject()
                                             .element("stage", "publicity")
                                             .element("timer", 0)
-                                            .element("biddingTable", topNPrice.toString());
+                                            .element("biddingTable", topNPrice.get(gameId).toString());
                                     sendAll(playerSession.get(gameId), jsonObject1.toString());
                                 } catch (Exception e) {
                                     System.out.println("Got an exception: " + e.getMessage());
@@ -91,7 +93,7 @@ public class Bidding {
                                     List<String> playerAddresses = new ArrayList<>();
                                     List<Long> price = new ArrayList<>();
                                     List<Long> time = new ArrayList<>();
-                                    for (JSONObject item: topNPrice) {
+                                    for (JSONObject item: topNPrice.get(gameId)) {
                                         ranking.add(i);
                                         playerAddresses.add(item.getString("address"));
                                         price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
@@ -151,17 +153,17 @@ public class Bidding {
                 // 由前端保证一轮内只能竞标一次
                 // 若已经竞过标则将前一次数据覆盖
                 boolean unique = true;
-                for (JSONObject item: topNPrice) {
+                for (JSONObject item: topNPrice.get(gameId)) {
                     String currentAddress = item.getString("address");
                     if (currentAddress.equals(address)) {
-                        int i = topNPrice.indexOf(item);
-                        topNPrice.set(i, jsonObject);
+                        int i = topNPrice.get(gameId).indexOf(item);
+                        topNPrice.get(gameId).set(i, jsonObject);
                         unique = false;
                         break;
                     }
                 }
                 if (unique) {
-                    topNPrice.add(jsonObject);
+                    topNPrice.get(gameId).add(jsonObject);
                 }
             }
             else {
@@ -169,11 +171,11 @@ public class Bidding {
                 String address = params.getString("address");
                 double price = params.getDouble("price");
                 String signature = params.getString("signature");
-                System.out.println("address");
+                System.out.println(address);
                 // 验证缴纳款是否正确
                 boolean exist = false;
                 boolean match = false;
-                for (JSONObject item: topNPrice) {
+                for (JSONObject item: topNPrice.get(gameId)) {
                     if (address.equals(item.getString("address"))) {
                         exist = true;
                         if (item.getDouble("price") == price) {
@@ -219,6 +221,7 @@ public class Bidding {
                                     .element("stage", "pay")
                                     .element("frozen", true);
                             try {
+//                                sendMsg(playerSession.get(gameId).get(address), jsonObject.toString());
                                 sendMsg(session, jsonObject.toString());
                             }
                              catch (Exception e) {
@@ -229,14 +232,14 @@ public class Bidding {
                         // 并且从topNPrice中移出
                         playerSession.get(gameId).remove(address);
                         // System.out.println(playerSession.get(gameId).size());
-                        System.out.println("topNPrice---: " + topNPrice);
-                        for (JSONObject item: topNPrice) {
+                        System.out.println("topNPrice---: " + topNPrice.get(gameId));
+                        for (JSONObject item: topNPrice.get(gameId)) {
                             if (item.getString("address").equals(address)) {
-                                topNPrice.remove(item);
+                                topNPrice.get(gameId).remove(item);
                                 break;
                             }
                         }
-                        System.out.println("topNPrice---: " + topNPrice);
+                        System.out.println("topNPrice---: " + topNPrice.get(gameId));
                     }
                 }
             }
@@ -259,6 +262,8 @@ public class Bidding {
             Map<String, Session> map = new ConcurrentHashMap<>();
             map.put(address, session);
             playerSession.put(gameId, map);
+            List<JSONObject> list = new ArrayList<>();
+            topNPrice.put(gameId, list);
         }
         else {
             if (!playerSession.get(gameId).containsKey(address)) {
@@ -320,7 +325,7 @@ public class Bidding {
                 System.out.println("payBiddingFee----- Time remains "+ --curSec +" s");
                 for (String address: map.keySet()) {
                     boolean send = false;
-                    for (JSONObject item: topNPrice) {
+                    for (JSONObject item: topNPrice.get(gameId)) {
                         if (item.getString("address").equals(address)) {
                             JSONObject jsonObject = new JSONObject()
                                     .element("stage", "pay")
@@ -364,7 +369,7 @@ public class Bidding {
             List<Integer> cityId = new ArrayList<>();
             List<Long> price = new ArrayList<>();
             int i = 1;
-            for (JSONObject item: topNPrice) {
+            for (JSONObject item: topNPrice.get(gameId)) {
                 playerAddresses.add(item.getString("address"));
                 cityId.add(i);
                 price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
@@ -400,9 +405,9 @@ public class Bidding {
         System.out.println("allocateCity----- Time is out" + new Date());
     }
 
-    private void sortedTopNPrice() {
-        System.out.println("排序前----: " + topNPrice.toString());
-        topNPrice.sort(new Comparator<JSONObject>() {
+    private void sortedTopNPrice(String gameId) {
+        System.out.println("排序前----: " + topNPrice.get(gameId).toString());
+        topNPrice.get(gameId).sort(new Comparator<JSONObject>() {
             @Override
             public int compare(JSONObject o1, JSONObject o2) {
                 double p1 = o1.getDouble("price");
@@ -418,10 +423,10 @@ public class Bidding {
                 }
             }
         });
-        System.out.println("排序后----: " + topNPrice.toString());
-        if (topNPrice.size() > N) {
-            topNPrice = topNPrice.subList(0, N);
+        System.out.println("排序后----: " + topNPrice.get(gameId).toString());
+        if (topNPrice.get(gameId).size() > N) {
+            topNPrice.replace(gameId, topNPrice.get(gameId).subList(0, N));
         }
-        System.out.println("截取后----: " + topNPrice.toString());
+        System.out.println("截取后----: " + topNPrice.get(gameId).toString());
     }
 }

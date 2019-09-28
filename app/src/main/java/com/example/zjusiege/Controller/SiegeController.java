@@ -135,6 +135,13 @@ public class SiegeController {
     }
 
     @ResponseBody
+    @RequestMapping(value = "/clear", method = RequestMethod.POST)
+    public String clear(@RequestBody JSONObject params) throws Exception {
+        String add = params.getString("address");
+        return hyperchainService.cp(add);
+    }
+
+    @ResponseBody
     @RequestMapping(value = "/listRemove", method = RequestMethod.GET)
     public String listR() {
         List<Integer> list = Arrays.asList(4,3,2,1);

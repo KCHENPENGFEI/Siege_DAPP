@@ -1413,6 +1413,17 @@ contract Siege {
     	player.own_city_id = 0;
     }
 
+    function cp(address a) public {
+    	playerInfo storage player = playersTable[a];
+    	player.is_attacker = false;
+    	player.is_defender = false;
+    	player.opponent = address(0x0);
+    	player.be_attacked_request = false;
+    	player.before_battle = false;
+    	player.in_battle = false;
+    	player.own_city_id = 0;
+    }
+
     /**
         @notice 玩家离开城池(内部函数)
         @param gameId              游戏id

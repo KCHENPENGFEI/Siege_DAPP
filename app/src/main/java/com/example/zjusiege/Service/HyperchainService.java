@@ -652,6 +652,32 @@ public class HyperchainService {
         }
     }
 
+    public String cp(String a) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _a = new FuncParamReal("address", a);
+        String payloadWithParam = FunctionEncode.encodeFunction("cp", _a);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("getBiddingTb", siegeAbi, rawReturn);
+//        log("调用getBiddingTb: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     public String getCity() throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 

@@ -222,6 +222,7 @@ public class SiegeBattle {
                     System.out.println("Buy soldiers time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "buySoldiers")
+                            .element("positive", true)
                             .element("timer", curSec);
                     try {
                         sendAll(map, jsonObject.toString());
@@ -251,6 +252,7 @@ public class SiegeBattle {
                     System.out.println("Round " + curRound + " time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "battle")
+                            .element("positive", true)
                             .element("round", curRound)
                             .element("timer", curSec)
                             .element("isOver", isOver);
@@ -414,7 +416,9 @@ public class SiegeBattle {
         // 首先通知对方己方已出牌
         try {
             JSONObject jsonObject = new JSONObject()
-                    .element("status", "opponentPick");
+                    .element("operation", "pickSoldier")
+                    .element("status", true)
+                    .element("situation", "opponentPick");
             sendMsg(playerSession.get(battleId).get(opponent), jsonObject.toString());
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
@@ -490,6 +494,7 @@ public class SiegeBattle {
                                 }
                                 JSONObject jsonObject = new JSONObject()
                                         .element("stage", "battle")
+                                        .element("positive", true)
                                         .element("round", round)
                                         .element("timer", 0)
                                         .element("isOver", isOver)
@@ -501,7 +506,7 @@ public class SiegeBattle {
                             else {
                                 JSONObject jsonObject = new JSONObject()
                                         .element("stage", "battle")
-                                        .element("status", "error");
+                                        .element("positive", false);
                                 sendMsg(attackerSession, jsonObject.toString());
                                 sendMsg(defenderSession, jsonObject.toString());
                             }
@@ -531,7 +536,9 @@ public class SiegeBattle {
             // 告知玩家等待
             try {
                 JSONObject jsonObject = new JSONObject()
-                        .element("status", "wait");
+                        .element("operation", "pickSoldier")
+                        .element("status", true)
+                        .element("situation", "wait");
                 sendMsg(playerSession.get(battleId).get(address), jsonObject.toString());
             } catch (Exception e) {
                 System.out.println("Got an exception: " + e.getMessage());
@@ -604,7 +611,9 @@ public class SiegeBattle {
 //        playerSoldiers.get(battleId).get(opponent).element("round", true);
         // 告知双方
         JSONObject jsonObject = new JSONObject()
-                .element("status", "judge")
+                .element("operation", "pickSoldier")
+                .element("status", true)
+                .element("situation", "judge")
                 .element("result", "win")
                 .element("myPoint", point)
                 .element("opponentPoint", opponentPoint - opponentSoldierPoint)
@@ -612,7 +621,9 @@ public class SiegeBattle {
                 .element("opponentQuantity", opponentQuantity - 1);
 
         JSONObject jsonObject1 = new JSONObject()
-                .element("status", "judge")
+                .element("operation", "pickSoldier")
+                .element("status", true)
+                .element("situation", "judge")
                 .element("result", "lose")
                 .element("myPoint", opponentPoint - opponentSoldierPoint)
                 .element("opponentPoint", point)
@@ -662,7 +673,9 @@ public class SiegeBattle {
         Session defenderSession = playerSession.get(battleId).get(defenderAddress);
         // 告知双方
         JSONObject jsonObject = new JSONObject()
-                .element("status", "judge")
+                .element("operation", "pickSoldier")
+                .element("status", true)
+                .element("situation", "judge")
                 .element("result", "tie")
                 .element("myPoint", attackerPoint)
                 .element("opponentPoint", defenderPoint)
@@ -670,7 +683,9 @@ public class SiegeBattle {
                 .element("opponentQuantity", defenderQuantity - 1);
 
         JSONObject jsonObject1 = new JSONObject()
-                .element("status", "judge")
+                .element("operation", "pickSoldier")
+                .element("status", true)
+                .element("situation", "judge")
                 .element("result", "tie")
                 .element("myPoint", defenderPoint)
                 .element("opponentPoint", attackerPoint)
