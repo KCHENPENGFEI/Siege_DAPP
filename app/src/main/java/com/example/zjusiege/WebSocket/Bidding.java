@@ -201,6 +201,8 @@ public class Bidding {
                                     .element("stage", "pay")
                                     .element("transfer", result.equals("transfer success"));
                             sendMsg(session, jsonObject.toString());
+                            // 删除该用户数据
+                            playerSession.get(gameId).remove(address);
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
@@ -241,6 +243,11 @@ public class Bidding {
                         }
                         System.out.println("topNPrice---: " + topNPrice.get(gameId));
                     }
+                }
+                if (playerSession.get(gameId).size() == 0) {
+                    // 如果所有人都清除了
+                    playerSession.remove(gameId);
+                    topNPrice.remove(gameId);
                 }
             }
         }

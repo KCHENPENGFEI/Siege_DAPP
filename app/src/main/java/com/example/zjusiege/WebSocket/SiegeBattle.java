@@ -1,8 +1,6 @@
 package com.example.zjusiege.WebSocket;
 
-import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
-import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -26,50 +24,56 @@ public class SiegeBattle {
     // 使用map来收集各个用户的Session
     private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
     private static final Map<String, Map<String, JSONObject>> playerSoldiers = new ConcurrentHashMap<>();
+    // 使用map来存储每一场对战的数据
+    private static final Map<String, JSONObject> battleData = new ConcurrentHashMap<>();
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
 //    private Session session;
-    private static String attackerAddress;
-    private static String defenderAddress;
-    private static int cityId;
+//    private static String attackerAddress;
+//    private static String defenderAddress;
+//    private static int cityId;
     private static int playersPerGame = 2;
     private static int buySoldiersTimer = 120;
-    private static int round = 1;
-    private static int roundTimer = 60;
-    private static boolean isOver = false;
+//    private static int round = 1;
+    private static int roundTimer = 20;
+//    private static boolean isOver = false;
 
 
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, @PathParam("battleId") String battleId, Session session) throws Exception{
         // 创建战场以及添加用户
-        String[] information = battleId.split("&&");
-        attackerAddress = information[0];
-        defenderAddress = information[1];
-        cityId = Integer.valueOf(information[2]);
+//        String[] information = battleId.split("&&");
+//        attackerAddress = information[0];
+//        defenderAddress = information[1];
+//        cityId = Integer.valueOf(information[2]);
+        initBattleData(battleId);
+        initPlayerSoldiers(battleId);
+//        System.out.println("battleData: " + battleData);
+//        System.out.println("playerSoldiers: " + playerSoldiers);
 
-        if (!playerSoldiers.containsKey(battleId)) {
-            Map<String, JSONObject> map = new ConcurrentHashMap<>();
-            map.put(attackerAddress, new JSONObject()
-                    .element("type", new ArrayList<Integer>())
-                    .element("price", 0.)
-                    .element("quantity", 0)
-                    .element("pay", false)
-                    .element("ready", false)
-                    .element("round", round)
-                    .element("soldier", 0)
-                    .element("pick", false)
-                    .element("result", "none"));
-            map.put(defenderAddress, new JSONObject()
-                    .element("type", new ArrayList<Integer>())
-                    .element("price", 0.)
-                    .element("quantity", 0)
-                    .element("pay", false)
-                    .element("ready", false)
-                    .element("round", round)
-                    .element("soldier", 0)
-                    .element("pick", false)
-                    .element("result", "none"));
-            playerSoldiers.put(battleId, map);
-        }
+//        if (!playerSoldiers.containsKey(battleId)) {
+//            Map<String, JSONObject> map = new ConcurrentHashMap<>();
+//            map.put(attackerAddress, new JSONObject()
+//                    .element("type", new ArrayList<Integer>())
+//                    .element("price", 0.)
+//                    .element("quantity", 0)
+//                    .element("pay", false)
+//                    .element("ready", false)
+//                    .element("round", round)
+//                    .element("soldier", 0)
+//                    .element("pick", false)
+//                    .element("result", "none"));
+//            map.put(defenderAddress, new JSONObject()
+//                    .element("type", new ArrayList<Integer>())
+//                    .element("price", 0.)
+//                    .element("quantity", 0)
+//                    .element("pay", false)
+//                    .element("ready", false)
+//                    .element("round", round)
+//                    .element("soldier", 0)
+//                    .element("pick", false)
+//                    .element("result", "none"));
+//            playerSoldiers.put(battleId, map);
+//        }
 
 //        测试用
 //        if (!playerSoldiers.containsKey(battleId)) {
@@ -98,7 +102,7 @@ public class SiegeBattle {
 //        }
 
         playerNum += 1;
-        System.out.println("playerNum: " + playerNum + " attackerAddress: " + attackerAddress + " defenderAddress: " + defenderAddress);
+//        System.out.println("playerNum: " + playerNum + " attackerAddress: " + battleData.get(battleId).getString("attackerAddress") + " defenderAddress: " + battleData.get(battleId).getString("defenderAddress"));
     }
 
     @OnClose
@@ -199,6 +203,55 @@ public class SiegeBattle {
         }
     }
 
+    private void initBattleData(String battleId) {
+        String[] information = battleId.split("&&");
+        String attackerAddress = information[0];
+        String defenderAddress = information[1];
+        int cityId = Integer.valueOf(information[2]);
+        int round = 1;
+        boolean isOver = false;
+        if (!battleData.containsKey(battleId)) {
+            // 初始化数据
+            JSONObject jsonObject = new JSONObject()
+                    .element("attackerAddress", attackerAddress)
+                    .element("defenderAddress", defenderAddress)
+                    .element("cityId", cityId)
+                    .element("round", round)
+                    .element("isOver", isOver);
+            battleData.put(battleId, jsonObject);
+        }
+    }
+
+    private void initPlayerSoldiers(String battleId) {
+        String[] information = battleId.split("&&");
+        String attackerAddress = information[0];
+        String defenderAddress = information[1];
+        if (!playerSoldiers.containsKey(battleId)) {
+            Map<String, JSONObject> map = new ConcurrentHashMap<>();
+            map.put(attackerAddress, new JSONObject()
+                    .element("type", new ArrayList<Integer>())
+                    .element("price", 0.)
+                    .element("quantity", 0)
+                    .element("pay", false)
+                    .element("ready", false)
+                    .element("round", 1)
+                    .element("soldier", 0)
+                    .element("pick", false)
+                    .element("result", "none"));
+            map.put(defenderAddress, new JSONObject()
+                    .element("type", new ArrayList<Integer>())
+                    .element("price", 0.)
+                    .element("quantity", 0)
+                    .element("pay", false)
+                    .element("ready", false)
+                    .element("round", 1)
+                    .element("soldier", 0)
+                    .element("pick", false)
+                    .element("result", "none"));
+            playerSoldiers.put(battleId, map);
+        }
+    }
+
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
     }
@@ -218,6 +271,8 @@ public class SiegeBattle {
             Map<String, Session> map = playerSession.get(battleId);
             @Override
             public void run() {
+                String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+                String defenderAddress = battleData.get(battleId).getString("defenderAddress");
                 if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiers.get(battleId).get(defenderAddress).getBoolean("ready")) {
                     System.out.println("Buy soldiers time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
@@ -237,8 +292,14 @@ public class SiegeBattle {
         System.out.println("Buy soldiers time is out");
     }
 
-    private void roundCountDown(int seconds, String battleId, int curRound) throws InterruptedException {
+    private void roundCountDown(int seconds, String battleId, int curRound, String attackerAddress, String defenderAddress) throws InterruptedException {
         System.out.println("roundCountDown--- " + curRound + " : count down from " + seconds + " s");
+
+//        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+//        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
+        // 此处是为了本轮结束之后不再发送倒计时数据，判断当前round和全局round是否一致
+//        int round = battleData.get(battleId).getInt("round");
+
 
         playerSoldiers.get(battleId).get(attackerAddress).element("round", curRound);
         playerSoldiers.get(battleId).get(defenderAddress).element("round", curRound);
@@ -248,7 +309,9 @@ public class SiegeBattle {
             Map<String, Session> map = playerSession.get(battleId);
             @Override
             public void run() {
-                if (round == curRound) {
+                int round = battleData.get(battleId).getInt("round");
+                boolean isOver = battleData.get(battleId).getBoolean("isOver");
+                if (round == curRound && !isOver) {
                     System.out.println("Round " + curRound + " time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "battle")
@@ -289,36 +352,53 @@ public class SiegeBattle {
         List<Integer> type = castList(params.get("type"), Integer.class);
         double price = params.getDouble("price");
         int quantity = params.getInt("quantity");
+        System.out.println(type);
+        System.out.println(price);
+        System.out.println(quantity);
         String symbol = "SIG";
         String signature = params.getString("signature");
 
         // 首先进行缴费
         try {
+
 //            HyperchainService hyperchainService = new HyperchainService();
 //            String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
             String transferResult = "transfer success";
             if (transferResult.equals("transfer success")) {
                 // 更新playerSoldier
                 if (type != null) {
+//                    List<Integer> newType;
+//                    if (playerSoldiers.get(battleId).get(address).get("tye") == null) {
+//                        newType = type;
+//                    }
+//                    else {
+//                        List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+//                        assert oldSoldiers != null;
+//                        oldSoldiers.addAll(type);
+//                        newType = oldSoldiers;
+//                    }
+//                    System.out.println(castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class));
                     List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+//                    System.out.println("oldSoldiers: " + oldSoldiers);
                     assert oldSoldiers != null;
                     oldSoldiers.addAll(type);
+//
                     double oldPrice = playerSoldiers.get(battleId).get(address).getDouble("price");
                     double newPrice = oldPrice + price;
                     int oldQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
                     int newQuantity = oldQuantity + quantity;
-                    updatePlayerSoldiers(battleId, address, type, newPrice, newQuantity,true, false, 1, 0, false, "none");
+                    updatePlayerSoldiers(battleId, address, oldSoldiers, newPrice, newQuantity,true, false, 1, 0, false, "none");
                 }
                 // 告知购买士兵成功
                 JSONObject jsonObject = new JSONObject()
-                        .element("operation", "transfer")
+                        .element("operation", "buySoldiers")
                         .element("status", true);
                 sendMsg(session, jsonObject.toString());
             }
             else {
                 // 告知转账失败
                 JSONObject jsonObject = new JSONObject()
-                        .element("operation", "transfer")
+                        .element("operation", "buySoldiers")
                         .element("status", false);
                 sendMsg(session, jsonObject.toString());
             }
@@ -331,6 +411,10 @@ public class SiegeBattle {
         List<Integer> type = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
         long price = new Double(playerSoldiers.get(battleId).get(address).getDouble("price") * SiegeParams.getPrecision()).longValue();
         int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
+        // 当前round
+        int cRound = battleData.get(battleId).getInt("round");
         try {
 //            HyperchainService hyperchainService = new HyperchainService();
             // 考虑将buySoldiers放在购买士兵部分
@@ -378,7 +462,7 @@ public class SiegeBattle {
                             // 延迟两秒
                             TimeUnit.SECONDS.sleep(2);
                             // 游戏开始倒计时
-                            roundCountDown(roundTimer, battleId, round);
+                            roundCountDown(roundTimer, battleId, cRound, attackerAddress, defenderAddress);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -408,6 +492,8 @@ public class SiegeBattle {
 
     private void pickSoldier(JSONObject params, String gameId, String battleId, String address, Session session) {
         int soldier = params.getInt("soldier");
+        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
         // 确定对手
         String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
 //        double point = params.getDouble("point");
@@ -435,22 +521,25 @@ public class SiegeBattle {
 //                String result = hyperchainService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
                 Session attackerSession = playerSession.get(battleId).get(attackerAddress);
                 Session defenderSession = playerSession.get(battleId).get(defenderAddress);
-                String result = "attacker wins this round";
+                String result = judge(aType, dType);
                 switch (result) {
                     // 可以考虑后端加上士兵是否在仓库中的验证
                     case "attacker wins this round": {
                         // 进攻者获胜
                         win(battleId, attackerAddress);
+                        System.out.println("进攻者获胜");
                         break;
                     }
                     case "defender wins this round": {
                         // 防守者获胜
                         win(battleId, defenderAddress);
+                        System.out.println("防守者获胜");
                         break;
                     }
                     case "tie":
                         // 战平
                         tie(battleId);
+                        System.out.println("平局");
                         break;
                     default:
                         // error
@@ -464,17 +553,23 @@ public class SiegeBattle {
 
                     List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
                     List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
+//                    boolean isOver = false;
                     if (attackerSoldiers.size() == 0 || defenderSoldiers.size() == 0) {
-                        // 游戏结束
-                        isOver = true;
+                        // 游戏结束，设置isOver为true
+//                        isOver = true;
+                        System.out.println("游戏结束");
+                        battleData.get(battleId).element("isOver", true);
                         String winner;
                         String loser;
                         // 链上判定谁获胜
                         try {
-                            HyperchainService hyperchainService = new HyperchainService();
-                            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
-                            if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
-                                switch (Utils.getValue(battleResult)) {
+                            int cityId = battleData.get(battleId).getInt("cityId");
+//                            HyperchainService hyperchainService = new HyperchainService();
+//                            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
+                            String battleResult = "attacker wins the battle";
+//                            if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
+                            if (!battleResult.equals("")) {
+                                switch (battleResult) {
                                     case "attacker wins the battle":
                                         winner = attackerAddress;
                                         loser = defenderAddress;
@@ -495,9 +590,9 @@ public class SiegeBattle {
                                 JSONObject jsonObject = new JSONObject()
                                         .element("stage", "battle")
                                         .element("positive", true)
-                                        .element("round", round)
+                                        .element("round", battleData.get(battleId).getInt("round"))
                                         .element("timer", 0)
-                                        .element("isOver", isOver)
+                                        .element("isOver", true)
                                         .element("winner", winner)
                                         .element("loser", loser);
                                 sendMsg(attackerSession, jsonObject.toString());
@@ -510,18 +605,24 @@ public class SiegeBattle {
                                 sendMsg(attackerSession, jsonObject.toString());
                                 sendMsg(defenderSession, jsonObject.toString());
                             }
+                            // 清除数据
+                            battleData.remove(battleId);
+                            playerSoldiers.remove(battleId);
+                            playerSession.remove(battleId);
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
                     }
-                    if (!isOver) {
+                    if (!battleData.get(battleId).getBoolean("isOver")) {
                         // 开启下一轮
                         try {
+                            int round = battleData.get(battleId).getInt("round");
                             round += 1;
-                            // 延迟两秒
-                            TimeUnit.SECONDS.sleep(1);
+                            battleData.get(battleId).element("round", round);
+                            // 延迟3秒
+                            TimeUnit.SECONDS.sleep(3);
                             // 游戏开始倒计时
-                            roundCountDown(roundTimer, battleId, round);
+                            roundCountDown(roundTimer, battleId, round, attackerAddress, defenderAddress);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -560,6 +661,8 @@ public class SiegeBattle {
     }
 
     private void win(String battleId, String address) throws NullPointerException {
+        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
         String opponent = address.equals(attackerAddress) ? defenderAddress : attackerAddress;
         // 对战结果
         playerSoldiers.get(battleId).get(address).element("result", "win");
@@ -581,21 +684,21 @@ public class SiegeBattle {
         List<Integer> opponentSoldiers = castList(playerSoldiers.get(battleId).get(opponent).get("type"), Integer.class);
         if (soldiers.contains(soldier) && opponentSoldiers.contains(opponentSoldier)) {
             final CopyOnWriteArrayList<Integer> cowSoldiers = new CopyOnWriteArrayList<>(soldiers);
-            final CopyOnWriteArrayList<Integer> cowOpponentSoldier = new CopyOnWriteArrayList<>(opponentSoldiers);
+            final CopyOnWriteArrayList<Integer> cowOpponentSoldiers = new CopyOnWriteArrayList<>(opponentSoldiers);
             for (Integer item : cowSoldiers) {
                 if (item == soldier) {
                     cowSoldiers.remove(item);
                     break;
                 }
             }
-            for (Integer item : cowOpponentSoldier) {
+            for (Integer item : cowOpponentSoldiers) {
                 if (item == opponentSoldier) {
-                    cowOpponentSoldier.remove(item);
+                    cowOpponentSoldiers.remove(item);
                     break;
                 }
             }
             soldiers = cowSoldiers;
-            opponentSoldiers = cowOpponentSoldier;
+            opponentSoldiers = cowOpponentSoldiers;
         }
         else {
             throw new NullPointerException("士兵不存在");
@@ -638,6 +741,8 @@ public class SiegeBattle {
     }
 
     private void tie(String battleId) {
+        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
         // 对战结果
         playerSoldiers.get(battleId).get(attackerAddress).element("result", "tie");
         playerSoldiers.get(battleId).get(defenderAddress).element("result", "tie");
@@ -655,13 +760,35 @@ public class SiegeBattle {
         int defenderSoldier = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
         List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
         List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
+
         if (attackerSoldiers.contains(attackerSoldier) && defenderSoldiers.contains(defenderSoldier)) {
-            attackerSoldiers.remove(attackerSoldier);
-            defenderSoldiers.remove(defenderSoldier);
+            final CopyOnWriteArrayList<Integer> cowAttackerSoldiers = new CopyOnWriteArrayList<>(attackerSoldiers);
+            final CopyOnWriteArrayList<Integer> cowDefenderSoldiers = new CopyOnWriteArrayList<>(defenderSoldiers);
+            for (Integer item : cowAttackerSoldiers) {
+                if (item == attackerSoldier) {
+                    cowAttackerSoldiers.remove(item);
+                    break;
+                }
+            }
+            for (Integer item : cowDefenderSoldiers) {
+                if (item == defenderSoldier) {
+                    cowDefenderSoldiers.remove(item);
+                    break;
+                }
+            }
+            attackerSoldiers = cowAttackerSoldiers;
+            defenderSoldiers = cowDefenderSoldiers;
         }
         else {
             throw new NullPointerException("士兵不存在");
         }
+//        if (attackerSoldiers.contains(attackerSoldier) && defenderSoldiers.contains(defenderSoldier)) {
+//            attackerSoldiers.remove(attackerSoldier);
+//            defenderSoldiers.remove(defenderSoldier);
+//        }
+//        else {
+//            throw new NullPointerException("士兵不存在");
+//        }
         playerSoldiers.get(battleId).get(attackerAddress).element("type", attackerSoldiers);
         playerSoldiers.get(battleId).get(defenderAddress).element("type", defenderSoldiers);
 
@@ -696,6 +823,53 @@ public class SiegeBattle {
             sendMsg(defenderSession, jsonObject1.toString());
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
+        }
+    }
+
+    private String judge(int type1, int type2) {
+        switch (type1) {
+            case 1:
+                if (type2 == 3) {
+                    return "attacker wins this round";
+                } else if (type2 == 4 || type2 == 5) {
+                    return "defender wins this round";
+                } else {
+                    return "tie";
+                }
+            case 2:
+                if (type2 == 5) {
+                    return "attacker wins this round";
+                } else if (type2 == 3 || type2 == 4) {
+                    return "defender wins this round";
+                } else {
+                    return "tie";
+                }
+            case 3:
+                if (type2 == 2 || type2 == 4) {
+                    return "attacker wins this round";
+                } else if (type2 == 1 || type2 == 5) {
+                    return "defender wins this round";
+                } else {
+                    return "tie";
+                }
+            case 4:
+                if (type2 == 1 || type2 == 2) {
+                    return "attacker wins this round";
+                } else if (type2 == 3) {
+                    return "defender wins this round";
+                } else {
+                    return "tie";
+                }
+            case 5:
+                if (type2 == 1 || type2 == 3) {
+                    return "attacker wins this round";
+                } else if (type2 == 2) {
+                    return "defender wins this round";
+                } else {
+                    return "tie";
+                }
+            default:
+                return "tie";
         }
     }
 

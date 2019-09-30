@@ -10,9 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -315,6 +313,49 @@ public class CityMap {
                     }
                     break;
                 }
+                case "settle": {
+                    List<String> cityOwners = castList(params.get("cityOwners"), String.class);
+                    try {
+                        HyperchainService hyperchainService = new HyperchainService();
+                        String updateStage = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
+                        assert (updateStage.equals("success"));
+
+                        String result = hyperchainService.settlement(Integer.valueOf(gameId), cityOwners);
+                        if (result.equals("success")) {
+                            // 成功
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("operation", "settle")
+                                    .element("status", true);
+                            sendAll(playerSession.get(gameId), jsonObject.toString());
+                        }
+                        else {
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("operation", "settle")
+                                    .element("status", false);
+                            sendAll(playerSession.get(gameId), jsonObject.toString());
+                        }
+                        TimeUnit.SECONDS.sleep(3);
+                        // 执行endGame操作
+                        List<String> allPlayers = new ArrayList<>();
+                        allPlayers.addAll(playerSession.get(gameId).keySet());
+                        String updateStage1 = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.ENDING.ordinal());
+                        assert (updateStage1.equals("success"));
+
+                        String result1 = hyperchainService.endGame(Integer.valueOf(gameId), allPlayers);
+                        if (result1.equals("success")) {
+                            // 成功
+                            System.out.println("endGame success");
+                        }
+                        else {
+                            System.out.println("endGame failed");
+                        }
+                        // 删除本次游戏数据
+                        playerSession.remove(gameId);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                    break;
+                }
                 default: {
                     break;
                 }
@@ -326,6 +367,20 @@ public class CityMap {
     public void connectError(Throwable error) {
         System.out.println("connect error");
         error.printStackTrace();
+    }
+
+    private static <T> List<T> castList(Object obj, Class<T> clazz)
+    {
+        List<T> result = new ArrayList<T>();
+        if(obj instanceof List<?>)
+        {
+            for (Object o : (List<?>) obj)
+            {
+                result.add(clazz.cast(o));
+            }
+            return result;
+        }
+        return null;
     }
 
     private void register(String gameId, String address, Session session) {

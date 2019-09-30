@@ -573,6 +573,60 @@ public class HyperchainService {
         }
     }
 
+    public String settlement(int gameId, List<String> playerAddresses) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _playerAddresses = new FuncParamReal("address[]", playerAddresses);
+        String payloadWithParam = FunctionEncode.encodeFunction("settlement", _gameId, _playerAddresses);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("battleEnd", siegeAbi, rawReturn);
+//        log("调用battleEnd: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String endGame(int gameId, List<String> playerAddresses) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _playerAddresses = new FuncParamReal("address[]", playerAddresses);
+        String payloadWithParam = FunctionEncode.encodeFunction("endGame", _gameId, _playerAddresses);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("battleEnd", siegeAbi, rawReturn);
+//        log("调用battleEnd: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
     public String getGlobalTb(int gameId) throws Exception {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
