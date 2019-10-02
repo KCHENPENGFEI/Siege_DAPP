@@ -1,6 +1,9 @@
 package com.example.zjusiege.WebSocket;
 
+import com.example.zjusiege.Config.Config;
+import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
+import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -271,18 +274,20 @@ public class SiegeBattle {
             Map<String, Session> map = playerSession.get(battleId);
             @Override
             public void run() {
-                String attackerAddress = battleData.get(battleId).getString("attackerAddress");
-                String defenderAddress = battleData.get(battleId).getString("defenderAddress");
-                if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiers.get(battleId).get(defenderAddress).getBoolean("ready")) {
-                    System.out.println("Buy soldiers time remains " + --curSec + " s");
-                    JSONObject jsonObject = new JSONObject()
-                            .element("stage", "buySoldiers")
-                            .element("positive", true)
-                            .element("timer", curSec);
-                    try {
-                        sendAll(map, jsonObject.toString());
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
+                if (battleData.containsKey(battleId)) {
+                    String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+                    String defenderAddress = battleData.get(battleId).getString("defenderAddress");
+                    if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiers.get(battleId).get(defenderAddress).getBoolean("ready")) {
+                        System.out.println("Buy soldiers time remains " + --curSec + " s");
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "buySoldiers")
+                                .element("positive", true)
+                                .element("timer", curSec);
+                        try {
+                            sendAll(map, jsonObject.toString());
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
                     }
                 }
             }
@@ -309,8 +314,12 @@ public class SiegeBattle {
             Map<String, Session> map = playerSession.get(battleId);
             @Override
             public void run() {
-                int round = battleData.get(battleId).getInt("round");
-                boolean isOver = battleData.get(battleId).getBoolean("isOver");
+                int round = 0;
+                boolean isOver = true;
+                if (battleData.containsKey(battleId)) {
+                    round = battleData.get(battleId).getInt("round");
+                    isOver = battleData.get(battleId).getBoolean("isOver");
+                }
                 if (round == curRound && !isOver) {
                     System.out.println("Round " + curRound + " time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
@@ -360,24 +369,12 @@ public class SiegeBattle {
 
         // 首先进行缴费
         try {
-
-//            HyperchainService hyperchainService = new HyperchainService();
-//            String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
-            String transferResult = "transfer success";
+            HyperchainService hyperchainService = new HyperchainService();
+            String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
+//            String transferResult = "transfer success";
             if (transferResult.equals("transfer success")) {
                 // 更新playerSoldier
                 if (type != null) {
-//                    List<Integer> newType;
-//                    if (playerSoldiers.get(battleId).get(address).get("tye") == null) {
-//                        newType = type;
-//                    }
-//                    else {
-//                        List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
-//                        assert oldSoldiers != null;
-//                        oldSoldiers.addAll(type);
-//                        newType = oldSoldiers;
-//                    }
-//                    System.out.println(castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class));
                     List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
 //                    System.out.println("oldSoldiers: " + oldSoldiers);
                     assert oldSoldiers != null;
@@ -416,13 +413,13 @@ public class SiegeBattle {
         // 当前round
         int cRound = battleData.get(battleId).getInt("round");
         try {
-//            HyperchainService hyperchainService = new HyperchainService();
+            HyperchainService hyperchainService = new HyperchainService();
             // 考虑将buySoldiers放在购买士兵部分
             // 后续改进代码，将两个操作用if else进行嵌套
-//            String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, price, type, price, quantity);
-//            String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
-            String buyResult = "success";
-            String departureResult = "success";
+            String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, price, type, price, quantity);
+            String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
+//            String buyResult = "success";
+//            String departureResult = "success";
             if (buyResult.equals("success") && (departureResult.equals("success"))) {
                 String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
                 // 更新状态
@@ -515,14 +512,16 @@ public class SiegeBattle {
         if (allPick) {
             // 链上执行判断
             try {
- //                HyperchainService hyperchainService = new HyperchainService();
+                 HyperchainService hyperchainService = new HyperchainService();
                 int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
                 int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
-//                String result = hyperchainService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
+                String result = hyperchainService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
+                System.out.println("result: " + result);
                 Session attackerSession = playerSession.get(battleId).get(attackerAddress);
                 Session defenderSession = playerSession.get(battleId).get(defenderAddress);
-                String result = judge(aType, dType);
-                switch (result) {
+//                String result = judge(aType, dType);
+                switch (Utils.getValue(result)) {
+//                switch (result) {
                     // 可以考虑后端加上士兵是否在仓库中的验证
                     case "attacker wins this round": {
                         // 进攻者获胜
@@ -565,11 +564,11 @@ public class SiegeBattle {
                         try {
                             int cityId = battleData.get(battleId).getInt("cityId");
 //                            HyperchainService hyperchainService = new HyperchainService();
-//                            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
-                            String battleResult = "attacker wins the battle";
-//                            if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
-                            if (!battleResult.equals("")) {
-                                switch (battleResult) {
+                            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
+//                            String battleResult = "attacker wins the battle";
+                            if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
+//                            if (!battleResult.equals("")) {
+                                switch (Utils.getValue(battleResult)) {
                                     case "attacker wins the battle":
                                         winner = attackerAddress;
                                         loser = defenderAddress;
@@ -606,7 +605,6 @@ public class SiegeBattle {
                                 sendMsg(defenderSession, jsonObject.toString());
                             }
                             // 清除数据
-                            battleData.remove(battleId);
                             playerSoldiers.remove(battleId);
                             playerSession.remove(battleId);
                         } catch (Exception e) {
@@ -626,6 +624,9 @@ public class SiegeBattle {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                    }
+                    else {
+                        battleData.remove(battleId);
                     }
                 }).start();
 
@@ -758,6 +759,13 @@ public class SiegeBattle {
         // 士兵仓库减少
         int attackerSoldier = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
         int defenderSoldier = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
+        double attackerSoldierPoint = SiegeParams.getSoldiersPoint().get(attackerSoldier);
+        double defenderSoldierPoint = SiegeParams.getSoldiersPoint().get(defenderSoldier);
+        attackerPoint -= attackerSoldierPoint;
+        defenderPoint -= defenderSoldierPoint;
+        playerSoldiers.get(battleId).get(attackerAddress).element("price", attackerPoint);
+        playerSoldiers.get(battleId).get(defenderAddress).element("price", defenderPoint);
+
         List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
         List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
 

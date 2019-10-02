@@ -137,8 +137,34 @@ public class SiegeController {
     @ResponseBody
     @RequestMapping(value = "/clear", method = RequestMethod.POST)
     public String clear(@RequestBody JSONObject params) throws Exception {
-        String add = params.getString("address");
-        return hyperchainService.cp(add);
+        String add1 = params.getString("address1");
+        String add2 = params.getString("address2");
+        String add3 = params.getString("address3");
+        String add4 = params.getString("address4");
+        hyperchainService.cp(add1);
+        hyperchainService.cp(add2);
+        hyperchainService.cp(add3);
+        hyperchainService.cp(add4);
+        return "success";
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/setRemain", method = RequestMethod.POST)
+    public String setRemain(@RequestBody JSONObject params) throws Exception {
+        int gameId = params.getInt("gameId");
+        int num = params.getInt("num");
+        return hyperchainService.setRemain(gameId, num);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/ba", method = RequestMethod.POST)
+    public String battleEnd(@RequestBody JSONObject params) throws Exception {
+        int gameId = params.getInt("gameId");
+        String attacker = params.getString("attacker");
+        String defender = params.getString("defender");
+        int cityId = params.getInt("cityId");
+
+        return hyperchainService.battleEnd(gameId, attacker, defender, cityId);
     }
 
     @ResponseBody
@@ -224,6 +250,21 @@ public class SiegeController {
         String sig = params.getString("signature");
         String result = hyperchainService.assetTest(sig);
         return result;
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/clearCity", method = RequestMethod.POST)
+    public String cityClear(@RequestBody JSONObject params) throws Exception {
+        int gameId = params.getInt("gameId");
+        return hyperchainService.cc(gameId);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/getGameData", method = RequestMethod.POST)
+    public String getGameData(@RequestBody JSONObject params) throws Exception {
+        String address = params.getString("address");
+        int pointer = params.getInt("pointer");
+        return hyperchainService.getGameData(address, pointer);
     }
 
     @ResponseBody

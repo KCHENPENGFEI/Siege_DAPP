@@ -457,6 +457,10 @@ contract Siege {
 		globalTable[gameId].game_stage = stage;
 	}
 
+	function setRemain(uint256 gameId, uint256 num) public {
+		globalTable[gameId].cities_remain = num;
+	}
+
 	/**
         @notice 更新bonus出产率
         @param gameId              游戏id
@@ -1027,7 +1031,9 @@ contract Siege {
 			attacker.game_data[attacker.pointer].current_soldiers_point, 
 			defender.game_data[defender.pointer].current_soldiers_point, 
 			cityId);
-		require(result == 0 || result == 1 || result == -1, "battleResult got error");
+		// int8 result = battleResult(40, 75, cityId);
+		// int8 result = 1;
+		// require(result == 0 || result == 1 || result == -1, "battleResult got error");
 
 		if (result == 1) {
 			// 进攻者获胜
@@ -1035,6 +1041,7 @@ contract Siege {
 			_leaveCity(gameId, defenderAddress);
 			// 修改城池数据
 			city.belong_player = attackerAddress;
+			city.if_be_occupied = true;
 			// 修改进攻者数据
 			attacker.is_attacker = false;
 			attacker.is_defender = true;
@@ -1146,7 +1153,7 @@ contract Siege {
 	function endGame(uint256 gameId, address[] calldata playerAddresses) external onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.END, "game is not in end stage");
-		require(playerAddresses.length == PLAYER_NUM, "player number not match");
+		require(playerAddresses.length < PLAYER_NUM, "player number not match");
 
 		clearGlobalTable(gameId);
 		clearCitiesTable(gameId);
@@ -1169,7 +1176,8 @@ contract Siege {
     	string memory identity, 
     	address opponent, 
     	uint256 city, 
-    	string memory status) {
+    	string memory status, 
+    	uint256 pointer) {
 
     	playerInfo memory player = playersTable[playerAddress];
 
@@ -1206,8 +1214,10 @@ contract Siege {
     	else {
     		status = "error";
     	}
+
+    	pointer = player.pointer;
     	
-    	return(gameId, identity, opponent, city, status);
+    	return(gameId, identity, opponent, city, status, pointer);
     }
 
     /**
@@ -1263,8 +1273,38 @@ contract Siege {
     	return(rank, time);
     }
 
+    /**
+        @notice 查询指定gameId的游戏当前状态
+    */
     function getStage(uint256 gameId) public view returns(gameStage) {
     	return(globalTable[gameId].game_stage);
+    }
+
+    /**
+        @notice 查询指定地址玩家游戏数据
+        @param playerAddress   玩家地址
+    */
+    function getGameData(address playerAddress, uint256 pointer) public view returns(
+    	uint256 roundId, 
+    	uint256 allSoldiersPoint, 
+    	uint256 currentSoldiersPoint, 
+    	uint256 soldiersQuantity, 
+    	uint256[] memory cryptoSoldiersCellar, 
+    	soldierType soldierSelected, 
+    	soldierType[] memory DecryptSoldiersCellar) {
+
+    	playerInfo storage player = playersTable[playerAddress];
+    	// uint256 pointer = player.pointer;
+
+    	roundId = player.game_data[pointer].round_id;
+    	allSoldiersPoint = player.game_data[pointer].all_soldiers_point;
+    	currentSoldiersPoint = player.game_data[pointer].current_soldiers_point;
+    	soldiersQuantity = player.game_data[pointer].soldiers_quantity;
+    	cryptoSoldiersCellar = player.game_data[pointer].crypto_soldiers_cellar;
+    	soldierSelected = player.game_data[pointer].soldier_selected;
+    	DecryptSoldiersCellar = player.game_data[pointer].Decrypt_soldiers_cellar;
+
+    	return(roundId, allSoldiersPoint, currentSoldiersPoint, soldiersQuantity, cryptoSoldiersCellar, soldierSelected, DecryptSoldiersCellar);
     }
 
 	/**
@@ -1424,6 +1464,16 @@ contract Siege {
     	player.own_city_id = 0;
     }
 
+    function cc(uint256 gameId) public {
+    	for (uint256 i = 0; i < CITY_NUM + 1; ++i) {
+    		citiesTable[gameId][i].realtime_price = 6 * PRECISION;
+    		citiesTable[gameId][i].if_be_occupied = false;
+    		citiesTable[gameId][i].belong_player = address(0x0);
+    		citiesTable[gameId][i].produced_bonus = 0;
+    		globalTable[gameId].cities_remain += 1;
+    	}
+    }
+
     /**
         @notice 玩家离开城池(内部函数)
         @param gameId              游戏id
@@ -1432,7 +1482,7 @@ contract Siege {
     function _leaveCity(uint256 gameId, address playerAddress) internal onlyRoot() {
 		// 确保游戏状态正确
 		require(globalTable[gameId].game_stage == gameStage.RUNNING, "game is not in running stage");
-		require(globalTable[gameId].cities_remain < CITY_NUM, "All the city is not occupied!");
+		// require(globalTable[gameId].cities_remain < CITY_NUM, "All the city is not occupied!");
 
 		playerInfo storage player = playersTable[playerAddress];
 		// 游戏id正确
@@ -1580,11 +1630,12 @@ contract Siege {
     	}
     	else {
     		uint256 defenderNewPoints = defenderCurrentPoints * cityDefenseIndex[cityId];
-    		if (attackerCurrentPoints == defenderNewPoints) {
+    		uint256 attackerNewPoints = attackerCurrentPoints * 100;
+    		if (attackerNewPoints == defenderNewPoints) {
     			// 双方战平
     			return 0;
     		}
-    		else if (attackerCurrentPoints < defenderNewPoints) {
+    		else if (attackerNewPoints < defenderNewPoints) {
     			// 防守者获胜
     			return -1;
     		}

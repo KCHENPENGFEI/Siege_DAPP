@@ -518,10 +518,10 @@ public class HyperchainService {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
         FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
-        FuncParamReal _attackerAddress = new FuncParamReal("String", attackerAddress);
-        FuncParamReal _defenderAddress = new FuncParamReal("String", defenderAddress);
-        FuncParamReal _aType = new FuncParamReal("uint256", aType);
-        FuncParamReal _dType = new FuncParamReal("uint256", dType);
+        FuncParamReal _attackerAddress = new FuncParamReal("address", attackerAddress);
+        FuncParamReal _defenderAddress = new FuncParamReal("address", defenderAddress);
+        FuncParamReal _aType = new FuncParamReal("uint8", aType);
+        FuncParamReal _dType = new FuncParamReal("uint8", dType);
         String payloadWithParam = FunctionEncode.encodeFunction("pickAndBattle", _gameId, _attackerAddress, _defenderAddress, _aType, _dType);
         Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
         transaction.signWithSM2(deployAccountJson, "");
@@ -548,8 +548,8 @@ public class HyperchainService {
         HyperchainAPI hyperchainAPI = new HyperchainAPI();
 
         FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
-        FuncParamReal _attackerAddress = new FuncParamReal("String", attackerAddress);
-        FuncParamReal _defenderAddress = new FuncParamReal("String", defenderAddress);
+        FuncParamReal _attackerAddress = new FuncParamReal("address", attackerAddress);
+        FuncParamReal _defenderAddress = new FuncParamReal("address", defenderAddress);
         FuncParamReal _cityId = new FuncParamReal("uint256", cityId);
         String payloadWithParam = FunctionEncode.encodeFunction("battleEnd", _gameId, _attackerAddress, _defenderAddress, _cityId);
         Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
@@ -618,6 +618,33 @@ public class HyperchainService {
         if (code == 0) {
             System.out.println("code: " + code);
             return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String getGameData(String playerAddress, int pointer) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _playerAddress = new FuncParamReal("address", playerAddress);
+        FuncParamReal _pointer = new FuncParamReal("uint256", pointer);
+        String payloadWithParam = FunctionEncode.encodeFunction("getGameData", _playerAddress, _pointer);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+        String rawReturn = receiptReturn.getRet();
+        String decodeResult = FunctionDecode.resultDecode("getGameData", siegeAbi, rawReturn);
+        log("调用getGameData: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return decodeResult;
         }
         else if (code == -32005) {
             return "contract calling error";
@@ -711,6 +738,33 @@ public class HyperchainService {
 
         FuncParamReal _a = new FuncParamReal("address", a);
         String payloadWithParam = FunctionEncode.encodeFunction("cp", _a);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("getBiddingTb", siegeAbi, rawReturn);
+//        log("调用getBiddingTb: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+
+    public String cc(int gameId) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        String payloadWithParam = FunctionEncode.encodeFunction("cc", _gameId);
         Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
         transaction.signWithSM2(deployAccountJson, "");
 
@@ -976,6 +1030,33 @@ public class HyperchainService {
         if (code == 0) {
             System.out.println("code: " + code);
             return decodeResult;
+        }
+        else if (code == -32005) {
+            return "contract calling error";
+        }
+        else {
+            return "unknown error";
+        }
+    }
+
+    public String setRemain(int gameId, int num) throws Exception {
+        HyperchainAPI hyperchainAPI = new HyperchainAPI();
+
+        FuncParamReal _gameId = new FuncParamReal("uint256", gameId);
+        FuncParamReal _num = new FuncParamReal("uint256", num);
+        String payloadWithParam = FunctionEncode.encodeFunction("setRemain", _gameId, _num);
+        Transaction transaction = new Transaction(deployAccount.getAddress(), contractAddress, payloadWithParam, false);
+        transaction.signWithSM2(deployAccountJson, "");
+
+        ReceiptReturn receiptReturn = hyperchainAPI.invokeContract(transaction);
+        int code = receiptReturn.getRawcode();
+//        String rawReturn = receiptReturn.getRet();
+//        String decodeResult = FunctionDecode.resultDecode("getCitiesTb", siegeAbi, rawReturn);
+//        log("调用getCitiesTb: " + decodeResult);
+
+        if (code == 0) {
+            System.out.println("code: " + code);
+            return "success";
         }
         else if (code == -32005) {
             return "contract calling error";
