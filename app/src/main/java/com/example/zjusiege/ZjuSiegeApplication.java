@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableAsync
 public class ZjuSiegeApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(ZjuSiegeApplication.class, args);
 	}

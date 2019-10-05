@@ -26,14 +26,14 @@ var account3 = {
     privateKeyEncrypted: false
 };
 
-// var account4 = {
-//     address: 'B706BF5D9822C71EDAF8810AEE551EBC2C1514A3',
-//     publicKey:
-//    '041BF6B31FC9A390C2BAF8CA93553BB3144A573408C9474B858AF9915255771B33F665DE05B6521957F74F4E95E6AB27100380B49D6FCF71535D837217B1A613D8',
-//     privateKey:
-//    '2656F67E2ACE04B2C4EBE1081A267B678FF1BFCC0CEF7C4DEFCBE40C745B5B5C',
-//     privateKeyEncrypted: false
-// };
+var account4 = {
+    address: 'A2AD38B21027DB378B0143A4A26F80C9E235EC89',
+    publicKey:
+   '04389D9B21D223B65A4AD9152DA6C37890A81959999536F0E502EA803B8175A916F422C6DB3065B5E610C31A463A012481C7FDAA8C2719898339E4505D582A39AA',
+    privateKey:
+   '00CE9B62571C866C6194D17ADBFE8BC8B5D1CFB2211E4883546683A0E481DDE53E',
+    privateKeyEncrypted: false
+};
 
 var match1 = {
     match: true,
@@ -50,11 +50,11 @@ var match3 = {
     address: account3['address'],
     signature: JSON.stringify(account3)
 };
-// var match4 = {
-//     match: true,
-//     address: account4['address'],
-//     signature: JSON.stringify(account4)
-// };
+var match4 = {
+    match: true,
+    address: account4['address'],
+    signature: JSON.stringify(account4)
+};
 
 var websocket1 = null;
 var websocket2 = null;
@@ -64,7 +64,7 @@ var websocket3 = null;
 websocket1 = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
 websocket2 = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
 websocket3 = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
-// websocket4 = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
+websocket4 = new WebSocket("ws://localhost:8088/WebSocket/playersMatch");
 
 websocket1.onerror = function() {
     console.log('account1 error');
@@ -75,9 +75,9 @@ websocket2.onerror = function() {
 websocket3.onerror = function() {
     console.log('account3 error');
 }
-// websocket4.onerror = function() {
-//     console.log('account4 error');
-// }
+websocket4.onerror = function() {
+    console.log('account4 error');
+}
 
 // websocket1.onopen = function() {
 //     console.log('account1 connected');
@@ -103,10 +103,10 @@ websocket3.on('open', function() {
     console.log('account3 connected');
     websocket3.send(JSON.stringify(match3));
 });
-// websocket4.on('open', function() {
-//     console.log('account4 connected');
-//     websocket4.send(JSON.stringify(match4));
-// });
+websocket4.on('open', function() {
+    console.log('account4 connected');
+    websocket4.send(JSON.stringify(match4));
+});
 
 websocket1.onclose = function() {
     console.log('account1 offline');
@@ -117,9 +117,9 @@ websocket2.onclose = function() {
 websocket3.onclose = function() {
     console.log('account3 offline');
 }
-// websocket4.onclose = function() {
-//     console.log('account4 offline');
-// }
+websocket4.onclose = function() {
+    console.log('account4 offline');
+}
 
 websocket1.onmessage = function(event) {
     console.log('account1', event.data);
@@ -130,9 +130,9 @@ websocket2.onmessage = function(event) {
 websocket3.onmessage = function(event) {
     console.log('account3', event.data);
 }
-// websocket4.onmessage = function(event) {
-//     console.log('account4', event.data);
-// }
+websocket4.onmessage = function(event) {
+    console.log('account4', event.data);
+}
 
 
 // websocket.onerror = function() {

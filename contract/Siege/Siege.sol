@@ -1640,6 +1640,10 @@ contract Siege {
     	}
     }
 
+    function addtest(uint256 a, uint256 b) public returns(uint256) {
+    	return(a+b);
+    }
+
     function battleResult(uint256 attackerCurrentPoints, uint256 defenderCurrentPoints, uint256 cityId) internal view returns (int8) {
     	if (attackerCurrentPoints == defenderCurrentPoints) {
     		// 双方战平
