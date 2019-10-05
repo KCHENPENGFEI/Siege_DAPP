@@ -700,6 +700,7 @@ contract Siege {
 		city.belong_player = playerAddress;
 
 		globalTable[gameId].cities_remain -= 1;
+		globalTable[gameId].bonus_pool += amount;
 		// 产出率此时不更新
 	}
 
@@ -1048,6 +1049,8 @@ contract Siege {
 			attacker.opponent = address(0x0);
 			attacker.in_battle = false;
 			attacker.own_city_id = cityId;
+			// 修改全局数据
+			globalTable[gameId].cities_remain -= 1;
 			// 资产转移分配
 			// SiegeAsset siegeAsset = SiegeAsset(gameAssetAddr);
 			// 进攻者拿回80%的购买士兵费用
@@ -1064,6 +1067,8 @@ contract Siege {
 			// // 初始化战斗记录
 			// attacker.game_data[attacker.pointer] = gameInfoInit;
 			// defender.game_data[defender.pointer] = gameInfoInit;
+			// 增加奖金池
+			addBonusPool(gameId, attacker, defender);
 
 			clearGameData(attacker);
 			clearGameData(defender);
@@ -1089,6 +1094,9 @@ contract Siege {
 			// siegeAsset.transfer(rootAddr, defenderAddress, dAmount * 4 / 5, symbol, "defender get back the paid fee");
 			// 进攻者将70%的购买士兵费用转移给防守者
 			// siegeAsset.transfer(rootAddr, defenderAddress, aAmount * 7 / 10, symbol, "attacker pay the fee to defender");
+			// 增加奖金池
+			addBonusPool(gameId, defender, attacker);	
+
 
 			clearGameData(attacker);
 			clearGameData(defender);
@@ -1283,6 +1291,7 @@ contract Siege {
     /**
         @notice 查询指定地址玩家游戏数据
         @param playerAddress   玩家地址
+        @param pointer        游戏数据指针
     */
     function getGameData(address playerAddress, uint256 pointer) public view returns(
     	uint256 roundId, 
@@ -1361,6 +1370,18 @@ contract Siege {
             bytesStringTrimmed[j] = bytesString[j];
         }
         return string(bytesStringTrimmed);
+    }
+
+    function addBonusPool(uint256 gameId, playerInfo storage winner, playerInfo storage loser) internal {
+
+    	uint256 winnerPointer = winner.pointer;
+    	uint256 loserPointer = loser.pointer;
+
+    	uint256 winnerPrice = winner.game_data[winnerPointer].all_soldiers_point;
+    	uint256 loserPrice = loser.game_data[loserPointer].all_soldiers_point;
+
+    	globalTable[gameId].bonus_pool += winnerPrice * 2 / 10;
+    	globalTable[gameId].bonus_pool += loserPrice * 3 / 10;
     }
 
     function initGlobalTable(uint256 gameId) internal {

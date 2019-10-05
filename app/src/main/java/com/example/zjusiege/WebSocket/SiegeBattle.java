@@ -572,14 +572,39 @@ public class SiegeBattle {
                                     case "attacker wins the battle":
                                         winner = attackerAddress;
                                         loser = defenderAddress;
+                                        // 转账给winner
+                                        new Thread(()-> {
+                                            // 查询链上数据
+                                            try {
+                                                battleSettlement(winner, loser, false);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }).start();
                                         break;
                                     case "defender wins the battle":
                                         winner = defenderAddress;
                                         loser = attackerAddress;
+                                        new Thread(()-> {
+                                            // 查询链上数据
+                                            try {
+                                                battleSettlement(winner, loser, false);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }).start();
                                         break;
                                     case "tie":
                                         winner = "nobody";
                                         loser = "nobody";
+                                        new Thread(()-> {
+                                            // 查询链上数据
+                                            try {
+                                                battleSettlement(winner, loser, true);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }).start();
                                         break;
                                     default:
                                         winner = "";
@@ -834,6 +859,33 @@ public class SiegeBattle {
         }
     }
 
+    private void battleSettlement(String winner, String loser, boolean tie) throws Exception{
+        HyperchainService hyperchainService = new HyperchainService();
+        String winnerInfo = hyperchainService.getPlayersStatus(winner);
+        String loserInfo = hyperchainService.getPlayersStatus(loser);
+        int winnerPointer = getPointer(winnerInfo, 5);
+        int loserPointer = getPointer(loserInfo, 5);
+        winnerPointer = decreasePointer(winnerPointer);
+        loserPointer = decreasePointer(loserPointer);
+        String winnerGameData = hyperchainService.getGameData(winner, winnerPointer);
+        String loserGameData = hyperchainService.getGameData(loser, loserPointer);
+        long winnerPrice = getPrice(winnerGameData, 1);
+        long loserPrice = getPrice(loserGameData, 1);
+        String symbol = "SIG";
+        if (!tie) {
+            // 获胜者拿回80%的费用
+            String back = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
+            // 获胜者获得失败者70%的费用
+            String award = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
+            assert (back.equals("transfer success") && award.equals("transfer success"));
+        }
+        else {
+            String returnBack1 = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            String returnBack2=  hyperchainService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
+        }
+    }
+
     private String judge(int type1, int type2) {
         switch (type1) {
             case 1:
@@ -879,6 +931,34 @@ public class SiegeBattle {
             default:
                 return "tie";
         }
+    }
+
+    private int getPointer(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return (Integer.valueOf(valueStr));
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private long getPrice(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return (Long.valueOf(valueStr));
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private int decreasePointer(int pointer) {
+        return (pointer - 1 + 5) % 5;
     }
 
 //    private void encryptWithPubKey(String publicKey, String privateKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchPaddingException, InvalidKeyException, IOException, InvalidKeyException {

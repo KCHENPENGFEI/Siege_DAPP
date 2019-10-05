@@ -149,7 +149,6 @@ public class CityMap {
                                     jsonArray.add(city);
                                 }
                                 jsonObject.element("cityMap", jsonArray);
-                                sendMsg(session, jsonObject.toString());
 
 //                                JSONObject jsonObject = new JSONObject()
 //                                        .element("stage", "updateCityMap")
@@ -204,11 +203,34 @@ public class CityMap {
                             if (result.equals("success")) {
                                 // 广播城池更新信息
                                 JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "updateCityMap")
-                                        .element("cityId", cityId)
-                                        .element("ifBeOccupied", false)
-                                        .element("belongPlayer", "0000000000000000000000000000000000000000")
-                                        .element("producedBonus", 0.);
+                                        .element("stage", "updateCityMap");
+                                JSONArray jsonArray = new JSONArray();
+                                for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
+                                    String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+                                    String cityName = returnString(result1, 0);
+                                    double defenseIndex = returnDouble(result1, 1);
+                                    double realtimePrice = returnDouble(result1, 2);
+                                    boolean ifBeOccupied = returnBool(result1, 3);
+                                    String belongPlayer = returnString(result1, 4);
+                                    double producedBonus = returnDouble(result1, 5);
+                                    JSONObject city = new JSONObject()
+                                            .element("cityId", i)
+                                            .element("cityName", cityName)
+                                            .element("defenseIndex", defenseIndex)
+                                            .element("realtimePrice", realtimePrice)
+                                            .element("ifBeOccupied", ifBeOccupied)
+                                            .element("belongPlayer", belongPlayer)
+                                            .element("producedBonus", producedBonus);
+                                    jsonArray.add(city);
+                                }
+                                jsonObject.element("cityMap", jsonArray);
+
+//                                JSONObject jsonObject = new JSONObject()
+//                                        .element("stage", "updateCityMap")
+//                                        .element("cityId", cityId)
+//                                        .element("ifBeOccupied", false)
+//                                        .element("belongPlayer", "0000000000000000000000000000000000000000")
+//                                        .element("producedBonus", 0.);
                                 sendAll(playerSession.get(gameId), jsonObject.toString());
                             }
                         }
@@ -243,7 +265,7 @@ public class CityMap {
                             // 告知被攻击者
                             Session targetSession = playerSession.get(gameId).get(target);
                             JSONObject jsonObject = new JSONObject()
-                                    .element("stage", "response")
+                                    .element("stage", "notification")
                                     .element("situation", "beAttackedRequest")
                                     .element("opponent", address);
                             sendMsg(targetSession, jsonObject.toString());
@@ -282,10 +304,11 @@ public class CityMap {
 //                                String result = "success";
                                 if (result.equals("success")) {
                                     // 告知进攻者获得城池
-                                    JSONObject jsonObject = new JSONObject()
+                                    JSONObject notification = new JSONObject()
+                                            .element("stage", "notification")
                                             .element("situation", "getCity");
                                     Session targetSession = playerSession.get(gameId).get(target);
-                                    sendMsg(targetSession, jsonObject.toString());
+                                    sendMsg(targetSession, notification.toString());
                                     // 告知玩家操作成功
                                     JSONObject response = new JSONObject()
                                             .element("stage", "response")
@@ -293,19 +316,42 @@ public class CityMap {
                                             .element("status", true);
                                     sendMsg(session, response.toString());
                                     // 广播城池更新信息
-                                    JSONObject jsonObject1 = new JSONObject()
-                                            .element("stage", "updateCityMap")
-                                            .element("cityId", cityId)
-                                            .element("ifBeOccupied", true)
-                                            .element("belongPlayer", target)
-                                            .element("producedBonus", 0.);
-                                    sendAll(playerSession.get(gameId), jsonObject1.toString());
+                                    JSONObject jsonObject = new JSONObject()
+                                            .element("stage", "updateCityMap");
+                                    JSONArray jsonArray = new JSONArray();
+                                    for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
+                                        String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+                                        String cityName = returnString(result1, 0);
+                                        double defenseIndex = returnDouble(result1, 1);
+                                        double realtimePrice = returnDouble(result1, 2);
+                                        boolean ifBeOccupied = returnBool(result1, 3);
+                                        String belongPlayer = returnString(result1, 4);
+                                        double producedBonus = returnDouble(result1, 5);
+                                        JSONObject city = new JSONObject()
+                                                .element("cityId", i)
+                                                .element("cityName", cityName)
+                                                .element("defenseIndex", defenseIndex)
+                                                .element("realtimePrice", realtimePrice)
+                                                .element("ifBeOccupied", ifBeOccupied)
+                                                .element("belongPlayer", belongPlayer)
+                                                .element("producedBonus", producedBonus);
+                                        jsonArray.add(city);
+                                    }
+                                    jsonObject.element("cityMap", jsonArray);
+
+//                                    JSONObject jsonObject1 = new JSONObject()
+//                                            .element("stage", "updateCityMap")
+//                                            .element("cityId", cityId)
+//                                            .element("ifBeOccupied", true)
+//                                            .element("belongPlayer", target)
+//                                            .element("producedBonus", 0.);
+                                    sendAll(playerSession.get(gameId), jsonObject.toString());
                                 }
                                 else {
                                     // 操作失败
                                     // 告知双方系统错误
                                     JSONObject jsonObject = new JSONObject()
-                                            .element("stage", "response")
+                                            .element("stage", "notification")
                                             .element("situation", "systemError");
                                     Session targetSession = playerSession.get(gameId).get(target);
                                     sendMsg(session, jsonObject.toString());
@@ -316,7 +362,7 @@ public class CityMap {
                                 // 操作失败
                                 // 告知双方系统错误
                                 JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "response")
+                                        .element("stage", "notification")
                                         .element("situation", "systemError");
                                 Session targetSession = playerSession.get(gameId).get(target);
                                 sendMsg(session, jsonObject.toString());
@@ -330,7 +376,7 @@ public class CityMap {
                                 // 玩家选择防守
                                 // 告知进攻者
                                 JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "response")
+                                        .element("stage", "notification")
                                         .element("situation", "beforeBattle");
                                 Session targetSession = playerSession.get(gameId).get(target);
                                 sendMsg(targetSession, jsonObject.toString());
@@ -345,7 +391,7 @@ public class CityMap {
                                 // 操作失败
                                 // 告知双方系统错误
                                 JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "response")
+                                        .element("stage", "notification")
                                         .element("situation", "systemError");
                                 Session targetSession = playerSession.get(gameId).get(target);
                                 sendMsg(session, jsonObject.toString());

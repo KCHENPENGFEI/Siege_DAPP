@@ -27,6 +27,7 @@ public class PlayersMatch {
     private static final Map<String, Session> playersSession = new ConcurrentHashMap<>();
     // 匹配成功玩家集合
     private static final Map<Integer, Map<String, Session>> matchedPlayersSession = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> playersGameId = new ConcurrentHashMap<>();
 
     // 进入匹配人数
     private static int playersNum = 0;
@@ -46,9 +47,9 @@ public class PlayersMatch {
     @OnClose
     public void disConnect(Session session) {
         System.out.println("disConnect");
-        for (String addr: playersSession.keySet()) {
-            playersSession.remove(addr);
-        }
+//        for (String addr: playersSession.keySet()) {
+//            playersSession.remove(addr);
+//        }
     }
 
     @OnMessage
@@ -57,7 +58,14 @@ public class PlayersMatch {
         boolean match = params.getBoolean("match");
         String signature = params.getString("signature");
         String address = JSONObject.fromObject(signature).getString("address");
+        System.out.println("address" + address);
 //        String address = params.getString("address");
+        if (playersGameId.containsKey(address)) {
+            JSONObject jsonObject = new JSONObject()
+                    .element("match", "already match success")
+                    .element("gameId", playersGameId.get(address));
+            sendMsg(session, jsonObject.toString());
+        }
 
         if (match){
             // 缴纳入场费
@@ -81,8 +89,9 @@ public class PlayersMatch {
                     }
                     else {
                         if (!matchWaiting) {
-                            playersSession.put(address, session);
-                            playersNum += 1;
+                            enqueue(address, session);
+//                            playersSession.put(address, session);
+//                            playersNum += 1;
                             JSONObject jsonObject = new JSONObject()
                                     .element("match", "enter matching queue")
                                     .element("gameId", 0);
@@ -162,6 +171,8 @@ public class PlayersMatch {
                                 .element("match", "match success")
                                 .element("gameId", gameId);
                         sendMsg(session, jsonObject.toString());
+                        playersGameId.put(address, gameId);
+                        System.out.println("playerGameId" + playersGameId);
                     }
                 }
                 else {
@@ -182,6 +193,13 @@ public class PlayersMatch {
                     sendMsg(session, jsonObject.toString());
                 }
             }
+        }
+    }
+
+    private void enqueue(String address, Session session) {
+        if (!playersSession.containsKey(address)) {
+            playersSession.put(address, session);
+            playersNum += 1;
         }
     }
 

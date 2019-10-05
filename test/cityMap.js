@@ -1,39 +1,39 @@
 var WebSocket = require('ws');
 var account1 = {
-    address: '10176C670C1A92104FA1EC98B9E29F5721D25642',
+    address: '9DF68053BB24B86D814BC334C0032C795311FE88',
     publicKey:
-   '04F9AC133FF89DF907E145CC16693D754347ECE4FFE3B365427D52F3E10F05E6CFFF17BFE91F320F3F436F34C0590501F92483A0BBF71DEF8E9DB40F31EF105472',
+   '045EE9F81142D2275E5866771E8F8BAABAE96FD13A8070E9BB35BD553C4EB33B05EAF66BB3974E45155352B48B2CFBBEA81A21D41C4FCAF492504998B4E9647B01',
    privateKey:
-   '334975E21556D5851131F3E9C7BA2A55A822218F0D6D4B3D5F072B820B832D54',
+   '5695D1E8A9CDAE259BAFCE3714AAD120AE2370EE944168EBA3904BA6F0364B5F',
    privateKeyEncrypted: false
 };
 
 var account2 = {
-    address: 'BCC935EA0C5A3E39509A641B688E44742CE9FE9A',
+    address: '930267C8A6FA041D5D0A6AC9C3DF25B77E8DC8E9',
     publicKey:
-   '0492CD5ECB3DB6CF2EFACE1E19A3E69BAAB3B28881FD1EFF84E95508FBCEF17BBCD8279A24EEEB02F7013CF602234D102E1C0687435F598265ED28D1E6A373D98B',
+   '04491412FCDA40AF9A628100735D01BBAA047C1F6EFC19D1850BED56730406F7BD3FD08718A64FE2B648DE0BFBF9B480DA379278FB49237EFB6341CE83C5523249',
    privateKey:
-   '0081E2123850888F9ED4BFD0D2716F12BAAA9EC9CA625EBCE0F230DCBC23528169',
+   '4176AD970B1D2C3711739E0226C48F15EEF8644383129A870DA0E084CBCF31C0',
    privateKeyEncrypted: false
 };
 
 var account3 = {
-    address: '1DBE0A1322FC34636EF04EA96EA1BF192ED3278C',
+    address: 'FCAC913D7FCC96CFC4CB0DBEF0888AF97A262A6C',
     publicKey:
-   '04DAA88C4EA9DEA3EBFA6720DE9318D1EEFD35987E0AFE637CEFDA062492AAD0CAC4D7B08159CF12166E984DA001F933DDE5FEEEEEE182F6AAB6BA4CE0E51406A6',
+   '048B227177CA5CCACBDA1F29CF71A3E2DAE339BDA0175E63E9F51B7F8A9F9F72ADFE266FF6E17618288435FEFA235214F063A0595CBD831BC6A9553416699C8271',
     privateKey:
-   '5EF9AF56B6091EAB0919259C241D88D8752FAEEE6023EF15A1D73B4899B8635E',
+   '00ECCAE0C9DC2822C7CF676739A060EFB486117BECAC94996F33408A8B916A0F91',
     privateKeyEncrypted: false
 };
 
-var account4 = {
-    address: 'B706BF5D9822C71EDAF8810AEE551EBC2C1514A3',
-    publicKey:
-   '041BF6B31FC9A390C2BAF8CA93553BB3144A573408C9474B858AF9915255771B33F665DE05B6521957F74F4E95E6AB27100380B49D6FCF71535D837217B1A613D8',
-    privateKey:
-   '2656F67E2ACE04B2C4EBE1081A267B678FF1BFCC0CEF7C4DEFCBE40C745B5B5C',
-    privateKeyEncrypted: false
-};
+// var account4 = {
+//     address: 'B706BF5D9822C71EDAF8810AEE551EBC2C1514A3',
+//     publicKey:
+//    '041BF6B31FC9A390C2BAF8CA93553BB3144A573408C9474B858AF9915255771B33F665DE05B6521957F74F4E95E6AB27100380B49D6FCF71535D837217B1A613D8',
+//     privateKey:
+//    '2656F67E2ACE04B2C4EBE1081A267B678FF1BFCC0CEF7C4DEFCBE40C745B5B5C',
+//     privateKeyEncrypted: false
+// };
 
 var first1 = {
     first: true,
@@ -47,15 +47,15 @@ var first3 = {
     first: true,
     address: account3['address']
 };
-var first4 = {
-    first: true,
-    address: account4['address']
-};
+// var first4 = {
+//     first: true,
+//     address: account4['address']
+// };
 
 var websocket1 = null;
 var websocket2 = null;
 var websocket3 = null;
-var websocket4 = null;
+// var websocket4 = null;
 function sleep(ms) {
     var start = Date.now(), 
     now = start; 
@@ -64,13 +64,13 @@ function sleep(ms) {
     } 
 }
 
-websocket1 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/21");
+websocket1 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/31");
 // sleep(1000);
-websocket2 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/21");
+websocket2 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/31");
 // sleep(1000);
-websocket3 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/21");
+websocket3 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/31");
 // sleep(1000);
-websocket4 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/21");
+// websocket4 = new WebSocket("ws://localhost:8088/WebSocket/cityMap/22");
 // sleep(1000);
 
 var data1 = {
@@ -94,13 +94,13 @@ var data3 = {
     bonus: 0,
     rate: 0
 };
-var data4 = {
-    address: account4['address'],
-    cityId: 2,
-    timer: 0,
-    bonus: 0,
-    rate: 0
-};
+// var data4 = {
+//     address: account4['address'],
+//     cityId: 2,
+//     timer: 0,
+//     bonus: 0,
+//     rate: 0
+// };
 websocket1.onerror = function() {
     console.log('account1 error');
 };
@@ -110,9 +110,9 @@ websocket2.onerror = function() {
 websocket3.onerror = function() {
     console.log('account3 error');
 };
-websocket4.onerror = function() {
-    console.log('account4 error');
-};
+// websocket4.onerror = function() {
+//     console.log('account4 error');
+// };
 
 websocket1.onclose = function() {
     console.log('account1 offline');
@@ -123,9 +123,9 @@ websocket2.onclose = function() {
 websocket3.onclose = function() {
     console.log('account3 offline');
 }
-websocket4.onclose = function() {
-    console.log('account4 offline');
-}
+// websocket4.onclose = function() {
+//     console.log('account4 offline');
+// }
 
 websocket1.on('open', function() {
     console.log('account1 connected, time: ', new Date().toLocaleTimeString());
@@ -139,10 +139,10 @@ websocket3.on('open', function() {
     console.log('account3 connected, time: ', new Date().toLocaleTimeString());
     websocket3.send(JSON.stringify(first3));
 });
-websocket4.on('open', function() {
-    console.log('account4 connected, time: ', new Date().toLocaleTimeString());
-    websocket4.send(JSON.stringify(first4));
-});
+// websocket4.on('open', function() {
+//     console.log('account4 connected, time: ', new Date().toLocaleTimeString());
+//     websocket4.send(JSON.stringify(first4));
+// });
 
 websocket1.onmessage = function(event) {
     // 玩家1有城池
@@ -295,37 +295,37 @@ websocket3.onmessage = function(event) {
     //     }));
     // }
 }
-websocket4.onmessage = function(event) {
-    // 玩家4有城池
-    var msg = JSON.parse(event.data);
-    console.log('account4: ', msg, 'time: ', new Date().toLocaleTimeString());
-    if (msg["stage"] === 'running') {
-        data4["timer"] = msg["timer"];
-    }
-    if (msg["cityBonus"] !== undefined) {
-        data4["bonus"] = msg["cityBonus"][3]["producedBonus"];
-    }
-    if (msg["produceRate"] !== undefined) {
-        data4["rate"] = msg["produceRate"];
-    }
-    // 在特定时间离开城池2
-    // if (msg["timer"] === 3585) {
-    //     websocket4.send(JSON.stringify({
-    //         first: false,
-    //         address: account4['address'],
-    //         operation: 'leave',
-    //         cityId: data4.cityId,
-    //         bonus: data4.bonus
-    //     }))
-    // }
-    // 在特定时间去攻击玩家2，城池3
-    if (msg["timer"] === 3594) {
-        websocket4.send(JSON.stringify({
-            first: false,
-            address: account4["address"],
-            operation: 'attack',
-            cityId: 3,
-            target: account2["address"]
-        }));
-    }
-}
+// websocket4.onmessage = function(event) {
+//     // 玩家4有城池
+//     var msg = JSON.parse(event.data);
+//     console.log('account4: ', msg, 'time: ', new Date().toLocaleTimeString());
+//     if (msg["stage"] === 'running') {
+//         data4["timer"] = msg["timer"];
+//     }
+//     if (msg["cityBonus"] !== undefined) {
+//         data4["bonus"] = msg["cityBonus"][3]["producedBonus"];
+//     }
+//     if (msg["produceRate"] !== undefined) {
+//         data4["rate"] = msg["produceRate"];
+//     }
+//     // 在特定时间离开城池2
+//     // if (msg["timer"] === 3585) {
+//     //     websocket4.send(JSON.stringify({
+//     //         first: false,
+//     //         address: account4['address'],
+//     //         operation: 'leave',
+//     //         cityId: data4.cityId,
+//     //         bonus: data4.bonus
+//     //     }))
+//     // }
+//     // 在特定时间去攻击玩家2，城池3
+//     if (msg["timer"] === 3594) {
+//         websocket4.send(JSON.stringify({
+//             first: false,
+//             address: account4["address"],
+//             operation: 'attack',
+//             cityId: 3,
+//             target: account2["address"]
+//         }));
+//     }
+// }
