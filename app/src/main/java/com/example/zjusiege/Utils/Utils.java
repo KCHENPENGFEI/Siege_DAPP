@@ -1,5 +1,6 @@
 package com.example.zjusiege.Utils;
 
+import com.example.zjusiege.SiegeParams.SiegeParams;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -41,6 +42,71 @@ public class Utils {
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
             return new ArrayList<>();
+        }
+    }
+
+    public static String returnString(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            return(jsonObject.getString("value"));
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return "";
+        }
+    }
+
+    public static double returnDouble(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            double value = Double.valueOf(valueStr);
+            if (index == 1) {
+                return value / 100;
+            }
+            else {
+                return value / SiegeParams.getPrecision();
+            }
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0.;
+        }
+    }
+
+    public static boolean returnBool(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return valueStr.equals("true");
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static int returnInt(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return Integer.valueOf(valueStr);
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    public static long returnLong(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return Long.valueOf(valueStr);
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
         }
     }
 }
