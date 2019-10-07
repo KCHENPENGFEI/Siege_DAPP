@@ -22,9 +22,9 @@ public class Bidding {
     private static int playerNum = 0;
     private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
-    private static int biddingTimer = 7;
+    private static int biddingTimer = 10;
     private static int biddingTimes = 5;
-    private static int payingTimer = 13;
+    private static int payingTimer = 20;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
@@ -115,12 +115,14 @@ public class Bidding {
                             }
                             biddingTimes -= 1;
                         }
+
                         // 竞标结束，向得标者发送缴纳尾款数据
                         try {
                             payBiddingFee(payingTimer, gameId);
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
+
                         // 尾款缴纳结束，分配城池
                         try {
                             TimeUnit.SECONDS.sleep(3);
@@ -128,6 +130,10 @@ public class Bidding {
                         } catch (Exception e) {
                             System.out.println("Got an exception: " + e.getMessage());
                         }
+
+                        // 清除数据
+                        clearGameStarted(gameId);
+                        clearIfPayed(gameId);
                     }).start();
                 }
             }
@@ -140,6 +146,7 @@ public class Bidding {
             }
         }
         else {
+            // 之后进行封转
             // 不是第一次连接
             if (params.getBoolean("bidding")) {
                 System.out.println("test----" + params);
@@ -170,6 +177,10 @@ public class Bidding {
                 if (unique) {
                     topNPrice.get(gameId).add(jsonObject);
                 }
+                JSONObject response = new JSONObject()
+                        .element("stage", "bid")
+                        .element("status", true);
+                sendMsg(session, response.toString());
             }
             else {
                 // 缴纳尾款阶段
@@ -280,6 +291,14 @@ public class Bidding {
         }
     }
 
+    private void clearGameStarted(String gameId) {
+        gameStarted.remove(gameId);
+    }
+
+    private void clearIfPayed(String gameId) {
+        ifPayed.remove(gameId);
+    }
+
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
     }
@@ -334,15 +353,19 @@ public class Bidding {
                             if (!ifPayed.get(gameId).containsKey(address)) {
                                 ifPayed.get(gameId).put(address, false);
                             }
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("stage", "pay")
-                                    .element("timer", curSec)
-                                    .element("deal", item.getDouble("price"));
+                            if (!ifPayed.get(gameId).get(address)) {
+                                // 发送
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "pay")
+                                        .element("timer", curSec)
+                                        .element("deal", item.getDouble("price"));
 //                            System.out.println(item.getDouble("price"));
-                            try {
-                                sendMsg(map.get(address), jsonObject.toString());
-                            } catch (Exception e) {
-                                System.out.println("Got an exception: " + e.getMessage());
+                                System.out.println("address: " + address + "json: " + jsonObject.toString());
+                                try {
+                                    sendMsg(map.get(address), jsonObject.toString());
+                                } catch (Exception e) {
+                                    System.out.println("Got an exception: " + e.getMessage());
+                                }
                             }
                             send = true;
                             break;

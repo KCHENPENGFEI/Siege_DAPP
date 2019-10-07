@@ -22,15 +22,20 @@ public class CityMap {
     private static int runningTimer = 3600;
     private static int interval = 10;
     private static int intervalNum = runningTimer / interval;
+    private static int attackTimer = 60;
 
     // 一个用来保存玩家session的容器
     private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
+    private static final Map<String, Boolean> gameStarted = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, Boolean>> bothResponse = new ConcurrentHashMap<>();
 
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, Session session) {
         // 增加在线人数
         playerNum += 1;
         System.out.println("playerNum: " + playerNum);
+        initGameStarted(gameId);
+        initBothResponse(gameId);
     }
 
     @OnClose
@@ -46,59 +51,46 @@ public class CityMap {
         if (params.getBoolean("first")) {
             // 第一次连接时做一些链上数据查询，确保玩家的游戏状态是正确的，暂时略
             String address = params.getString("address");
-            register(gameId, address, session);
-//            assert (playerSession.get(gameId).size() < Bidding.getPlayersSessionSize(gameId));
-            if (playerSession.get(gameId).size() == 1) {
-                // 一旦有人进入游戏，游戏正式开始
-                // 需要两个线程同步的问题
-                new Thread(()-> {
-                    try {
-                        // 简单延时3秒
-                        TimeUnit.SECONDS.sleep(3);
-                        // 游戏开始倒计时
-                        countDown(runningTimer, gameId);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+            boolean registered = register(gameId, address, session);
+            // 如果是第一次注册
+            if (registered) {
+                // 游戏开启条件
+                if (playerSession.get(gameId).size() == 1 && !gameStarted.get(gameId)) {
+                    gameStarted.replace(gameId, true);
+                    // 一旦有人进入游戏，游戏正式开始
+                    // 需要解决两个线程同步的问题
+                    new Thread(()-> {
+                        try {
+                            // 简单延时3秒
+                            TimeUnit.SECONDS.sleep(3);
+                            // 游戏开始倒计时
+                            countDown(runningTimer, gameId);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
 
-                // 开启一个同步线程用于更新cityMap的数据
-                new Thread(()-> {
-                    try {
-                        TimeUnit.SECONDS.sleep(2);
-                        updateCityMap(runningTimer, gameId);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+                    // 开启一个同步线程用于更新cityMap的数据
+                    new Thread(()-> {
+                        try {
+                            TimeUnit.SECONDS.sleep(2);
+                            updateCityMap(runningTimer, gameId);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
+                }
+            }
+            else {
+                // 掉线重连状态
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "reConnect")
+                        .element("status", true);
+                sendMsg(session, jsonObject.toString());
             }
             // 查询城池数据，发送给玩家
             try {
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "initMap");
-                JSONArray jsonArray = new JSONArray();
-                HyperchainService hyperchainService = new HyperchainService();
-                for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-                    String result = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-                    String cityName = returnString(result, 0);
-                    double defenseIndex = returnDouble(result, 1);
-                    double realtimePrice = returnDouble(result, 2);
-                    boolean ifBeOccupied = returnBool(result, 3);
-                    String belongPlayer = returnString(result, 4);
-                    double producedBonus = returnDouble(result, 5);
-//                    System.out.println(result);
-                    JSONObject city = new JSONObject()
-                            .element("cityId", i)
-                            .element("cityName", cityName)
-                            .element("defenseIndex", defenseIndex)
-                            .element("realtimePrice", realtimePrice)
-                            .element("ifBeOccupied", ifBeOccupied)
-                            .element("belongPlayer", belongPlayer)
-                            .element("producedBonus", producedBonus);
-                    jsonArray.add(city);
-                }
-                jsonObject.element("cityMap", jsonArray);
-                sendMsg(session, jsonObject.toString());
+                initMap(gameId, session);
             } catch (Exception e) {
                 System.out.println("Got an exception: " + e.getMessage());
             }
@@ -112,138 +104,16 @@ public class CityMap {
                     long price = new Double(params.getDouble("price") * SiegeParams.getPrecision()).longValue();
                     String symbol = "SIG";
                     String signature = params.getString("signature");
-                    try {
-                        HyperchainService hyperchainService = new HyperchainService();
-                        String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
-//                        String transferResult = "transfer success";
-                        if (transferResult.equals("transfer success")) {
-                            String result = hyperchainService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
-//                            String result = "success";
-                            if (result.equals("success")) {
-                                // 告知玩家占领成功
-                                JSONObject response = new JSONObject()
-                                        .element("stage", "response")
-                                        .element("operation", "occupy")
-                                        .element("status", true);
-                                sendMsg(session, response.toString());
-                                // 广播城池更新消息
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "updateCityMap");
-                                JSONArray jsonArray = new JSONArray();
-                                for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-                                    String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-                                    String cityName = returnString(result1, 0);
-                                    double defenseIndex = returnDouble(result1, 1);
-                                    double realtimePrice = returnDouble(result1, 2);
-                                    boolean ifBeOccupied = returnBool(result1, 3);
-                                    String belongPlayer = returnString(result1, 4);
-                                    double producedBonus = returnDouble(result1, 5);
-                                    JSONObject city = new JSONObject()
-                                            .element("cityId", i)
-                                            .element("cityName", cityName)
-                                            .element("defenseIndex", defenseIndex)
-                                            .element("realtimePrice", realtimePrice)
-                                            .element("ifBeOccupied", ifBeOccupied)
-                                            .element("belongPlayer", belongPlayer)
-                                            .element("producedBonus", producedBonus);
-                                    jsonArray.add(city);
-                                }
-                                jsonObject.element("cityMap", jsonArray);
-
-//                                JSONObject jsonObject = new JSONObject()
-//                                        .element("stage", "updateCityMap")
-//                                        .element("cityId", cityId)
-//                                        .element("realtimePrice", price)
-//                                        .element("ifBeOccupied", true)
-//                                        .element("belongPlayer", address)
-//                                        .element("producedBonus", 0.);
-                                sendAll(playerSession.get(gameId), jsonObject.toString());
-                            } else {
-                                // 告知玩家占领失败
-                                JSONObject response = new JSONObject()
-                                        .element("stage", "response")
-                                        .element("operation", "occupy")
-                                        .element("status", false);
-                                sendMsg(session, response.toString());
-                                // 给用户退款
-//                                hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "Refund", Config.getDeployAccountJson());
-                            }
-                        }
-                        else {
-                            // 告知玩家缴费失败
-                            JSONObject response = new JSONObject()
-                                    .element("stage", "response")
-                                    .element("operation", "occupy")
-                                    .element("status", false);
-                            sendMsg(session, response.toString());
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
+                    occupy(gameId, session, address, cityId, price, symbol, signature);
                     break;
                 }
                 case "leave": {
                     // 玩家离开城池
                     String address = params.getString("address");
-                    int cityId = params.getInt("cityId");
-                    long bonus = new Double(params.getDouble("bonus") * SiegeParams.getPrecision()).longValue();
+//                    int cityId = params.getInt("cityId");
+//                    long bonus = new Double(params.getDouble("bonus") * SiegeParams.getPrecision()).longValue();
                     String symbol = "SIG";
-                    try {
-                        HyperchainService hyperchainService = new HyperchainService();
-                        String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
-//                        String transferResult = "transfer success";
-                        if (transferResult.equals("transfer success")) {
-                            String result = hyperchainService.leaveCity(Integer.valueOf(gameId), address);
-//                            String result = "success";
-                            JSONObject response = new JSONObject()
-                                    .element("stage", "response")
-                                    .element("operation", "leave")
-                                    .element("status", result.equals("success"));
-                            sendMsg(session, response.toString());
-                            if (result.equals("success")) {
-                                // 广播城池更新信息
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "updateCityMap");
-                                JSONArray jsonArray = new JSONArray();
-                                for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-                                    String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-                                    String cityName = returnString(result1, 0);
-                                    double defenseIndex = returnDouble(result1, 1);
-                                    double realtimePrice = returnDouble(result1, 2);
-                                    boolean ifBeOccupied = returnBool(result1, 3);
-                                    String belongPlayer = returnString(result1, 4);
-                                    double producedBonus = returnDouble(result1, 5);
-                                    JSONObject city = new JSONObject()
-                                            .element("cityId", i)
-                                            .element("cityName", cityName)
-                                            .element("defenseIndex", defenseIndex)
-                                            .element("realtimePrice", realtimePrice)
-                                            .element("ifBeOccupied", ifBeOccupied)
-                                            .element("belongPlayer", belongPlayer)
-                                            .element("producedBonus", producedBonus);
-                                    jsonArray.add(city);
-                                }
-                                jsonObject.element("cityMap", jsonArray);
-
-//                                JSONObject jsonObject = new JSONObject()
-//                                        .element("stage", "updateCityMap")
-//                                        .element("cityId", cityId)
-//                                        .element("ifBeOccupied", false)
-//                                        .element("belongPlayer", "0000000000000000000000000000000000000000")
-//                                        .element("producedBonus", 0.);
-                                sendAll(playerSession.get(gameId), jsonObject.toString());
-                            }
-                        }
-                        else {
-                            JSONObject response = new JSONObject()
-                                    .element("stage", "response")
-                                    .element("operation", "leave")
-                                    .element("status", false);
-                            sendMsg(session, response.toString());
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
+                    leave(gameId, session, address, symbol);
                     break;
                 }
                 case "attack": {
@@ -251,156 +121,158 @@ public class CityMap {
                     String address = params.getString("address");
                     String target = params.getString("target");
 //                int cityId = params.getInt("cityId");
-                    try {
-                        HyperchainService hyperchainService = new HyperchainService();
-                        String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
-//                        String result = "success";
-                        if (result.equals("success")) {
-                            // 告知攻击者
-                            JSONObject response = new JSONObject()
-                                    .element("stage", "response")
-                                    .element("operation", "attack")
-                                    .element("status", true);
-                            sendMsg(session, response.toString());
-                            // 告知被攻击者
-                            Session targetSession = playerSession.get(gameId).get(target);
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("stage", "notification")
-                                    .element("situation", "beAttackedRequest")
-                                    .element("opponent", address);
-                            sendMsg(targetSession, jsonObject.toString());
-                        }
-                        else {
-                            // 操作失败
-                            // 告知攻击者操作失败
-                            JSONObject response = new JSONObject()
-                                    .element("stage", "response")
-                                    .element("operation", "attack")
-                                    .element("status", false);
-                            sendMsg(session, response.toString());
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
+//                    try {
+//                        HyperchainService hyperchainService = new HyperchainService();
+//                        String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
+////                        String result = "success";
+//                        if (result.equals("success")) {
+//                            // 告知攻击者
+//                            JSONObject response = new JSONObject()
+//                                    .element("stage", "response")
+//                                    .element("operation", "attack")
+//                                    .element("status", true);
+//                            sendMsg(session, response.toString());
+//                            // 告知被攻击者
+//                            Session targetSession = playerSession.get(gameId).get(target);
+//                            JSONObject jsonObject = new JSONObject()
+//                                    .element("stage", "notification")
+//                                    .element("situation", "beAttackedRequest")
+//                                    .element("opponent", address);
+//                            sendMsg(targetSession, jsonObject.toString());
+//                        }
+//                        else {
+//                            // 操作失败
+//                            // 告知攻击者操作失败
+//                            JSONObject response = new JSONObject()
+//                                    .element("stage", "response")
+//                                    .element("operation", "attack")
+//                                    .element("status", false);
+//                            sendMsg(session, response.toString());
+//                        }
+//                    } catch (Exception e) {
+//                        System.out.println("Got an exception: " + e.getMessage());
+//                    }
+                    attack(gameId, session, address, target);
                     break;
                 }
                 case "defense": {
                     // 玩家防守
                     // 前端实现，若选择超时，则自动发送放弃防御选择
                     String address = params.getString("address");
-                    int cityId = params.getInt("cityId");
+//                    int cityId = params.getInt("cityId");
                     String target = params.getString("target");
                     int choice = params.getInt("choice");
-                    long bonus = new Double(params.getDouble("bonus") * SiegeParams.getPrecision()).longValue();
+//                    long bonus = new Double(params.getDouble("bonus") * SiegeParams.getPrecision()).longValue();
                     String symbol = "SIG";
-                    try {
-                        HyperchainService hyperchainService = new HyperchainService();
-                        if (choice == 0) {
-                            // 玩家离城
-                            String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
-//                            String transferResult = "transfer success";
-                            if (transferResult.equals("transfer success")) {
-                                String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
-//                                String result = "success";
-                                if (result.equals("success")) {
-                                    // 告知进攻者获得城池
-                                    JSONObject notification = new JSONObject()
-                                            .element("stage", "notification")
-                                            .element("situation", "getCity");
-                                    Session targetSession = playerSession.get(gameId).get(target);
-                                    sendMsg(targetSession, notification.toString());
-                                    // 告知玩家操作成功
-                                    JSONObject response = new JSONObject()
-                                            .element("stage", "response")
-                                            .element("operation", "defense")
-                                            .element("status", true);
-                                    sendMsg(session, response.toString());
-                                    // 广播城池更新信息
-                                    JSONObject jsonObject = new JSONObject()
-                                            .element("stage", "updateCityMap");
-                                    JSONArray jsonArray = new JSONArray();
-                                    for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-                                        String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-                                        String cityName = returnString(result1, 0);
-                                        double defenseIndex = returnDouble(result1, 1);
-                                        double realtimePrice = returnDouble(result1, 2);
-                                        boolean ifBeOccupied = returnBool(result1, 3);
-                                        String belongPlayer = returnString(result1, 4);
-                                        double producedBonus = returnDouble(result1, 5);
-                                        JSONObject city = new JSONObject()
-                                                .element("cityId", i)
-                                                .element("cityName", cityName)
-                                                .element("defenseIndex", defenseIndex)
-                                                .element("realtimePrice", realtimePrice)
-                                                .element("ifBeOccupied", ifBeOccupied)
-                                                .element("belongPlayer", belongPlayer)
-                                                .element("producedBonus", producedBonus);
-                                        jsonArray.add(city);
-                                    }
-                                    jsonObject.element("cityMap", jsonArray);
-
-//                                    JSONObject jsonObject1 = new JSONObject()
-//                                            .element("stage", "updateCityMap")
-//                                            .element("cityId", cityId)
-//                                            .element("ifBeOccupied", true)
-//                                            .element("belongPlayer", target)
-//                                            .element("producedBonus", 0.);
-                                    sendAll(playerSession.get(gameId), jsonObject.toString());
-                                }
-                                else {
-                                    // 操作失败
-                                    // 告知双方系统错误
-                                    JSONObject jsonObject = new JSONObject()
-                                            .element("stage", "notification")
-                                            .element("situation", "systemError");
-                                    Session targetSession = playerSession.get(gameId).get(target);
-                                    sendMsg(session, jsonObject.toString());
-                                    sendMsg(targetSession, jsonObject.toString());
-                                }
-                            }
-                            else {
-                                // 操作失败
-                                // 告知双方系统错误
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "notification")
-                                        .element("situation", "systemError");
-                                Session targetSession = playerSession.get(gameId).get(target);
-                                sendMsg(session, jsonObject.toString());
-                                sendMsg(targetSession, jsonObject.toString());
-                            }
-                        }
-                        else {
-                            String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
-//                            String result = "success";
-                            if (result.equals("success")) {
-                                // 玩家选择防守
-                                // 告知进攻者
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "notification")
-                                        .element("situation", "beforeBattle");
-                                Session targetSession = playerSession.get(gameId).get(target);
-                                sendMsg(targetSession, jsonObject.toString());
-                                // 告知防守者操作成功
-                                JSONObject response = new JSONObject()
-                                        .element("stage", "response")
-                                        .element("operation", "defense")
-                                        .element("status", true);
-                                sendMsg(session, response.toString());
-                            }
-                            else {
-                                // 操作失败
-                                // 告知双方系统错误
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "notification")
-                                        .element("situation", "systemError");
-                                Session targetSession = playerSession.get(gameId).get(target);
-                                sendMsg(session, jsonObject.toString());
-                                sendMsg(targetSession, jsonObject.toString());
-                            }
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
+//                    try {
+//                        HyperchainService hyperchainService = new HyperchainService();
+//                        if (choice == 0) {
+//                            // 玩家离城
+//                            String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+////                            String transferResult = "transfer success";
+//                            if (transferResult.equals("transfer success")) {
+//                                String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+////                                String result = "success";
+//                                if (result.equals("success")) {
+//                                    // 告知进攻者获得城池
+//                                    JSONObject notification = new JSONObject()
+//                                            .element("stage", "notification")
+//                                            .element("situation", "getCity");
+//                                    Session targetSession = playerSession.get(gameId).get(target);
+//                                    sendMsg(targetSession, notification.toString());
+//                                    // 告知玩家操作成功
+//                                    JSONObject response = new JSONObject()
+//                                            .element("stage", "response")
+//                                            .element("operation", "defense")
+//                                            .element("status", true);
+//                                    sendMsg(session, response.toString());
+//                                    // 广播城池更新信息
+//                                    JSONObject jsonObject = new JSONObject()
+//                                            .element("stage", "updateCityMap");
+//                                    JSONArray jsonArray = new JSONArray();
+//                                    for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
+//                                        String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+//                                        String cityName = returnString(result1, 0);
+//                                        double defenseIndex = returnDouble(result1, 1);
+//                                        double realtimePrice = returnDouble(result1, 2);
+//                                        boolean ifBeOccupied = returnBool(result1, 3);
+//                                        String belongPlayer = returnString(result1, 4);
+//                                        double producedBonus = returnDouble(result1, 5);
+//                                        JSONObject city = new JSONObject()
+//                                                .element("cityId", i)
+//                                                .element("cityName", cityName)
+//                                                .element("defenseIndex", defenseIndex)
+//                                                .element("realtimePrice", realtimePrice)
+//                                                .element("ifBeOccupied", ifBeOccupied)
+//                                                .element("belongPlayer", belongPlayer)
+//                                                .element("producedBonus", producedBonus);
+//                                        jsonArray.add(city);
+//                                    }
+//                                    jsonObject.element("cityMap", jsonArray);
+//
+////                                    JSONObject jsonObject1 = new JSONObject()
+////                                            .element("stage", "updateCityMap")
+////                                            .element("cityId", cityId)
+////                                            .element("ifBeOccupied", true)
+////                                            .element("belongPlayer", target)
+////                                            .element("producedBonus", 0.);
+//                                    sendAll(playerSession.get(gameId), jsonObject.toString());
+//                                }
+//                                else {
+//                                    // 操作失败
+//                                    // 告知双方系统错误
+//                                    JSONObject jsonObject = new JSONObject()
+//                                            .element("stage", "notification")
+//                                            .element("situation", "systemError");
+//                                    Session targetSession = playerSession.get(gameId).get(target);
+//                                    sendMsg(session, jsonObject.toString());
+//                                    sendMsg(targetSession, jsonObject.toString());
+//                                }
+//                            }
+//                            else {
+//                                // 操作失败
+//                                // 告知双方系统错误
+//                                JSONObject jsonObject = new JSONObject()
+//                                        .element("stage", "notification")
+//                                        .element("situation", "systemError");
+//                                Session targetSession = playerSession.get(gameId).get(target);
+//                                sendMsg(session, jsonObject.toString());
+//                                sendMsg(targetSession, jsonObject.toString());
+//                            }
+//                        }
+//                        else {
+//                            String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+////                            String result = "success";
+//                            if (result.equals("success")) {
+//                                // 玩家选择防守
+//                                // 告知进攻者
+//                                JSONObject jsonObject = new JSONObject()
+//                                        .element("stage", "notification")
+//                                        .element("situation", "beforeBattle");
+//                                Session targetSession = playerSession.get(gameId).get(target);
+//                                sendMsg(targetSession, jsonObject.toString());
+//                                // 告知防守者操作成功
+//                                JSONObject response = new JSONObject()
+//                                        .element("stage", "response")
+//                                        .element("operation", "defense")
+//                                        .element("status", true);
+//                                sendMsg(session, response.toString());
+//                            }
+//                            else {
+//                                // 操作失败
+//                                // 告知双方系统错误
+//                                JSONObject jsonObject = new JSONObject()
+//                                        .element("stage", "notification")
+//                                        .element("situation", "systemError");
+//                                Session targetSession = playerSession.get(gameId).get(target);
+//                                sendMsg(session, jsonObject.toString());
+//                                sendMsg(targetSession, jsonObject.toString());
+//                            }
+//                        }
+//                    } catch (Exception e) {
+//                        System.out.println("Got an exception: " + e.getMessage());
+//                    }
+                    defense(gameId, session, address, target, choice, symbol);
                     break;
                 }
                 case "settle": {
@@ -473,22 +345,362 @@ public class CityMap {
         return null;
     }
 
-    private void register(String gameId, String address, Session session) {
+    private boolean register(String gameId, String address, Session session) {
         if (!playerSession.containsKey(gameId)) {
             // 构建游戏
             Map<String, Session> map = new ConcurrentHashMap<>();
             map.put(address, session);
             playerSession.put(gameId, map);
+            // 返回第一次注册为真
+            return true;
         }
         else {
             if (!playerSession.get(gameId).containsKey(address)) {
+                // 第一次连接，进行注册，返回true
                 Map<String, Session> map = playerSession.get(gameId);
                 map.put(address, session);
                 playerSession.put(gameId, map);
+                return true;
             }
             else {
+                // 已经注册过，返回第一次注册为假
                 playerSession.get(gameId).replace(address, session);
+                return false;
             }
+        }
+    }
+
+    private void initGameStarted(String gameId) {
+        if (!gameStarted.containsKey(gameId)) {
+            gameStarted.put(gameId, false);
+        }
+    }
+
+    private void initBothResponse(String gameId) {
+        if (!bothResponse.containsKey(gameId)) {
+            Map<String, Boolean> map = new ConcurrentHashMap<>();
+            bothResponse.put(gameId, map);
+        }
+    }
+
+    private void initMap(String gameId, Session session) throws Exception {
+        JSONObject jsonObject = new JSONObject()
+                .element("stage", "initMap");
+        JSONArray jsonArray = new JSONArray();
+        HyperchainService hyperchainService = new HyperchainService();
+        for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
+            String result = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+            String cityName = returnString(result, 0);
+            double defenseIndex = returnDouble(result, 1);
+            double realtimePrice = returnDouble(result, 2);
+            boolean ifBeOccupied = returnBool(result, 3);
+            String belongPlayer = returnString(result, 4);
+            double producedBonus = returnDouble(result, 5);
+//                    System.out.println(result);
+            JSONObject city = new JSONObject()
+                    .element("cityId", i)
+                    .element("cityName", cityName)
+                    .element("defenseIndex", defenseIndex)
+                    .element("realtimePrice", realtimePrice)
+                    .element("ifBeOccupied", ifBeOccupied)
+                    .element("belongPlayer", belongPlayer)
+                    .element("producedBonus", producedBonus);
+            jsonArray.add(city);
+        }
+        jsonObject.element("cityMap", jsonArray);
+        sendMsg(session, jsonObject.toString());
+    }
+
+    private void updateMap(String gameId) throws Exception {
+        JSONObject jsonObject = new JSONObject()
+                .element("stage", "updateCityMap");
+        JSONArray jsonArray = new JSONArray();
+        HyperchainService hyperchainService = new HyperchainService();
+        for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
+            String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+            String cityName = returnString(result1, 0);
+            double defenseIndex = returnDouble(result1, 1);
+            double realtimePrice = returnDouble(result1, 2);
+            boolean ifBeOccupied = returnBool(result1, 3);
+            String belongPlayer = returnString(result1, 4);
+            double producedBonus = returnDouble(result1, 5);
+            JSONObject city = new JSONObject()
+                    .element("cityId", i)
+                    .element("cityName", cityName)
+                    .element("defenseIndex", defenseIndex)
+                    .element("realtimePrice", realtimePrice)
+                    .element("ifBeOccupied", ifBeOccupied)
+                    .element("belongPlayer", belongPlayer)
+                    .element("producedBonus", producedBonus);
+            jsonArray.add(city);
+        }
+        jsonObject.element("cityMap", jsonArray);
+        sendAll(playerSession.get(gameId), jsonObject.toString());
+    }
+
+    private void occupy(String gameId, Session session, String address, int cityId, long price, String symbol, String signature) throws Exception {
+        // 先进行转账
+        HyperchainService hyperchainService = new HyperchainService();
+        String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
+//                        String transferResult = "transfer success";
+        if (transferResult.equals("transfer success")) {
+            String result = hyperchainService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
+//                            String result = "success";
+            if (result.equals("success")) {
+                // 告知玩家占领成功
+                JSONObject response = new JSONObject()
+                        .element("stage", "response")
+                        .element("operation", "occupy")
+                        .element("status", true);
+                sendMsg(session, response.toString());
+                // 广播城池更新消息
+                try {
+                    updateMap(gameId);
+                } catch (Exception e) {
+                    System.out.println("Got an exception: " + e.getMessage());
+                }
+            } else {
+                // 告知玩家占领失败
+                JSONObject response = new JSONObject()
+                        .element("stage", "response")
+                        .element("operation", "occupy")
+                        .element("status", false);
+                sendMsg(session, response.toString());
+                // 给用户退款
+//                                hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "Refund", Config.getDeployAccountJson());
+            }
+        }
+        else {
+            // 告知玩家缴费失败
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "transfer")
+                    .element("status", false);
+            sendMsg(session, response.toString());
+        }
+    }
+
+    private void leave(String gameId, Session session, String address, String symbol) throws Exception {
+        // 首先进行转账
+        HyperchainService hyperchainService = new HyperchainService();
+        // 查询该城池的bonus
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            int cityId = returnInt(playerInfo, 3);
+            assert (cityId <= 5 && cityId >= 1);
+            String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
+            if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
+                long bonus = returnLong(cityInfo, 5);
+                assert (bonus != 0);
+                String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+//                        String transferResult = "transfer success";
+                if (transferResult.equals("transfer success")) {
+                    String result = hyperchainService.leaveCity(Integer.valueOf(gameId), address);
+//                            String result = "success";
+                    if (result.equals("success")) {
+                        // 离开成功
+                        JSONObject response = new JSONObject()
+                                .element("stage", "response")
+                                .element("operation", "leave")
+                                .element("status", true);
+                        sendMsg(session, response.toString());
+                        // 广播城池更新信息
+                        try {
+                            updateMap(gameId);
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
+                    }
+                    else {
+                        // 离开失败
+                        JSONObject response = new JSONObject()
+                                .element("stage", "response")
+                                .element("operation", "leave")
+                                .element("status", false);
+                        sendMsg(session, response.toString());
+                    }
+                }
+                else {
+                    // 转账失败
+                    JSONObject response = new JSONObject()
+                            .element("stage", "response")
+                            .element("operation", "transfer")
+                            .element("status", false);
+                    sendMsg(session, response.toString());
+                }
+            }
+            else {
+                // 离开失败
+                JSONObject response = new JSONObject()
+                        .element("stage", "response")
+                        .element("operation", "leave")
+                        .element("status", false);
+                sendMsg(session, response.toString());
+            }
+        }
+        else {
+            // 离开失败
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "leave")
+                    .element("status", false);
+            sendMsg(session, response.toString());
+        }
+    }
+
+    private void attack(String gameId, Session session, String address, String target) throws Exception {
+        HyperchainService hyperchainService = new HyperchainService();
+        String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
+        String concat = address + "&&" + target;
+        if (bothResponse.get(gameId).containsKey(concat)) {
+            bothResponse.get(gameId).replace(concat, false);
+        }
+        else {
+            bothResponse.get(gameId).put(concat, false);
+        }
+//                        String result = "success";
+        if (result.equals("success")) {
+            // 重复发送数据
+            // 告知攻击者与被攻击者
+            new Thread(()-> {
+                try {
+                    attackCountDown(attackTimer, gameId, concat);
+                } catch (InterruptedException e) {
+                    System.out.println("Got an exception: " + e.getMessage());
+                }
+            }).start();
+            System.out.println("attack");
+//            JSONObject response = new JSONObject()
+//                    .element("stage", "response")
+//                    .element("operation", "attack")
+//                    .element("status", true);
+//            sendMsg(session, response.toString());
+//            // 告知被攻击者
+//            Session targetSession = playerSession.get(gameId).get(target);
+//            JSONObject jsonObject = new JSONObject()
+//                    .element("stage", "notification")
+//                    .element("situation", "beAttackedRequest")
+//                    .element("opponent", address);
+//            sendMsg(targetSession, jsonObject.toString());
+        }
+        else {
+            // 操作失败
+            // 告知攻击者操作失败
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "attack")
+                    .element("status", false);
+            sendMsg(session, response.toString());
+        }
+    }
+
+    private void defense(String gameId, Session session, String address, String target, int choice, String symbol) throws Exception {
+        String concat = target + "&&" + address;
+        Session targetSession = playerSession.get(gameId).get(target);
+        HyperchainService hyperchainService = new HyperchainService();
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            int cityId = returnInt(playerInfo, 3);
+            assert (cityId <= 5 && cityId >= 1);
+            String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
+            if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
+                if (choice == 0) {
+                    // 玩家离城
+                    long bonus = returnLong(cityInfo, 5);
+                    assert (bonus != 0);
+                    String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+                    if (transferResult.equals("transfer success")) {
+                        String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+                        if (result.equals("success")) {
+                            // 告知进攻者获得城池
+                            JSONObject notification = new JSONObject()
+                                    .element("stage", "notification")
+                                    .element("situation", "getCity");
+                            sendMsg(targetSession, notification.toString());
+                            // 告知玩家操作成功
+                            JSONObject response = new JSONObject()
+                                    .element("stage", "response")
+                                    .element("operation", "defense")
+                                    .element("status", true);
+                            sendMsg(session, response.toString());
+                            // 广播城池更新信息
+                            try {
+                                updateMap(gameId);
+                            } catch (Exception e) {
+                                System.out.println("Got an exception: " + e.getMessage());
+                            }
+                            // 更新响应表
+                            bothResponse.get(gameId).replace(concat, true);
+                        }
+                        else {
+                            // 操作失败
+                            // 告知双方系统错误
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "notification")
+                                    .element("situation", "systemError");
+                            sendMsg(session, jsonObject.toString());
+                            sendMsg(targetSession, jsonObject.toString());
+                        }
+                    }
+                    else {
+                        // 操作失败
+                        // 告知双方系统错误
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "notification")
+                                .element("situation", "systemError");
+                        sendMsg(session, jsonObject.toString());
+                        sendMsg(targetSession, jsonObject.toString());
+                    }
+                }
+                else {
+                    // 玩家选择防守
+                    String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+//                    String result = "success";
+                    if (result.equals("success")) {
+                        // 玩家选择防守
+                        // 告知进攻者
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "notification")
+                                .element("situation", "beforeBattle");
+                        sendMsg(targetSession, jsonObject.toString());
+                        // 告知防守者操作成功
+                        JSONObject response = new JSONObject()
+                                .element("stage", "response")
+                                .element("operation", "defense")
+                                .element("status", true);
+                        sendMsg(session, response.toString());
+                        // 更新响应表
+                        bothResponse.get(gameId).replace(concat, true);
+                    } else {
+                        // 操作失败
+                        // 告知双方系统错误
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "notification")
+                                .element("situation", "systemError");
+                        sendMsg(session, jsonObject.toString());
+                        sendMsg(targetSession, jsonObject.toString());
+                    }
+                }
+            }
+            else {
+                // 操作失败
+                // 告知双方系统错误
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "notification")
+                        .element("situation", "systemError");
+                sendMsg(session, jsonObject.toString());
+                sendMsg(targetSession, jsonObject.toString());
+            }
+        }
+        else {
+            // 操作失败
+            // 告知双方系统错误
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "notification")
+                    .element("situation", "systemError");
+            sendMsg(session, jsonObject.toString());
+            sendMsg(targetSession, jsonObject.toString());
         }
     }
 
@@ -556,6 +768,49 @@ public class CityMap {
         TimeUnit.SECONDS.sleep(seconds);
         timer.cancel();
         System.out.println("Game time is out");
+    }
+
+    private void attackCountDown(int seconds, String gameId, String concat) throws InterruptedException {
+        String attacker = concat.split("&&")[0];
+        String defender = concat.split("&&")[1];
+        System.out.println("Attack count down from " + seconds + " s");
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            int curSec = seconds;
+//            Map<String, Session> map = playerSession.get(gameId);
+            @Override
+            public void run() {
+                if (!bothResponse.get(gameId).get(concat)) {
+                    // 防御者还未进行相应
+                    System.out.println("Attack time remains " + --curSec + " s");
+                    JSONObject attackerJsonObject = new JSONObject()
+                            .element("stage", "response")
+                            .element("operation", "attack")
+                            .element("status", true)
+                            .element("timer", curSec);
+                    JSONObject defenderJsonObject = new JSONObject()
+                            .element("stage", "notification")
+                            .element("situation", "beAttackedRequest")
+                            .element("opponent", attacker)
+                            .element("timer", curSec);
+                    try {
+                        sendMsg(playerSession.get(gameId).get(attacker), attackerJsonObject.toString());
+                        sendMsg(playerSession.get(gameId).get(defender), defenderJsonObject.toString());
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }
+            }
+        }, 0, 1000);
+        TimeUnit.SECONDS.sleep(seconds);
+        timer.cancel();
+        System.out.println("Attack time is out");
+        // 防御者仍未响应
+        // 防御者自动弃城，进攻者获得城池
+        if (!bothResponse.get(gameId).get(concat)) {
+
+        }
     }
 
     private double getProduceRate(String input) {
@@ -642,6 +897,30 @@ public class CityMap {
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
             return false;
+        }
+    }
+
+    private int returnInt(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return Integer.valueOf(valueStr);
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private long returnLong(String input, int index) {
+        try {
+            JSONArray jsonArray = JSONArray.fromObject(input);
+            JSONObject jsonObject = jsonArray.getJSONObject(index);
+            String valueStr = jsonObject.getString("value");
+            return Long.valueOf(valueStr);
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+            return 0;
         }
     }
 }

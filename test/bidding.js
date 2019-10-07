@@ -88,11 +88,11 @@ function sleep(ms) {
 // }
 // main();
 
-websocket1 = new WebSocket("ws://localhost:8088/WebSocket/bidding/49");
+websocket1 = new WebSocket("ws://localhost:8088/WebSocket/bidding/63");
 // sleep(1000);
-websocket2 = new WebSocket("ws://localhost:8088/WebSocket/bidding/49");
+websocket2 = new WebSocket("ws://localhost:8088/WebSocket/bidding/63");
 // sleep(1000);
-websocket3 = new WebSocket("ws://localhost:8088/WebSocket/bidding/49");
+websocket3 = new WebSocket("ws://localhost:8088/WebSocket/bidding/63");
 // sleep(1000);
 // websocket4 = new WebSocket("ws://localhost:8088/WebSocket/bidding/21");
 // sleep(1000);

@@ -41,7 +41,8 @@ public class PlayersMatch {
      */
     @OnOpen
     public void connect(Session session) throws Exception {
-        System.out.println("connect success");
+        System.out.println("playersMatch connect success");
+        System.out.println("playersMatch: " + playersNum);
     }
 
     @OnClose
@@ -66,66 +67,67 @@ public class PlayersMatch {
                     .element("gameId", playersGameId.get(address));
             sendMsg(session, jsonObject.toString());
         }
+        else {
+            if (match){
+                // 缴纳入场费
+                String sigSymbol = "SIG";  //以后保存到参数类中
+                String to = deployAccount.getAddress();
+                int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
+                String data = "enter fee";
+                String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
 
-        if (match){
-            // 缴纳入场费
-            String sigSymbol = "SIG";  //以后保存到参数类中
-            String to = deployAccount.getAddress();
-            int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
-            String data = "enter fee";
-            String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
-
-            if (transferResult.equals("transfer success")) {
+                if (transferResult.equals("transfer success")) {
 //            if(true){
-                // 转账成功，加入匹配
-                while(true) {
-                    // 判断是否在匹配队列中
-                    if (playersSession.containsKey(address)) {
-                        JSONObject jsonObject = new JSONObject()
-                                .element("match", "already in matching queue")
-                                .element("gameId", 0);
-                        sendMsg(session, jsonObject.toString());
-                        break;
-                    }
-                    else {
-                        if (!matchWaiting) {
-                            enqueue(address, session);
-//                            playersSession.put(address, session);
-//                            playersNum += 1;
+                    // 转账成功，加入匹配
+                    while(true) {
+                        // 判断是否在匹配队列中
+                        if (playersSession.containsKey(address)) {
                             JSONObject jsonObject = new JSONObject()
-                                    .element("match", "enter matching queue")
+                                    .element("match", "already in matching queue")
                                     .element("gameId", 0);
                             sendMsg(session, jsonObject.toString());
-                            match();
                             break;
                         }
                         else {
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("match", "match waiting")
-                                    .element("gameId", 0);
-                            sendMsg(session, jsonObject.toString());
+                            if (!matchWaiting) {
+                                enqueue(address, session);
+//                            playersSession.put(address, session);
+//                            playersNum += 1;
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("match", "enter matching queue")
+                                        .element("gameId", 0);
+                                sendMsg(session, jsonObject.toString());
+                                match();
+                                break;
+                            }
+                            else {
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("match", "match waiting")
+                                        .element("gameId", 0);
+                                sendMsg(session, jsonObject.toString());
+                            }
+                        }
+                        try {
+                            Thread.sleep(1000);
+                        } catch (Exception e) {
+                            System.out.println(e.getMessage());
                         }
                     }
-                    try {
-                        Thread.sleep(1000);
-                    } catch (Exception e) {
-                        System.out.println(e.getMessage());
-                    }
+                }
+                else {
+                    JSONObject jsonObject = new JSONObject()
+                            .element("match", "transfer failed")
+                            .element("gameId", 0);
+                    System.out.println("transfer failed");
+                    sendMsg(session, jsonObject.toString());
                 }
             }
             else {
                 JSONObject jsonObject = new JSONObject()
-                        .element("match", "transfer failed")
+                        .element("match", "match error")
                         .element("gameId", 0);
-                System.out.println("transfer failed");
                 sendMsg(session, jsonObject.toString());
             }
-        }
-        else {
-            JSONObject jsonObject = new JSONObject()
-                    .element("match", "match error")
-                    .element("gameId", 0);
-            sendMsg(session, jsonObject.toString());
         }
     }
 

@@ -1233,7 +1233,14 @@ contract Siege {
         @param gameId      游戏id
         @param cityId      城池id
     */
-    function getCitiesTb(uint256 gameId, uint256 cityId) public view returns (string memory name, uint256, uint256, bool, address, uint256) {
+    function getCitiesTb(uint256 gameId, uint256 cityId) public view returns (
+    	string memory name, 
+    	uint256, 
+    	uint256, 
+    	bool, 
+    	address, 
+    	uint256) {
+    	
     	string memory city_name = cityName[cityId];
     	uint256 defense_index = cityDefenseIndex[cityId];
     	uint256 realtime_price = citiesTable[gameId][cityId].realtime_price;
