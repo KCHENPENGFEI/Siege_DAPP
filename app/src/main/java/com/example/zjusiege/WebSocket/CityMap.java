@@ -1,8 +1,10 @@
 package com.example.zjusiege.WebSocket;
 
+import cn.hyperchain.sdk.rpc.account.Account;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
+import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,9 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/cityMap/{gameId}")
 @Component
 public class CityMap {
+    private HyperchainService hyperchainService = new HyperchainService();
+    private Account deployAccount = Config.getDeployAccount();
+
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
     private static int runningTimer = 3600;
@@ -48,58 +53,69 @@ public class CityMap {
     @OnMessage
     public void onMessage(@PathParam("gameId") String gameId, String msg, Session session) throws Exception {
         JSONObject params = JSONObject.fromObject(msg);
-        if (params.getBoolean("first")) {
-            // 第一次连接时做一些链上数据查询，确保玩家的游戏状态是正确的，暂时略
-            String address = params.getString("address");
-            boolean registered = register(gameId, address, session);
-            // 如果是第一次注册
-            if (registered) {
-                // 游戏开启条件
-                if (playerSession.get(gameId).size() == 1 && !gameStarted.get(gameId)) {
-                    gameStarted.replace(gameId, true);
-                    // 一旦有人进入游戏，游戏正式开始
-                    // 需要解决两个线程同步的问题
-                    new Thread(()-> {
-                        try {
-                            // 简单延时3秒
-                            TimeUnit.SECONDS.sleep(3);
-                            // 游戏开始倒计时
-                            countDown(runningTimer, gameId);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
+        boolean first = params.getBoolean("first");
+        String address = params.getString("address");
 
-                    // 开启一个同步线程用于更新cityMap的数据
-                    new Thread(()-> {
-                        try {
-                            TimeUnit.SECONDS.sleep(2);
-                            updateCityMap(runningTimer, gameId);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
+        if (first) {
+            // 检查链上信息和后端信息是否相符
+            boolean matched = checkPlayerInfo(gameId, address, session);
+            if (matched) {
+                // 相符
+                // 对玩家进行注册
+                boolean registered = register(gameId, address, session);
+                // 如果是第一次注册
+                if (registered) {
+                    // 游戏开启条件
+                    if (playerSession.get(gameId).size() == 1 && !gameStarted.get(gameId)) {
+                        gameStarted.replace(gameId, true);
+                        // 一旦有人进入游戏，游戏正式开始
+                        // 需要解决两个线程同步的问题
+                        new Thread(()-> {
+                            try {
+                                // 简单延时3秒
+                                TimeUnit.SECONDS.sleep(3);
+                                // 游戏开始倒计时
+                                countDown(runningTimer, gameId);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+
+                        // 开启一个同步线程用于更新cityMap的数据
+                        new Thread(()-> {
+                            try {
+                                TimeUnit.SECONDS.sleep(2);
+                                updateCityMap(runningTimer, gameId);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                    }
+                }
+                else {
+                    // 掉线重连状态
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "reConnect")
+                            .element("status", true);
+                    sendMsg(session, jsonObject.toString());
+                }
+                // 查询城池数据，发送给玩家
+                try {
+                    initMap(gameId, session);
+                } catch (Exception e) {
+                    System.out.println("Got an exception: " + e.getMessage());
                 }
             }
             else {
-                // 掉线重连状态
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "reConnect")
-                        .element("status", true);
-                sendMsg(session, jsonObject.toString());
-            }
-            // 查询城池数据，发送给玩家
-            try {
-                initMap(gameId, session);
-            } catch (Exception e) {
-                System.out.println("Got an exception: " + e.getMessage());
+                // 不相符
+                System.out.println("gameId not match");
             }
         }
         else {
+            // 不是第一次连接
             switch (params.getString("operation")) {
                 case "occupy": {
                     // 玩家占领空城
-                    String address = params.getString("address");
                     int cityId = params.getInt("cityId");
                     long price = new Double(params.getDouble("price") * SiegeParams.getPrecision()).longValue();
                     String symbol = "SIG";
@@ -109,7 +125,6 @@ public class CityMap {
                 }
                 case "leave": {
                     // 玩家离开城池
-                    String address = params.getString("address");
 //                    int cityId = params.getInt("cityId");
 //                    long bonus = new Double(params.getDouble("bonus") * SiegeParams.getPrecision()).longValue();
                     String symbol = "SIG";
@@ -118,7 +133,6 @@ public class CityMap {
                 }
                 case "attack": {
                     // 玩家进攻
-                    String address = params.getString("address");
                     String target = params.getString("target");
 //                int cityId = params.getInt("cityId");
 //                    try {
@@ -158,7 +172,6 @@ public class CityMap {
                 case "defense": {
                     // 玩家防守
                     // 前端实现，若选择超时，则自动发送放弃防御选择
-                    String address = params.getString("address");
 //                    int cityId = params.getInt("cityId");
                     String target = params.getString("target");
                     int choice = params.getInt("choice");
@@ -278,7 +291,7 @@ public class CityMap {
                 case "settle": {
                     List<String> cityOwners = castList(params.get("cityOwners"), String.class);
                     try {
-                        HyperchainService hyperchainService = new HyperchainService();
+//                        HyperchainService hyperchainService = new HyperchainService();
                         String updateStage = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
                         assert (updateStage.equals("success"));
 
@@ -345,6 +358,62 @@ public class CityMap {
         return null;
     }
 
+    private boolean checkPlayerInfo(String gameId, String address, Session session) throws Exception {
+        // 对链上数据进行查询
+        // 获取用户信息
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            // 用户存在
+            int gameIdOnChain = Utils.returnInt(playerInfo, 0);
+            if (gameIdOnChain == Integer.valueOf(gameId)) {
+                // 链上gameId和后端gameId相匹配
+                // 查询指定gameId的游戏状态
+                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+                    // 获取游戏阶段
+                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    int gameStageInt = Utils.returnInt(globalInfo, 1);
+                    if (gameStage[gameStageInt].equals("running")) {
+                        // gameId和gameStage均正确
+                        return true;
+                    }
+                    else {
+                        // 告知前端游戏出错
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "error")
+                                .element("message", "gameStage error");
+                        sendMsg(session, jsonObject.toString());
+                        return false;
+                    }
+                }
+                else {
+                    // 找不到指定gameId的游戏阶段
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "error")
+                            .element("message", "game not exist");
+                    sendMsg(session, jsonObject.toString());
+                    return false;
+                }
+            }
+            else {
+                // 链上gameId和后端gameId不匹配
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "error")
+                        .element("message", "gameId not match");
+                sendMsg(session, jsonObject.toString());
+                return false;
+            }
+        }
+        else {
+            // 用户不存在，返回错误
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "error")
+                    .element("message", "player not exist");
+            sendMsg(session, jsonObject.toString());
+            return false;
+        }
+    }
+
     private boolean register(String gameId, String address, Session session) {
         if (!playerSession.containsKey(gameId)) {
             // 构建游戏
@@ -387,15 +456,15 @@ public class CityMap {
         JSONObject jsonObject = new JSONObject()
                 .element("stage", "initMap");
         JSONArray jsonArray = new JSONArray();
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
             String result = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-            String cityName = returnString(result, 0);
-            double defenseIndex = returnDouble(result, 1);
-            double realtimePrice = returnDouble(result, 2);
-            boolean ifBeOccupied = returnBool(result, 3);
-            String belongPlayer = returnString(result, 4);
-            double producedBonus = returnDouble(result, 5);
+            String cityName = Utils.returnString(result, 0);
+            double defenseIndex = Utils.returnDouble(result, 1);
+            double realtimePrice = Utils.returnDouble(result, 2);
+            boolean ifBeOccupied = Utils.returnBool(result, 3);
+            String belongPlayer = Utils.returnString(result, 4);
+            double producedBonus = Utils.returnDouble(result, 5);
 //                    System.out.println(result);
             JSONObject city = new JSONObject()
                     .element("cityId", i)
@@ -415,15 +484,15 @@ public class CityMap {
         JSONObject jsonObject = new JSONObject()
                 .element("stage", "updateCityMap");
         JSONArray jsonArray = new JSONArray();
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
             String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
-            String cityName = returnString(result1, 0);
-            double defenseIndex = returnDouble(result1, 1);
-            double realtimePrice = returnDouble(result1, 2);
-            boolean ifBeOccupied = returnBool(result1, 3);
-            String belongPlayer = returnString(result1, 4);
-            double producedBonus = returnDouble(result1, 5);
+            String cityName = Utils.returnString(result1, 0);
+            double defenseIndex = Utils.returnDouble(result1, 1);
+            double realtimePrice = Utils.returnDouble(result1, 2);
+            boolean ifBeOccupied = Utils.returnBool(result1, 3);
+            String belongPlayer = Utils.returnString(result1, 4);
+            double producedBonus = Utils.returnDouble(result1, 5);
             JSONObject city = new JSONObject()
                     .element("cityId", i)
                     .element("cityName", cityName)
@@ -440,7 +509,7 @@ public class CityMap {
 
     private void occupy(String gameId, Session session, String address, int cityId, long price, String symbol, String signature) throws Exception {
         // 先进行转账
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
 //                        String transferResult = "transfer success";
         if (transferResult.equals("transfer success")) {
@@ -482,15 +551,15 @@ public class CityMap {
 
     private void leave(String gameId, Session session, String address, String symbol) throws Exception {
         // 首先进行转账
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         // 查询该城池的bonus
         String playerInfo = hyperchainService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
-            int cityId = returnInt(playerInfo, 3);
+            int cityId = Utils.returnInt(playerInfo, 3);
             assert (cityId <= 5 && cityId >= 1);
             String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
             if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
-                long bonus = returnLong(cityInfo, 5);
+                long bonus = Utils.returnLong(cityInfo, 5);
                 assert (bonus != 0);
                 String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
 //                        String transferResult = "transfer success";
@@ -549,7 +618,7 @@ public class CityMap {
     }
 
     private void attack(String gameId, Session session, String address, String target) throws Exception {
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
         String concat = address + "&&" + target;
         if (bothResponse.get(gameId).containsKey(concat)) {
@@ -597,17 +666,17 @@ public class CityMap {
     private void defense(String gameId, Session session, String address, String target, int choice, String symbol) throws Exception {
         String concat = target + "&&" + address;
         Session targetSession = playerSession.get(gameId).get(target);
-        HyperchainService hyperchainService = new HyperchainService();
+//        HyperchainService hyperchainService = new HyperchainService();
         String playerInfo = hyperchainService.getPlayersStatus(address);
 
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
-            int cityId = returnInt(playerInfo, 3);
+            int cityId = Utils.returnInt(playerInfo, 3);
             assert (cityId <= 5 && cityId >= 1);
             String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
             if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
                 if (choice == 0) {
                     // 玩家离城
-                    long bonus = returnLong(cityInfo, 5);
+                    long bonus = Utils.returnLong(cityInfo, 5);
                     assert (bonus != 0);
                     String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
                     if (transferResult.equals("transfer success")) {
@@ -704,6 +773,10 @@ public class CityMap {
         }
     }
 
+    private void settle() {
+
+    }
+
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
     }
@@ -748,7 +821,7 @@ public class CityMap {
             public void run() {
                 num -= 1;
                 try {
-                    HyperchainService hyperchainService = new HyperchainService();
+//                    HyperchainService hyperchainService = new HyperchainService();
                     String result = hyperchainService.updateCityBonus(Integer.valueOf(gameId), (long) num);
                     double produceRate = getProduceRate(result);
                     double bonusPool = getBonusPool(result);
@@ -856,71 +929,6 @@ public class CityMap {
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
             return new JSONArray();
-        }
-    }
-
-    private String returnString(String input, int index) {
-        try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(index);
-            return(jsonObject.getString("value"));
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
-            return "";
-        }
-    }
-
-    private double returnDouble(String input, int index) {
-        try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(index);
-            String valueStr = jsonObject.getString("value");
-            double value = Double.valueOf(valueStr);
-            if (index == 1) {
-                return value / 100;
-            }
-            else {
-                return value / SiegeParams.getPrecision();
-            }
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
-            return 0.;
-        }
-    }
-
-    private boolean returnBool(String input, int index) {
-        try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(index);
-            String valueStr = jsonObject.getString("value");
-            return valueStr.equals("true");
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private int returnInt(String input, int index) {
-        try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(index);
-            String valueStr = jsonObject.getString("value");
-            return Integer.valueOf(valueStr);
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
-            return 0;
-        }
-    }
-
-    private long returnLong(String input, int index) {
-        try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(index);
-            String valueStr = jsonObject.getString("value");
-            return Long.valueOf(valueStr);
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
-            return 0;
         }
     }
 }

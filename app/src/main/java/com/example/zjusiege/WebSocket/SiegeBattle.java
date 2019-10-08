@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/battle/{gameId}/{battleId}")
 @Component
 public class SiegeBattle {
+    private HyperchainService hyperchainService = new HyperchainService();
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
@@ -117,35 +118,82 @@ public class SiegeBattle {
     @OnMessage
     public void onMessage(@PathParam("gameId") String gameId, @PathParam("battleId") String battleId, String msg, Session session) throws Exception {
         JSONObject params = JSONObject.fromObject(msg);
-        if (params.getBoolean("first")) {
-            // 第一次连接时做一些链上数据查询，确保玩家的游戏状态是正确的，暂时略
-            // 首先进行注册
-            String address = params.getString("address");
-            register(battleId, address, session);
-            if (playerSession.get(battleId).size() == playersPerGame) {
-                // 开启一个购买士兵的倒计时
-                // 主线程延迟2秒进行数据查找以及初始化
-                new Thread(()-> {
-                    try {
-                        initShop(battleId);
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
-                }).start();
-                TimeUnit.SECONDS.sleep(2);
+        boolean first = params.getBoolean("first");
+        String address = params.getString("address");
 
-                new Thread(()-> {
-                    try {
-                        // 游戏开始倒计时
-                        buySoldiersCountDown(buySoldiersTimer, battleId);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+        if (first) {
+            // 检查链上信息和后端信息是否相符
+            boolean matched = checkPlayerInfo(gameId, battleId, address, session);
+            if (matched) {
+                // 相符
+                // 对玩家进行注册
+                boolean registered = register(gameId, address, session);
+                if (registered) {
+                    // 如果是第一次注册
+                    if (playerSession.get(battleId).size() == playersPerGame) {
+                        // 开启一个购买士兵的倒计时
+                        // 主线程延迟2秒进行数据查找以及初始化
+                        new Thread(()-> {
+                            try {
+                                // 购买士兵开始倒计时
+                                TimeUnit.SECONDS.sleep(1);
+                                buySoldiersCountDown(buySoldiersTimer, battleId);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
                     }
-                }).start();
+                }
+                else {
+                    // 掉线重连状态
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "reConnect")
+                            .element("status", true);
+                    sendMsg(session, jsonObject.toString());
+                }
+                // 检查玩家的游戏状态，进行初始化界面
+                String opponent = address.equals(battleData.get(battleId).getString("attackerAddress")) ? battleData.get(battleId).getString("defenderAddress"): battleData.get(battleId).getString("attackerAddress");
+                String battleStage = checkBattleStage(battleId, address, opponent);
+                switch (battleStage) {
+                    case "beforeBattle":
+                        // 初始化士兵商店
+                        try {
+                            initShop(battleId, address);
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
+                        break;
+                    case "departureWaiting": {
+                        // 等待
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "departureWaiting");
+                        sendMsg(session, jsonObject.toString());
+                        break;
+                    }
+                    case "inBattle":
+                        // 初始化战场
+                        try {
+                            initBattleField(battleId, address, opponent, session);
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
+                        break;
+                    default: {
+                        // 告知前端游戏出错，返回地图界面
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "error")
+                                .element("message", "battleStage not match");
+                        sendMsg(session, jsonObject.toString());
+                        break;
+                    }
+                }
+            }
+            else {
+                // 不相符
+                System.out.println("battleId not match");
             }
         }
         else {
-            String address = params.getString("address");
             String operation = params.getString("operation");
             switch (operation) {
                 case "buySoldiers":
@@ -187,21 +235,123 @@ public class SiegeBattle {
         return null;
     }
 
-    private void register(String battleId, String address, Session session) {
+    private boolean checkPlayerInfo(String gameId, String battleId, String address, Session session) throws Exception {
+
+        String[] information = battleId.split("&&");
+        String attackerAddress = information[0];
+        String defenderAddress = information[1];
+        int cityId = Integer.valueOf(information[2]);
+        // 对链上数据进行查询
+        // 获取用户信息
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            // 用户存在
+            int gameIdOnChain = Utils.returnInt(playerInfo, 0);
+            if (gameIdOnChain == Integer.valueOf(gameId)) {
+                // 链上gameId和后端gameId相匹配
+                // 查询指定gameId的游戏状态
+                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+                    // 获取游戏阶段
+                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    int gameStageInt = Utils.returnInt(globalInfo, 1);
+                    if (gameStage[gameStageInt].equals("running")) {
+                        // gameId和gameStage均正确
+                        String opponent = Utils.returnString(playerInfo, 2);
+//                        if (address.equals(attackerAddress) && opponent.equals(defenderAddress)) {
+//                            return true;
+//                        }
+//                        else if (address.equals(defenderAddress) && opponent.equals(attackerAddress)) {
+//                            return true;
+//                        }
+//                        else {
+//                            return false;
+//                        }
+                        if ((address.equals(attackerAddress) && opponent.equals(defenderAddress)) || (address.equals(defenderAddress) && opponent.equals(attackerAddress))) {
+                            return true;
+                        }
+                        else {
+                            // 告知前端游戏出错
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "error")
+                                    .element("message", "battleId not match");
+                            sendMsg(session, jsonObject.toString());
+                            return false;
+                        }
+                    }
+                    else {
+                        // 告知前端游戏出错
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "error")
+                                .element("message", "gameStage error");
+                        sendMsg(session, jsonObject.toString());
+                        return false;
+                    }
+                }
+                else {
+                    // 找不到指定gameId的游戏阶段
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "error")
+                            .element("message", "game not exist");
+                    sendMsg(session, jsonObject.toString());
+                    return false;
+                }
+            }
+            else {
+                // 链上gameId和后端gameId不匹配
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "error")
+                        .element("message", "gameId not match");
+                sendMsg(session, jsonObject.toString());
+                return false;
+            }
+        }
+        else {
+            // 用户不存在，返回错误
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "error")
+                    .element("message", "player not exist");
+            sendMsg(session, jsonObject.toString());
+            return false;
+        }
+    }
+
+    private String checkBattleStage(String battleId, String address, String opponent) {
+
+        if (!playerSoldiers.get(battleId).get(address).getBoolean("ready")) {
+            return "beforeBattle";
+        }
+        else {
+            if (!playerSoldiers.get(battleId).get(opponent).getBoolean("ready")) {
+                return "departureWaiting";
+            }
+            else {
+                return "inBattle";
+            }
+        }
+    }
+
+    private boolean register(String battleId, String address, Session session) {
         if (!playerSession.containsKey(battleId)) {
             // 构建战场
             Map<String, Session> map = new ConcurrentHashMap<>();
             map.put(address, session);
             playerSession.put(battleId, map);
+            // 第一次注册，返回为真
+            return true;
         }
         else {
+            // 第一次注册，返回为真
             if (!playerSession.get(battleId).containsKey(address)) {
                 Map<String, Session> map = playerSession.get(battleId);
                 map.put(address, session);
-                playerSession.replace(battleId, map);
+                playerSession.put(battleId, map);
+                return true;
             }
             else {
+                // 已经注册过，返回为假
                 playerSession.get(battleId).replace(address, session);
+                return false;
             }
         }
     }
@@ -341,20 +491,44 @@ public class SiegeBattle {
         System.out.println("Round " + curRound + " time is out");
     }
 
-    private void initShop(String battleId) throws Exception {
+    private void initShop(String battleId, String address) throws Exception {
         Map<String, Session> map = playerSession.get(battleId);
         JSONArray jsonArray = new JSONArray();
         List<String> soldiersName = SiegeParams.getSoldiersName();
         List<Integer> soldiersPoint = SiegeParams.getSoldiersPoint();
         List<String> soldiersDescription = SiegeParams.getSoldiersDescription();
+        List<Integer> mySoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+        double myPoint = playerSoldiers.get(battleId).get(address).getDouble("price");
+        int myQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
         for (int i = 1; i <= SiegeParams.getSoldierNum(); ++i) {
             JSONObject jsonObject = new JSONObject()
+                    .element("stage", "initShop")
                     .element("type", soldiersName.get(i))
                     .element("description", soldiersDescription.get(i))
-                    .element("price", soldiersPoint.get(i));
+                    .element("price", soldiersPoint.get(i))
+                    .element("mySoldiers", mySoldiers)
+                    .element("myPoint", myPoint)
+                    .element("myQuantity", myQuantity);
             jsonArray.add(jsonObject);
         }
         sendAll(map, jsonArray.toString());
+    }
+
+    private void initBattleField(String battleId, String address, String opponent, Session session) throws Exception {
+        List<Integer> mySoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+        double myPoint = playerSoldiers.get(battleId).get(address).getDouble("price");
+        int myQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+        double opponentPoint = playerSoldiers.get(battleId).get(opponent).getDouble("price");
+        int opponentQuantity = playerSoldiers.get(battleId).get(opponent).getInt("quantity");
+        JSONObject jsonObject = new JSONObject()
+                .element("stage", "initBattleField")
+                .element("opponent", opponent)
+                .element("mySoldiers", mySoldiers)
+                .element("myPoint", myPoint)
+                .element("myQuantity", myQuantity)
+                .element("opponentPoint", opponentPoint)
+                .element("opponentQuantity", opponentQuantity);
+        sendMsg(session, jsonObject.toString());
     }
 
     private void buySoldiers(JSONObject params, String battleId, String address, Session session) {

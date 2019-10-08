@@ -26,8 +26,8 @@ public class PlayersMatch {
     // 进入匹配玩家的Session集合
     private static final Map<String, Session> playersSession = new ConcurrentHashMap<>();
     // 匹配成功玩家集合
-    private static final Map<Integer, Map<String, Session>> matchedPlayersSession = new ConcurrentHashMap<>();
-    private static final Map<String, Integer> playersGameId = new ConcurrentHashMap<>();
+//    private static final Map<Integer, Map<String, Session>> matchedPlayersSession = new ConcurrentHashMap<>();
+//    private static final Map<String, Integer> playersGameId = new ConcurrentHashMap<>();
 
     // 进入匹配人数
     private static int playersNum = 0;
@@ -42,14 +42,14 @@ public class PlayersMatch {
     @OnOpen
     public void connect(Session session) throws Exception {
         System.out.println("playersMatch connect success");
-        playersNum += 1;
-        System.out.println("playersMatch: " + playersNum);
+//        playersNum += 1;
+//        System.out.println("playersMatch: " + playersNum);
     }
 
     @OnClose
     public void disConnect(Session session) {
         System.out.println("playersMatch disConnect");
-        playersNum -= 1;
+//        playersNum -= 1;
     }
 
     @OnMessage
@@ -134,6 +134,8 @@ public class PlayersMatch {
                             if (!matchWaiting) {
                                 // 加入匹配队列
                                 playersSession.put(address, session);
+                                playersNum += 1;
+                                System.out.println(playersSession);
 //                                enqueue(address, session);
                                 JSONObject jsonObject = new JSONObject()
                                         .element("stage", "match")
@@ -175,79 +177,6 @@ public class PlayersMatch {
                 sendMsg(session, jsonObject.toString());
             }
         }
-
-
-//        String address = JSONObject.fromObject(signature).getString("address");
-        System.out.println("address" + address);
-//        String address = params.getString("address");
-        if (playersGameId.containsKey(address)) {
-            JSONObject jsonObject = new JSONObject()
-                    .element("match", "already match success")
-                    .element("gameId", playersGameId.get(address));
-            sendMsg(session, jsonObject.toString());
-        }
-        else {
-            if (match){
-                // 缴纳入场费
-                String sigSymbol = "SIG";  //以后保存到参数类中
-                String to = deployAccount.getAddress();
-                int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
-                String data = "enter fee";
-                String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
-
-                if (transferResult.equals("transfer success")) {
-//            if(true){
-                    // 转账成功，加入匹配
-                    while(true) {
-                        // 判断是否在匹配队列中
-                        if (playersSession.containsKey(address)) {
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("match", "already in matching queue")
-                                    .element("gameId", 0);
-                            sendMsg(session, jsonObject.toString());
-                            break;
-                        }
-                        else {
-                            if (!matchWaiting) {
-                                enqueue(address, session);
-//                            playersSession.put(address, session);
-//                            playersNum += 1;
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("match", "enter matching queue")
-                                        .element("gameId", 0);
-                                sendMsg(session, jsonObject.toString());
-                                match();
-                                break;
-                            }
-                            else {
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("match", "match waiting")
-                                        .element("gameId", 0);
-                                sendMsg(session, jsonObject.toString());
-                            }
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        } catch (Exception e) {
-                            System.out.println(e.getMessage());
-                        }
-                    }
-                }
-                else {
-                    JSONObject jsonObject = new JSONObject()
-                            .element("match", "transfer failed")
-                            .element("gameId", 0);
-                    System.out.println("transfer failed");
-                    sendMsg(session, jsonObject.toString());
-                }
-            }
-            else {
-                JSONObject jsonObject = new JSONObject()
-                        .element("match", "match error")
-                        .element("gameId", 0);
-                sendMsg(session, jsonObject.toString());
-            }
-        }
     }
 
     @OnError
@@ -278,29 +207,53 @@ public class PlayersMatch {
             try {
                 String result = hyperchainService.startGame(playersAddresses);
                 // 匹配完成后获取gameId
-                int gameId = Integer.valueOf(Utils.getValue(result));
-                assert (gameId != 0);
-                // 更新游戏阶段值bidding
-                String updateStage = hyperchainService.updateGameStage(gameId, SiegeParams.gameStage.BIDDING.ordinal());
-                if (updateStage.equals("success")) {
-                    // 将本场匹配的玩家数据保存
-                    matchedPlayersSession.put(gameId, map);
-                    playersNum -= matched;
-                    for (String address: map.keySet()) {
-                        Session session = map.get(address);
-                        JSONObject jsonObject = new JSONObject()
-                                .element("match", "match success")
-                                .element("gameId", gameId);
-                        sendMsg(session, jsonObject.toString());
-                        playersGameId.put(address, gameId);
-                        System.out.println("playerGameId" + playersGameId);
+                if (!result.equals("contract calling error") && !result.equals("unknown error")) {
+                    int gameId = Integer.valueOf(Utils.getValue(result));
+                    if (gameId != 0) {
+                        // 更新游戏阶段值bidding
+                        String updateStage = hyperchainService.updateGameStage(gameId, SiegeParams.gameStage.BIDDING.ordinal());
+                        if (updateStage.equals("success")) {
+                            // 匹配成功，发送信息
+                            for (String address: map.keySet()) {
+                                Session session = map.get(address);
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "match")
+                                        .element("message", "match success")
+                                        .element("gameId", gameId);
+                                sendMsg(session, jsonObject.toString());
+                            }
+                            playersNum -= matched;
+                        }
+                        else {
+                            // 匹配失败
+                            for (String address: map.keySet()) {
+                                Session session = map.get(address);
+                                JSONObject jsonObject = new JSONObject()
+                                        .element("stage", "match")
+                                        .element("message", "match error")
+                                        .element("gameId", gameId);
+                                sendMsg(session, jsonObject.toString());
+                            }
+                        }
+                    }
+                    else {
+                        // 匹配失败
+                        for (String address: map.keySet()) {
+                            Session session = map.get(address);
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "match")
+                                    .element("message", "match error")
+                                    .element("gameId", gameId);
+                            sendMsg(session, jsonObject.toString());
+                        }
                     }
                 }
                 else {
                     for (String address: map.keySet()) {
                         Session session = map.get(address);
                         JSONObject jsonObject = new JSONObject()
-                                .element("match", "match error")
+                                .element("stage", "match")
+                                .element("message", "match error")
                                 .element("gameId", 0);
                         sendMsg(session, jsonObject.toString());
                     }
@@ -317,18 +270,11 @@ public class PlayersMatch {
         }
     }
 
-    private void enqueue(String address, Session session) {
-        if (!playersSession.containsKey(address)) {
-            playersSession.put(address, session);
-//            playersNum += 1;
-        }
-    }
-
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
     }
 
-    public static Map getmatchedPlayersSession(int index) {
-        return matchedPlayersSession.get(index);
-    }
+//    public static Map getmatchedPlayersSession(int index) {
+//        return matchedPlayersSession.get(index);
+//    }
 }

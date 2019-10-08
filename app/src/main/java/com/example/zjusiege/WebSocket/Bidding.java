@@ -1,8 +1,10 @@
 package com.example.zjusiege.WebSocket;
 
+import cn.hyperchain.sdk.rpc.account.Account;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
+import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/bidding/{gameId}")
 @Component
 public class Bidding {
+    private HyperchainService hyperchainService = new HyperchainService();
+    private Account deployAccount = Config.getDeployAccount();
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
@@ -39,6 +43,7 @@ public class Bidding {
 //    private Session session;
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, Session session) {
+        System.out.println("bidding connect success");
         // 增加在线人数
         playerNum += 1;
         System.out.println("playerNum: " + playerNum);
@@ -48,6 +53,7 @@ public class Bidding {
 
     @OnClose
     public void disConnect(@PathParam("gameId") String gameId, Session session) {
+        System.out.println("bidding disConnect");
         // 减少在线人数
         playerNum -= 1;
         System.out.println("playerNum: " + playerNum);
@@ -56,102 +62,111 @@ public class Bidding {
     @OnMessage
     public void onMessage(@PathParam("gameId") String gameId, String msg, Session session) throws Exception {
         JSONObject params = JSONObject.fromObject(msg);
-        // 第一次连接，注册信息
-        if (params.getBoolean("first")) {
-            String address = params.getString("address");
-            boolean registered = register(gameId, address, session);
-            System.out.println("size: " + playerSession.get(gameId).size());
-            // 如果是第一次注册
-            if (registered) {
-                // bidding开启条件是否满足，进入人数达到一半
-                if (playerSession.get(gameId).size() == playersPerGame / 2 && !gameStarted.get(gameId)) {
-                    // bidding倒计时准备开始
-                    JSONObject jsonObject = new JSONObject()
-                            .element("stage", "ready")
-                            .element("timer", biddingTimer);
-                    sendAll(playerSession.get(gameId), jsonObject.toString());
-                    // 延迟3秒
-                    TimeUnit.SECONDS.sleep(3);
-                    // 开启bidding倒计时
-                    new Thread(()-> {
-                        int full = biddingTimes;
-                        while (biddingTimes > 0) {
-                            try {
-                                gameStarted.replace(gameId, true);
-                                // 30秒倒计时
-                                countDown(biddingTimer, gameId, full - biddingTimes + 1);
-                                // 对竞标价格进行排序
-                                if (topNPrice.get(gameId).size() > 0) {
-                                    sortedTopNPrice(gameId);
-                                    // 开启一个线程将数据发送至链上
-                                    new Thread(() -> {
-                                        int i = 1;
-                                        List<Integer> ranking = new ArrayList<>();
-                                        List<String> playerAddresses = new ArrayList<>();
-                                        List<Long> price = new ArrayList<>();
-                                        List<Long> time = new ArrayList<>();
-                                        for (JSONObject item: topNPrice.get(gameId)) {
-                                            ranking.add(i);
-                                            playerAddresses.add(item.getString("address"));
-                                            price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
-                                            time.add(item.getLong("time"));
-                                            i += 1;
-                                        }
+        boolean first = params.getBoolean("first");
+        // 获取用户的地址
+        String address = params.getString("address");
+        if (first) {
+            // 检查玩家链上数据
+            boolean matched = checkPlayerInfo(gameId, address, session);
+            if (matched) {
+                // 如果匹配，进入游戏
+                // 对玩家进行注册
+                boolean registered = register(gameId, address, session);
+                // 如果是第一次注册
+                if (registered) {
+                    // bidding开启条件是否满足，进入人数达到一半
+                    if (playerSession.get(gameId).size() == playersPerGame / 2 && !gameStarted.get(gameId)) {
+                        // bidding倒计时准备开始
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "ready")
+                                .element("timer", biddingTimer);
+                        sendAll(playerSession.get(gameId), jsonObject.toString());
+                        // 延迟3秒
+                        TimeUnit.SECONDS.sleep(3);
+                        // 开启bidding倒计时
+                        new Thread(()-> {
+                            int full = biddingTimes;
+                            while (biddingTimes > 0) {
+                                try {
+                                    gameStarted.replace(gameId, true);
+                                    // 30秒倒计时
+                                    countDown(biddingTimer, gameId, full - biddingTimes + 1);
+                                    // 对竞标价格进行排序
+                                    if (topNPrice.get(gameId).size() > 0) {
+                                        sortedTopNPrice(gameId);
+                                        // 开启一个线程将数据发送至链上
+                                        new Thread(() -> {
+                                            int i = 1;
+                                            List<Integer> ranking = new ArrayList<>();
+                                            List<String> playerAddresses = new ArrayList<>();
+                                            List<Long> price = new ArrayList<>();
+                                            List<Long> time = new ArrayList<>();
+                                            for (JSONObject item: topNPrice.get(gameId)) {
+                                                ranking.add(i);
+                                                playerAddresses.add(item.getString("address"));
+                                                price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
+                                                time.add(item.getLong("time"));
+                                                i += 1;
+                                            }
 //                                    System.out.println(ranking);
 //                                    System.out.println(playerAddresses);
 //                                    System.out.println(price);
 //                                    System.out.println(time);
-                                        try {
-                                            HyperchainService hyperchainService = new HyperchainService();
-                                            hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
-                                        } catch (Exception e) {
-                                            System.out.println("Got an exception: " + e.getMessage());
-                                        }
-                                    }).start();
+                                            try {
+//                                                HyperchainService hyperchainService = new HyperchainService();
+                                                hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
+                                            } catch (Exception e) {
+                                                System.out.println("Got an exception: " + e.getMessage());
+                                            }
+                                        }).start();
+                                    }
+                                    TimeUnit.SECONDS.sleep(3);
+                                } catch (Exception e) {
+                                    System.out.println("Got an exception: " + e.getMessage());
                                 }
-                                TimeUnit.SECONDS.sleep(3);
+                                biddingTimes -= 1;
+                            }
+
+                            // 竞标结束，向得标者发送缴纳尾款数据
+                            try {
+                                payBiddingFee(payingTimer, gameId);
                             } catch (Exception e) {
                                 System.out.println("Got an exception: " + e.getMessage());
                             }
-                            biddingTimes -= 1;
-                        }
 
-                        // 竞标结束，向得标者发送缴纳尾款数据
-                        try {
-                            payBiddingFee(payingTimer, gameId);
-                        } catch (Exception e) {
-                            System.out.println("Got an exception: " + e.getMessage());
-                        }
+                            // 尾款缴纳结束，分配城池
+                            try {
+                                TimeUnit.SECONDS.sleep(3);
+                                allocateCity(allocateTimer, gameId);
+                            } catch (Exception e) {
+                                System.out.println("Got an exception: " + e.getMessage());
+                            }
 
-                        // 尾款缴纳结束，分配城池
-                        try {
-                            TimeUnit.SECONDS.sleep(3);
-                            allocateCity(allocateTimer, gameId);
-                        } catch (Exception e) {
-                            System.out.println("Got an exception: " + e.getMessage());
-                        }
-
-                        // 清除数据
-                        clearGameStarted(gameId);
-                        clearIfPayed(gameId);
-                    }).start();
+                            // 清除数据
+                            clearGameStarted(gameId);
+                            clearIfPayed(gameId);
+                        }).start();
+                    }
+                }
+                else {
+                    // 掉线重连状态
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "reConnect")
+                            .element("status", true);
+                    sendMsg(session, jsonObject.toString());
                 }
             }
             else {
-                // 掉线重连状态
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "reConnect")
-                        .element("status", true);
-                sendMsg(session, jsonObject.toString());
+                // 不匹配
+                System.out.println("gameId not match");
             }
         }
         else {
-            // 之后进行封转
+            // 之后进行封装
             // 不是第一次连接
             if (params.getBoolean("bidding")) {
-                System.out.println("test----" + params);
+                System.out.println("params---- " + params);
                 // 竞标阶段
-                String address = params.getString("address");
                 // 查询是否注册
                 assert (playerSession.get(gameId).containsKey(address));
                 double price = params.getDouble("price");
@@ -184,7 +199,6 @@ public class Bidding {
             }
             else {
                 // 缴纳尾款阶段
-                String address = params.getString("address");
                 double price = params.getDouble("price");
                 String signature = params.getString("signature");
                 System.out.println(address);
@@ -207,7 +221,7 @@ public class Bidding {
                     if (match) {
                         // 价格匹配，说明上交尾款
                         try {
-                            HyperchainService hyperchainService = new HyperchainService();
+//                            HyperchainService hyperchainService = new HyperchainService();
                             long value = new Double(price * SiegeParams.getPrecision()).longValue();
                             String to = Config.getDeployAccount().getAddress();
                             String symbol = "SIG";
@@ -249,6 +263,62 @@ public class Bidding {
 
     public static int getPlayersSessionSize(String gameId) {
         return playerSession.get(gameId).size();
+    }
+
+    private boolean checkPlayerInfo(String gameId, String address, Session session) throws Exception {
+        // 对链上数据进行查询
+        // 获取用户信息
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            // 用户存在
+            int gameIdOnChain = Utils.returnInt(playerInfo, 0);
+            if (gameIdOnChain == Integer.valueOf(gameId)) {
+                // 链上gameId和后端gameId相匹配
+                // 查询指定gameId的游戏状态
+                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+                    // 获取游戏阶段
+                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    int gameStageInt = Utils.returnInt(globalInfo, 1);
+                    if (gameStage[gameStageInt].equals("bidding")) {
+                        // gameId和gameStage均正确
+                        return true;
+                    }
+                    else {
+                        // 告知前端游戏出错
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "error")
+                                .element("message", "gameStage error");
+                        sendMsg(session, jsonObject.toString());
+                        return false;
+                    }
+                }
+                else {
+                    // 找不到指定gameId的游戏阶段
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "error")
+                            .element("message", "game not exist");
+                    sendMsg(session, jsonObject.toString());
+                    return false;
+                }
+            }
+            else {
+                // 链上gameId和后端gameId不匹配
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "error")
+                        .element("message", "gameId not match");
+                sendMsg(session, jsonObject.toString());
+                return false;
+            }
+        }
+        else {
+            // 用户不存在，返回错误
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "error")
+                    .element("message", "player not exist");
+            sendMsg(session, jsonObject.toString());
+            return false;
+        }
     }
 
     private boolean register(String gameId, String address, Session session) {
@@ -360,7 +430,7 @@ public class Bidding {
                                         .element("timer", curSec)
                                         .element("deal", item.getDouble("price"));
 //                            System.out.println(item.getDouble("price"));
-                                System.out.println("address: " + address + "json: " + jsonObject.toString());
+//                                System.out.println("address: " + address + "json: " + jsonObject.toString());
                                 try {
                                     sendMsg(map.get(address), jsonObject.toString());
                                 } catch (Exception e) {
@@ -401,7 +471,7 @@ public class Bidding {
         }
         try {
             if (addr.size() > 0) {
-                HyperchainService hyperchainService = new HyperchainService();
+//                HyperchainService hyperchainService = new HyperchainService();
                 String result = hyperchainService.freezePlayer(addr, rank, time);
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "frozen")
@@ -445,7 +515,7 @@ public class Bidding {
             System.out.println(cityId);
             System.out.println(price);
             try {
-                HyperchainService hyperchainService = new HyperchainService();
+//                HyperchainService hyperchainService = new HyperchainService();
                 String result = hyperchainService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
 //                String result = "success";
                 if (result.equals("success")) {

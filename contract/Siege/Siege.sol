@@ -1483,6 +1483,7 @@ contract Siege {
 
     function cp(address a) public {
     	playerInfo storage player = playersTable[a];
+    	player.game_id = 0;
     	player.is_attacker = false;
     	player.is_defender = false;
     	player.opponent = address(0x0);
