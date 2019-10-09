@@ -522,12 +522,14 @@ public class CityMap {
                         .element("operation", "occupy")
                         .element("status", true);
                 sendMsg(session, response.toString());
-                // 广播城池更新消息
-                try {
-                    updateMap(gameId);
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
+                // 广播城池更新消息(耗时较大)
+                new Thread(()-> {
+                    try {
+                        updateMap(gameId);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
             } else {
                 // 告知玩家占领失败
                 JSONObject response = new JSONObject()
@@ -573,12 +575,14 @@ public class CityMap {
                                 .element("operation", "leave")
                                 .element("status", true);
                         sendMsg(session, response.toString());
-                        // 广播城池更新信息
-                        try {
-                            updateMap(gameId);
-                        } catch (Exception e) {
-                            System.out.println("Got an exception: " + e.getMessage());
-                        }
+                        // 广播城池更新信息(耗时较大)
+                        new Thread(()-> {
+                            try {
+                                updateMap(gameId);
+                            } catch (Exception e) {
+                                System.out.println("Got an exception: " + e.getMessage());
+                            }
+                        }).start();
                     }
                     else {
                         // 离开失败
@@ -693,12 +697,14 @@ public class CityMap {
                                     .element("operation", "defense")
                                     .element("status", true);
                             sendMsg(session, response.toString());
-                            // 广播城池更新信息
-                            try {
-                                updateMap(gameId);
-                            } catch (Exception e) {
-                                System.out.println("Got an exception: " + e.getMessage());
-                            }
+                            // 广播城池更新信息(耗时较大)
+                            new Thread(()-> {
+                                try {
+                                    updateMap(gameId);
+                                } catch (Exception e) {
+                                    System.out.println("Got an exception: " + e.getMessage());
+                                }
+                            }).start();
                             // 更新响应表
                             bothResponse.get(gameId).replace(concat, true);
                         }
@@ -882,7 +888,11 @@ public class CityMap {
         // 防御者仍未响应
         // 防御者自动弃城，进攻者获得城池
         if (!bothResponse.get(gameId).get(concat)) {
-
+            try {
+                defense(gameId, playerSession.get(gameId).get(defender), defender, attacker, 0, "SIG");
+            } catch (Exception e) {
+                System.out.println("Got an exception: " + e.getMessage());
+            }
         }
     }
 

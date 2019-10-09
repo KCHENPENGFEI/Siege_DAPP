@@ -25,6 +25,7 @@ public class SiegeBattle {
     private static int playerNum = 0;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
+    private static final Map<String, Boolean> gameStarted = new ConcurrentHashMap<>();
     // 使用map来收集各个用户的Session
     private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
     private static final Map<String, Map<String, JSONObject>> playerSoldiers = new ConcurrentHashMap<>();
@@ -51,6 +52,7 @@ public class SiegeBattle {
 //        cityId = Integer.valueOf(information[2]);
         initBattleData(battleId);
         initPlayerSoldiers(battleId);
+        initGameStarted(battleId);
 //        System.out.println("battleData: " + battleData);
 //        System.out.println("playerSoldiers: " + playerSoldiers);
 
@@ -127,10 +129,11 @@ public class SiegeBattle {
             if (matched) {
                 // 相符
                 // 对玩家进行注册
-                boolean registered = register(gameId, address, session);
+                boolean registered = register(battleId, address, session);
                 if (registered) {
                     // 如果是第一次注册
-                    if (playerSession.get(battleId).size() == playersPerGame) {
+                    if (playerSession.get(battleId).size() == playersPerGame && !gameStarted.get(battleId)) {
+                        gameStarted.replace(battleId, true);
                         // 开启一个购买士兵的倒计时
                         // 主线程延迟2秒进行数据查找以及初始化
                         new Thread(()-> {
@@ -258,6 +261,7 @@ public class SiegeBattle {
                     if (gameStage[gameStageInt].equals("running")) {
                         // gameId和gameStage均正确
                         String opponent = Utils.returnString(playerInfo, 2);
+                        opponent = opponent.toUpperCase();
 //                        if (address.equals(attackerAddress) && opponent.equals(defenderAddress)) {
 //                            return true;
 //                        }
@@ -405,6 +409,12 @@ public class SiegeBattle {
         }
     }
 
+    private void initGameStarted(String battleId) {
+        if (!gameStarted.containsKey(battleId)) {
+            gameStarted.put(battleId, false);
+        }
+    }
+
     private void sendMsg(Session session, String msg) throws Exception {
         session.getBasicRemote().sendText(msg);
     }
@@ -417,6 +427,8 @@ public class SiegeBattle {
 
     private void buySoldiersCountDown(int seconds, String battleId) throws InterruptedException {
         System.out.println("buySoldiers--- count down from " + seconds + " s ");
+        String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+        String defenderAddress = battleData.get(battleId).getString("defenderAddress");
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -425,8 +437,6 @@ public class SiegeBattle {
             @Override
             public void run() {
                 if (battleData.containsKey(battleId)) {
-                    String attackerAddress = battleData.get(battleId).getString("attackerAddress");
-                    String defenderAddress = battleData.get(battleId).getString("defenderAddress");
                     if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiers.get(battleId).get(defenderAddress).getBoolean("ready")) {
                         System.out.println("Buy soldiers time remains " + --curSec + " s");
                         JSONObject jsonObject = new JSONObject()
@@ -445,6 +455,10 @@ public class SiegeBattle {
         TimeUnit.SECONDS.sleep(seconds);
         timer.cancel();
         System.out.println("Buy soldiers time is out");
+        // 若此时双方仍未进行departure，则自动departure
+        if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiers.get(battleId).get(defenderAddress).getBoolean("ready")) {
+
+        }
     }
 
     private void roundCountDown(int seconds, String battleId, int curRound, String attackerAddress, String defenderAddress) throws InterruptedException {
@@ -500,18 +514,20 @@ public class SiegeBattle {
         List<Integer> mySoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
         double myPoint = playerSoldiers.get(battleId).get(address).getDouble("price");
         int myQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+        JSONObject jsonObject = new JSONObject()
+                .element("stage", "initShop")
+                .element("mySoldiers", mySoldiers)
+                .element("myPoint", myPoint)
+                .element("myQuantity", myQuantity);
         for (int i = 1; i <= SiegeParams.getSoldierNum(); ++i) {
-            JSONObject jsonObject = new JSONObject()
-                    .element("stage", "initShop")
+            JSONObject shop = new JSONObject()
                     .element("type", soldiersName.get(i))
                     .element("description", soldiersDescription.get(i))
-                    .element("price", soldiersPoint.get(i))
-                    .element("mySoldiers", mySoldiers)
-                    .element("myPoint", myPoint)
-                    .element("myQuantity", myQuantity);
-            jsonArray.add(jsonObject);
+                    .element("price", soldiersPoint.get(i));
+            jsonArray.add(shop);
         }
-        sendAll(map, jsonArray.toString());
+        jsonObject.element("shop", jsonArray);
+        sendAll(map, jsonObject.toString());
     }
 
     private void initBattleField(String battleId, String address, String opponent, Session session) throws Exception {
@@ -531,54 +547,65 @@ public class SiegeBattle {
         sendMsg(session, jsonObject.toString());
     }
 
-    private void buySoldiers(JSONObject params, String battleId, String address, Session session) {
-        List<Integer> type = castList(params.get("type"), Integer.class);
-        double price = params.getDouble("price");
-        int quantity = params.getInt("quantity");
-        System.out.println(type);
-        System.out.println(price);
-        System.out.println(quantity);
-        String symbol = "SIG";
-        String signature = params.getString("signature");
+    private void buySoldiers(JSONObject params, String battleId, String address, Session session) throws Exception {
+        assert (gameStarted.get(battleId));
+        if (!gameStarted.get(battleId)) {
+            // 对手未进入游戏
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "waitingOpponent")
+                    .element("operation", "buySoldiers")
+                    .element("status", false);
+            sendMsg(session, jsonObject.toString());
+        }
+        else {
+            List<Integer> type = castList(params.get("type"), Integer.class);
+            double price = params.getDouble("price");
+            int quantity = params.getInt("quantity");
+            System.out.println(type);
+            System.out.println(price);
+            System.out.println(quantity);
+            String symbol = "SIG";
+            String signature = params.getString("signature");
 
-        // 首先进行缴费
-        try {
-            HyperchainService hyperchainService = new HyperchainService();
-            String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
+            // 首先进行缴费
+            try {
+                HyperchainService hyperchainService = new HyperchainService();
+                String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
 //            String transferResult = "transfer success";
-            if (transferResult.equals("transfer success")) {
-                // 更新playerSoldier
-                if (type != null) {
-                    List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+                if (transferResult.equals("transfer success")) {
+                    // 更新playerSoldier
+                    if (type != null) {
+                        List<Integer> oldSoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
 //                    System.out.println("oldSoldiers: " + oldSoldiers);
-                    assert oldSoldiers != null;
-                    oldSoldiers.addAll(type);
+                        assert oldSoldiers != null;
+                        oldSoldiers.addAll(type);
 //
-                    double oldPrice = playerSoldiers.get(battleId).get(address).getDouble("price");
-                    double newPrice = oldPrice + price;
-                    int oldQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
-                    int newQuantity = oldQuantity + quantity;
-                    updatePlayerSoldiers(battleId, address, oldSoldiers, newPrice, newQuantity,true, false, 1, 0, false, "none");
+                        double oldPrice = playerSoldiers.get(battleId).get(address).getDouble("price");
+                        double newPrice = oldPrice + price;
+                        int oldQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+                        int newQuantity = oldQuantity + quantity;
+                        updatePlayerSoldiers(battleId, address, oldSoldiers, newPrice, newQuantity,true, false, 1, 0, false, "none");
+                    }
+                    // 告知购买士兵成功
+                    JSONObject jsonObject = new JSONObject()
+                            .element("operation", "buySoldiers")
+                            .element("status", true);
+                    sendMsg(session, jsonObject.toString());
                 }
-                // 告知购买士兵成功
-                JSONObject jsonObject = new JSONObject()
-                        .element("operation", "buySoldiers")
-                        .element("status", true);
-                sendMsg(session, jsonObject.toString());
+                else {
+                    // 告知转账失败
+                    JSONObject jsonObject = new JSONObject()
+                            .element("operation", "buySoldiers")
+                            .element("status", false);
+                    sendMsg(session, jsonObject.toString());
+                }
+            } catch (Exception e) {
+                System.out.println("Got an exception: " + e.getMessage());
             }
-            else {
-                // 告知转账失败
-                JSONObject jsonObject = new JSONObject()
-                        .element("operation", "buySoldiers")
-                        .element("status", false);
-                sendMsg(session, jsonObject.toString());
-            }
-        } catch (Exception e) {
-            System.out.println("Got an exception: " + e.getMessage());
         }
     }
 
-    private void departure(String gameId, String battleId, String address, Session session) {
+    private void departure(String gameId, String battleId, String address, Session session) throws Exception {
         List<Integer> type = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
         long price = new Double(playerSoldiers.get(battleId).get(address).getDouble("price") * SiegeParams.getPrecision()).longValue();
         int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
