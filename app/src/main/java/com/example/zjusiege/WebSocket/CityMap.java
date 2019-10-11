@@ -38,6 +38,7 @@ public class CityMap {
     public void connect(@PathParam("gameId") String gameId, Session session) {
         // 增加在线人数
         playerNum += 1;
+        System.out.println("CityMap connect success!");
         System.out.println("playerNum: " + playerNum);
         initGameStarted(gameId);
         initBothResponse(gameId);
@@ -47,6 +48,7 @@ public class CityMap {
     public void disConnect(@PathParam("gameId") String gameId, Session session) {
         // 减少在线人数
         playerNum -= 1;
+        System.out.println("CityMap disConnect!");
         System.out.println("playerNum: " + playerNum);
     }
 
@@ -109,6 +111,10 @@ public class CityMap {
             else {
                 // 不相符
                 System.out.println("gameId not match");
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "error")
+                        .element("message", "gameId not match");
+                sendMsg(session, jsonObject.toString());
             }
         }
         else {
@@ -635,6 +641,11 @@ public class CityMap {
         if (result.equals("success")) {
             // 重复发送数据
             // 告知攻击者与被攻击者
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "attack")
+                    .element("status", true);
+            sendMsg(session, response.toString());
             new Thread(()-> {
                 try {
                     attackCountDown(attackTimer, gameId, concat);
@@ -695,6 +706,7 @@ public class CityMap {
                             JSONObject response = new JSONObject()
                                     .element("stage", "response")
                                     .element("operation", "defense")
+                                    .element("choice", 0)
                                     .element("status", true);
                             sendMsg(session, response.toString());
                             // 广播城池更新信息(耗时较大)
@@ -711,11 +723,15 @@ public class CityMap {
                         else {
                             // 操作失败
                             // 告知双方系统错误
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("stage", "notification")
-                                    .element("situation", "systemError");
-                            sendMsg(session, jsonObject.toString());
-                            sendMsg(targetSession, jsonObject.toString());
+                            JSONObject response = new JSONObject()
+                                    .element("stage", "response")
+                                    .element("operation", "defense")
+                                    .element("choice", 0)
+                                    .element("status", false);
+                            sendMsg(session, response.toString());
+
+                            errorMsg(session, "defense error");
+                            errorMsg(targetSession, "defense error");
                         }
                     }
                     else {
@@ -743,6 +759,7 @@ public class CityMap {
                         JSONObject response = new JSONObject()
                                 .element("stage", "response")
                                 .element("operation", "defense")
+                                .element("choice", 1)
                                 .element("status", true);
                         sendMsg(session, response.toString());
                         // 更新响应表
@@ -750,11 +767,15 @@ public class CityMap {
                     } else {
                         // 操作失败
                         // 告知双方系统错误
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "notification")
-                                .element("situation", "systemError");
-                        sendMsg(session, jsonObject.toString());
-                        sendMsg(targetSession, jsonObject.toString());
+                        JSONObject response = new JSONObject()
+                                .element("stage", "response")
+                                .element("operation", "defense")
+                                .element("choice", 0)
+                                .element("status", false);
+                        sendMsg(session, response.toString());
+
+                        errorMsg(session, "defense error");
+                        errorMsg(targetSession, "defense error");
                     }
                 }
             }
@@ -861,15 +882,15 @@ public class CityMap {
             @Override
             public void run() {
                 if (!bothResponse.get(gameId).get(concat)) {
-                    // 防御者还未进行相应
+                    // 防御者还未进行响应
                     System.out.println("Attack time remains " + --curSec + " s");
                     JSONObject attackerJsonObject = new JSONObject()
-                            .element("stage", "response")
+                            .element("stage", "attackCountDown")
                             .element("operation", "attack")
                             .element("status", true)
                             .element("timer", curSec);
                     JSONObject defenderJsonObject = new JSONObject()
-                            .element("stage", "notification")
+                            .element("stage", "defenseCountDown")
                             .element("situation", "beAttackedRequest")
                             .element("opponent", attacker)
                             .element("timer", curSec);
@@ -940,5 +961,13 @@ public class CityMap {
             System.out.println("Got an exception: " + e.getMessage());
             return new JSONArray();
         }
+    }
+
+    private void errorMsg(Session session, String message) throws Exception {
+        JSONObject jsonObject = new JSONObject()
+                .element("stage", "notification")
+                .element("situation", "systemError")
+                .element("message", message);
+        sendMsg(session, jsonObject.toString());
     }
 }

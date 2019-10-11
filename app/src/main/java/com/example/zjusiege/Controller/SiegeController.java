@@ -5,6 +5,7 @@ import com.example.zjusiege.AsyncTaskService;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
+import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
@@ -114,7 +115,9 @@ public class SiegeController {
     @CrossOrigin
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
+        // 检查用户信息
         String paramsString = params.toString();
+        String address = params.getString("address");
         try {
             // 验证玩家是否注册信息，保证gameId = 0
             String loginResult = hyperchainService.login(paramsString);
@@ -123,9 +126,54 @@ public class SiegeController {
             session.setAttribute("isLogin", true);
             session.setAttribute("playerAddress", params.getString("address"));
             session.setAttribute("gameId", gameId);
-            JSONObject jsonObject = new JSONObject()
-                    .element("status", "success");
-            return jsonObject.toString();
+            // 对链上数据进行查询
+            // 获取用户信息
+            String playerInfo = hyperchainService.getPlayersStatus(address);
+            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+                // 用户存在
+//                int gameId = Utils.returnInt(playerInfo, 0);
+                if (gameId != 0) {
+                    // 玩家已经成功匹配，处于游戏中
+                    // 查询指定gameId的游戏状态
+                    String globalInfo = hyperchainService.getGlobalTb(gameId);
+                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+                        // 获取游戏阶段
+                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                        int gameStageInt = Utils.returnInt(globalInfo, 1);
+                        // 发送给前端
+                        JSONObject jsonObject = new JSONObject()
+                                .element("status", "success")
+                                .element("stage", "inGame")
+                                .element("gameId", gameId)
+                                .element("gameStage", gameStage[gameStageInt]);
+                        return jsonObject.toString();
+                    }
+                    else {
+                        // 找不到指定gameId的游戏阶段
+                        JSONObject jsonObject = new JSONObject()
+                                .element("status", "success")
+                                .element("stage", "error")
+                                .element("message", "game not exist");
+                        return jsonObject.toString();
+                    }
+                }
+                else {
+                    // 玩家未开始游戏，准备进入匹配
+                    JSONObject jsonObject = new JSONObject()
+                            .element("status", "success")
+                            .element("stage", "startGame")
+                            .element("gameId", 0);
+                    return jsonObject.toString();
+                }
+            }
+            else {
+                // 用户不存在，返回错误
+                JSONObject jsonObject = new JSONObject()
+                        .element("status", "success")
+                        .element("stage", "error")
+                        .element("message", "player not exist");
+                return jsonObject.toString();
+            }
         } catch (Exception e) {
             System.out.println("Got a Exception：" + e.getMessage());
             JSONObject jsonObject = new JSONObject()

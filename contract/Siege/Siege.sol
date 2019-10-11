@@ -1481,6 +1481,8 @@ contract Siege {
     	player.own_city_id = 0;
     }
 
+    // 下面两个函数是测试用的代码，不用管
+
     function cp(address a) public {
     	playerInfo storage player = playersTable[a];
     	player.game_id = 0;
@@ -1646,10 +1648,6 @@ contract Siege {
     			}
     		}
     	}
-    }
-
-    function addtest(uint256 a, uint256 b) public returns(uint256) {
-    	return(a+b);
     }
 
     function battleResult(uint256 attackerCurrentPoints, uint256 defenderCurrentPoints, uint256 cityId) internal view returns (int8) {

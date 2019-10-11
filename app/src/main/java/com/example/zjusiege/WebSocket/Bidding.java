@@ -26,8 +26,8 @@ public class Bidding {
     private static int playerNum = 0;
     private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
-    private static int biddingTimer = 10;
-    private static int biddingTimes = 5;
+    private static int biddingTimer = 5;
+    private static int biddingTimes = 2;
     private static int payingTimer = 20;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
@@ -113,7 +113,6 @@ public class Bidding {
 //                                    System.out.println(price);
 //                                    System.out.println(time);
                                             try {
-//                                                HyperchainService hyperchainService = new HyperchainService();
                                                 hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
                                             } catch (Exception e) {
                                                 System.out.println("Got an exception: " + e.getMessage());

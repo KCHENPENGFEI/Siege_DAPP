@@ -55,127 +55,131 @@ public class PlayersMatch {
     @OnMessage
     public void onMessage(String msg, Session session) throws Exception{
         JSONObject params = JSONObject.fromObject(msg);
-        boolean first = params.getBoolean("first");
-        // 获取用户的地址
-        String address = params.getString("address");
-        if (first) {
-            // 对链上数据进行查询
-            // 获取用户信息
-            String playerInfo = hyperchainService.getPlayersStatus(address);
-            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
-                // 用户存在
-                int gameId = Utils.returnInt(playerInfo, 0);
-                if (gameId != 0) {
-                    // 玩家已经成功匹配，处于游戏中
-                    // 查询指定gameId的游戏状态
-                    String globalInfo = hyperchainService.getGlobalTb(gameId);
-                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
-                        // 获取游戏阶段
-                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
-                        int gameStageInt = Utils.returnInt(globalInfo, 1);
-                        // 发送给前端
+//        boolean first = params.getBoolean("first");
+//        // 获取用户的地址
+//        String address = params.getString("address");
+//        System.out.println(address);
+//        if (first) {
+//            // 对链上数据进行查询
+//            // 获取用户信息
+//            String playerInfo = hyperchainService.getPlayersStatus(address);
+//            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+//                // 用户存在
+//                int gameId = Utils.returnInt(playerInfo, 0);
+//                if (gameId != 0) {
+//                    // 玩家已经成功匹配，处于游戏中
+//                    // 查询指定gameId的游戏状态
+//                    String globalInfo = hyperchainService.getGlobalTb(gameId);
+//                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+//                        // 获取游戏阶段
+//                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+//                        int gameStageInt = Utils.returnInt(globalInfo, 1);
+//                        // 发送给前端
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("stage", "inGame")
+//                                .element("gameId", gameId)
+//                                .element("gameStage", gameStage[gameStageInt]);
+//                        sendMsg(session, jsonObject.toString());
+//                    }
+//                    else {
+//                        // 找不到指定gameId的游戏阶段
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("stage", "error")
+//                                .element("message", "game not exist");
+//                        sendMsg(session, jsonObject.toString());
+//                    }
+//                }
+//                else {
+//                    // 玩家未开始游戏，准备进入匹配
+//                    JSONObject jsonObject = new JSONObject()
+//                            .element("stage", "startGame")
+//                            .element("gameId", 0);
+//                    sendMsg(session, jsonObject.toString());
+//                }
+//            }
+//            else {
+//                // 用户不存在，返回错误
+//                JSONObject jsonObject = new JSONObject()
+//                        .element("stage", "error")
+//                        .element("message", "player not exist");
+//                sendMsg(session, jsonObject.toString());
+//            }
+//        }
+//        else {
+//
+//        }
+        // 玩家进入匹配
+        boolean match = params.getBoolean("match");
+        String signature = params.getString("signature");
+        String address = JSONObject.fromObject(signature).getString("address");
+        System.out.println(address);
+        if (match){
+            // 缴纳入场费
+            String sigSymbol = "SIG";  //以后保存到参数类中
+            String to = deployAccount.getAddress();
+            int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
+            String data = "enter fee";
+            String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
+
+            if (transferResult.equals("transfer success")) {
+//            if(true){
+                // 转账成功，加入匹配
+                while(true) {
+                    // 判断是否在匹配队列中
+                    if (playersSession.containsKey(address)) {
+                        // 已经进入匹配
                         JSONObject jsonObject = new JSONObject()
-                                .element("stage", "inGame")
-                                .element("gameId", gameId)
-                                .element("gameStage", gameStage[gameStageInt]);
+                                .element("stage", "match")
+                                .element("message", "already in matching queue")
+                                .element("gameId", 0);
                         sendMsg(session, jsonObject.toString());
+                        break;
                     }
                     else {
-                        // 找不到指定gameId的游戏阶段
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "error")
-                                .element("message", "game not exist");
-                        sendMsg(session, jsonObject.toString());
-                    }
-                }
-                else {
-                    // 玩家未开始游戏，准备进入匹配
-                    JSONObject jsonObject = new JSONObject()
-                            .element("stage", "startGame")
-                            .element("gameId", 0);
-                    sendMsg(session, jsonObject.toString());
-                }
-            }
-            else {
-                // 用户不存在，返回错误
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "error")
-                        .element("message", "player not exist");
-                sendMsg(session, jsonObject.toString());
-            }
-        }
-        else {
-            // 玩家进入匹配
-            boolean match = params.getBoolean("match");
-            String signature = params.getString("signature");
-            if (match){
-                // 缴纳入场费
-                String sigSymbol = "SIG";  //以后保存到参数类中
-                String to = deployAccount.getAddress();
-                int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
-                String data = "enter fee";
-                String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
-
-                if (transferResult.equals("transfer success")) {
-//            if(true){
-                    // 转账成功，加入匹配
-                    while(true) {
-                        // 判断是否在匹配队列中
-                        if (playersSession.containsKey(address)) {
-                            // 已经进入匹配
+                        if (!matchWaiting) {
+                            // 加入匹配队列
+                            playersSession.put(address, session);
+                            playersNum += 1;
+//                            System.out.println(playersSession);
+//                                enqueue(address, session);
                             JSONObject jsonObject = new JSONObject()
                                     .element("stage", "match")
-                                    .element("message", "already in matching queue")
+                                    .element("message", "enter matching queue")
                                     .element("gameId", 0);
                             sendMsg(session, jsonObject.toString());
+                            match();
                             break;
                         }
                         else {
-                            if (!matchWaiting) {
-                                // 加入匹配队列
-                                playersSession.put(address, session);
-                                playersNum += 1;
-                                System.out.println(playersSession);
-//                                enqueue(address, session);
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "match")
-                                        .element("message", "enter matching queue")
-                                        .element("gameId", 0);
-                                sendMsg(session, jsonObject.toString());
-                                match();
-                                break;
-                            }
-                            else {
-                                JSONObject jsonObject = new JSONObject()
-                                        .element("stage", "match")
-                                        .element("message", "match waiting")
-                                        .element("gameId", 0);
-                                sendMsg(session, jsonObject.toString());
-                            }
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        } catch (Exception e) {
-                            System.out.println(e.getMessage());
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "match")
+                                    .element("message", "match waiting")
+                                    .element("gameId", 0);
+                            sendMsg(session, jsonObject.toString());
                         }
                     }
-                }
-                else {
-                    JSONObject jsonObject = new JSONObject()
-                            .element("stage", "match")
-                            .element("message", "transfer failed")
-                            .element("gameId", 0);
-                    System.out.println("transfer failed");
-                    sendMsg(session, jsonObject.toString());
+                    try {
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
                 }
             }
             else {
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "match")
-                        .element("match", "match error")
+                        .element("message", "transfer failed")
                         .element("gameId", 0);
+                System.out.println("transfer failed");
                 sendMsg(session, jsonObject.toString());
             }
+        }
+        else {
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "match")
+                    .element("match", "match error")
+                    .element("gameId", 0);
+            sendMsg(session, jsonObject.toString());
         }
     }
 
