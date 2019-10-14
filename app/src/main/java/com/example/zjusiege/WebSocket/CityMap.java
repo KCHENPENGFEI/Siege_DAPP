@@ -34,6 +34,8 @@ public class CityMap {
     private static final Map<String, Boolean> gameStarted = new ConcurrentHashMap<>();
     private static final Map<String, Map<String, Boolean>> bothResponse = new ConcurrentHashMap<>();
 
+    private int debug = 1;
+
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, Session session) {
         // 增加在线人数
@@ -629,8 +631,12 @@ public class CityMap {
 
     private void attack(String gameId, Session session, String address, String target) throws Exception {
 //        HyperchainService hyperchainService = new HyperchainService();
+        target = target.toUpperCase();
         String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
         String concat = address + "&&" + target;
+        if (debug == 1) {
+            System.out.println("debug@cpf: " + target);
+        }
         if (bothResponse.get(gameId).containsKey(concat)) {
             bothResponse.get(gameId).replace(concat, false);
         }
@@ -646,6 +652,14 @@ public class CityMap {
                     .element("operation", "attack")
                     .element("status", true);
             sendMsg(session, response.toString());
+            JSONObject notification = new JSONObject()
+                    .element("stage", "notification")
+                    .element("message", "beAttacked")
+                    .element("opponent", address);
+            if (debug == 1) {
+                System.out.println("debug@cpf: " + playerSession.get(gameId));
+            }
+            sendMsg(playerSession.get(gameId).get(target), notification.toString());
             new Thread(()-> {
                 try {
                     attackCountDown(attackTimer, gameId, concat);
@@ -750,11 +764,6 @@ public class CityMap {
 //                    String result = "success";
                     if (result.equals("success")) {
                         // 玩家选择防守
-                        // 告知进攻者
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "notification")
-                                .element("situation", "beforeBattle");
-                        sendMsg(targetSession, jsonObject.toString());
                         // 告知防守者操作成功
                         JSONObject response = new JSONObject()
                                 .element("stage", "response")
@@ -762,6 +771,16 @@ public class CityMap {
                                 .element("choice", 1)
                                 .element("status", true);
                         sendMsg(session, response.toString());
+                        // 告知进攻者
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "notification")
+                                .element("message", "beforeBattle");
+                        sendMsg(targetSession, jsonObject.toString());
+                        // 告知防御者
+                        JSONObject jsonObject1 = new JSONObject()
+                                .element("stage", "notification")
+                                .element("message", "beforeBattle");
+                        sendMsg(session, jsonObject1.toString());
                         // 更新响应表
                         bothResponse.get(gameId).replace(concat, true);
                     } else {
@@ -892,7 +911,7 @@ public class CityMap {
                     JSONObject defenderJsonObject = new JSONObject()
                             .element("stage", "defenseCountDown")
                             .element("situation", "beAttackedRequest")
-                            .element("opponent", attacker)
+//                            .element("opponent", attacker)
                             .element("timer", curSec);
                     try {
                         sendMsg(playerSession.get(gameId).get(attacker), attackerJsonObject.toString());

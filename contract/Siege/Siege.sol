@@ -121,7 +121,7 @@ contract Siege {
 	// 玩家注册
 	mapping (address => bool) players;
 	// 设置同时开启的游戏场次为100
-	uint256[100] gameIdArray;
+	uint256[1000] gameIdArray;
 	// 游戏过程数据，在构造函数中初始化
 	
 	/**
