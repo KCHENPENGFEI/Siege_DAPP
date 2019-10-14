@@ -35,11 +35,11 @@ public class BeforeBattle {
 //    private static String defenderAddress;
 //    private static int cityId;
     private static int playersPerGame = 2;
-    private static int buySoldiersTimer = 20;
+    private static int buySoldiersTimer = 60;
     //    private static int round = 1;
     private static int roundTimer = 30;
 //    private static boolean isOver = false;
-    private int debug = 0;
+    private int debug = 1;
 
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, @PathParam("battleId") String battleId, Session session) throws Exception {
@@ -48,6 +48,9 @@ public class BeforeBattle {
         initPlayerSoldiers(battleId);
         playerNum += 1;
         System.out.println("BeforeBattle connect success!");
+        if (debug == 1) {
+            System.out.println("debug@cpf: " + battleId);
+        }
         System.out.println("playerNum: " + playerNum);
     }
 
@@ -117,6 +120,9 @@ public class BeforeBattle {
 //                    break;
 //            }
             if (operation.equals("departure")) {
+                if (debug == 1) {
+                    System.out.println("debug@cpf: " + params);
+                }
                 departure(params, gameId, battleId, address, session);
             }
             else {
@@ -320,7 +326,20 @@ public class BeforeBattle {
             sendMsg(session, jsonObject.toString());
         }
         else {
-            List<Integer> type = castList(params.get("type"), Integer.class);
+            List<Integer> typeTmp = castList(params.get("type"), Integer.class);
+            List<Integer> type = new ArrayList<>();
+            if (typeTmp != null && typeTmp.size() != 0) {
+                for (int i = 0; i < typeTmp.size(); i++) {
+                    int item = typeTmp.get(i);
+                    while(item > 0) {
+                        type.add(type.size(), (i + 2) % 5 + 1);
+                        item -= 1;
+                    }
+                }
+            }
+            if (debug == 1) {
+                System.out.println("debug@cpf:" + type);
+            }
             String symbol = "SIG";
             String signature = params.getString("signature");
             // 双方地址
@@ -359,6 +378,12 @@ public class BeforeBattle {
                                             .element("status", true)
                                             .element("ready", true);
                                     sendMsg(session, jsonObject.toString());
+
+                                    JSONObject notification = new JSONObject()
+                                            .element("stage", "notification")
+                                            .element("message", "bothReady");
+                                    sendMsg(session, notification.toString());
+                                    sendMsg(playerSession.get(battleId).get(opponent), notification.toString());
                                 }
                                 else {
                                     // 告知等待
@@ -454,11 +479,35 @@ public class BeforeBattle {
         timer.cancel();
         System.out.println("Buy soldiers time is out");
         // 若此双方还有未进行departure，则不构成游戏对局
-        if (!playerSoldiersInit.get(battleId).get(attackerAddress).getBoolean("ready") || !playerSoldiersInit.get(battleId).get(defenderAddress).getBoolean("ready")) {
+        if (!playerSoldiersInit.get(battleId).get(defenderAddress).getBoolean("ready")) {
             JSONObject jsonObject = new JSONObject()
-                    .element("stage", "battleCancel");
-            sendMsg(playerSession.get(battleId).get(attackerAddress), jsonObject.toString());
+                    .element("stage", "notification")
+                    .element("message", "battleCancel")
+                    .element("who", true);
+            JSONObject jsonObject1 = new JSONObject()
+                    .element("stage", "notification")
+                    .element("message", "battleCancel")
+                    .element("who", false);
             sendMsg(playerSession.get(battleId).get(defenderAddress), jsonObject.toString());
+            sendMsg(playerSession.get(battleId).get(attackerAddress), jsonObject1.toString());
+            if (debug == 1) {
+                System.out.println("defender battleCancel");
+            }
+        }
+        if (!playerSoldiersInit.get(battleId).get(attackerAddress).getBoolean("ready")) {
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "notification")
+                    .element("message", "battleCancel")
+                    .element("who", true);
+            JSONObject jsonObject1 = new JSONObject()
+                    .element("stage", "notification")
+                    .element("message", "battleCancel")
+                    .element("who", false);
+            sendMsg(playerSession.get(battleId).get(attackerAddress), jsonObject.toString());
+            sendMsg(playerSession.get(battleId).get(defenderAddress), jsonObject1.toString());
+            if (debug == 1) {
+                System.out.println("attacker battleCancel");
+            }
         }
 //        if (!playerSoldiersInit.get(battleId).get(attackerAddress).getBoolean("ready")) {
 ////            departure(gameId, battleId, attackerAddress, playerSession.get(battleId).get(attackerAddress));

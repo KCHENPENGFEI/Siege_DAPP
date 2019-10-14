@@ -183,6 +183,15 @@ public class SiegeController {
     }
 
     @ResponseBody
+    @CrossOrigin
+    @RequestMapping(value = "/checkPlayerStatus", method = RequestMethod.POST)
+    public String checkPlayer(@RequestBody JSONObject params) throws Exception {
+        String address = params.getString("address");
+        JSONObject jsonObject = checkPlayerStatus(address);
+        return jsonObject.toString();
+    }
+
+    @ResponseBody
     @RequestMapping(value = "/clear", method = RequestMethod.POST)
     public String clear(@RequestBody JSONObject params) throws Exception {
         String add1 = params.getString("address1");
@@ -863,4 +872,71 @@ public class SiegeController {
 //            }
 //        }
 //    }
+
+    private JSONObject checkPlayerStatus(String address) throws Exception {
+        // 对链上数据进行查询
+        // 获取用户信息
+        JSONObject response = new JSONObject();
+        String playerInfo = hyperchainService.getPlayersStatus(address);
+        if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+            // 用户存在
+            int gameId = Utils.returnInt(playerInfo, 0);
+            String identity = Utils.returnString(playerInfo, 1);
+            String opponent = Utils.returnString(playerInfo, 2).toUpperCase();
+            int cityId = Utils.returnInt(playerInfo, 3);
+            String playerStage = Utils.returnString(playerInfo, 4);
+            if (gameId != 0) {
+                // 玩家已经成功匹配，处于游戏中
+                // 查询指定gameId的游戏状态
+                String globalInfo = hyperchainService.getGlobalTb(gameId);
+                if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+                    // 获取游戏阶段
+                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    int gameStageInt = Utils.returnInt(globalInfo, 1);
+                    // 对response进行赋值
+                    response.element("stage", "checkPlayerStatus")
+                            .element("status", true)
+                            .element("gameId", gameId)
+                            .element("identity", identity)
+                            .element("gameStage", gameStage[gameStageInt]);
+                    if (gameStageInt == 2) {
+                        // 游戏处于running阶段， 需要判断玩家状态
+                        if (playerStage.equals("beforeBattle") || playerStage.equals("inBattle")) {
+                            // 处于准备对战或者对战界面
+                            if (cityId == 0) {
+                                // 玩家为进攻者，需要查询对手的城池id
+                                String opponentInfo = hyperchainService.getPlayersStatus(opponent);
+                                cityId = Utils.returnInt(opponentInfo, 3);
+                            }
+                            response.element("playerStage", playerStage)
+                                    .element("opponent", opponent)
+                                    .element("cityId", cityId);
+                        }
+                        else {
+                            // 处于map界面
+                            response.element("playerStage", "cityMap");
+                        }
+                    }
+                    return response;
+                }
+                else {
+                    response.element("stage", "error")
+                            .element("message", "game not exist");
+                }
+            }
+            else {
+                // 玩家未开始游戏，准备进入匹配
+                response.element("stage", "checkPlayerStatus")
+                        .element("status", true)
+                        .element("gameStage", "startGame")
+                        .element("gameId", 0);
+            }
+        }
+        else {
+            // 用户不存在，返回错误
+            response.element("stage", "error")
+                    .element("message", "player not exist");
+        }
+        return response;
+    }
 }

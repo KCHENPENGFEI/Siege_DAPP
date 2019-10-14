@@ -500,7 +500,7 @@ public class HyperchainService {
         int code = receiptReturn.getRawcode();
 //        String rawReturn = receiptReturn.getRet();
 //        String decodeResult = FunctionDecode.resultDecode("updateRankingTb", siegeAbi, rawReturn);
-//        log("调用startGame: " + decodeResult);
+        log("调用departure: " + code);
 
         if (code == 0) {
             System.out.println("code: " + code);
