@@ -57,6 +57,11 @@ public class Bidding {
         // 减少在线人数
         playerNum -= 1;
         System.out.println("playerNum: " + playerNum);
+        for (String address: playerSession.get(gameId).keySet()) {
+            if (playerSession.get(gameId).get(address) == session) {
+                System.out.println("debug@cpf: " + address + "disConnect");
+            }
+        }
     }
 
     @OnMessage

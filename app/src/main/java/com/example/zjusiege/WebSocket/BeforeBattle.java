@@ -59,6 +59,11 @@ public class BeforeBattle {
         playerNum -= 1;
         System.out.println("BeforeBattle disConnect!");
         System.out.println("playerNum: " + playerNum);
+        for (String address: playerSession.get(battleId).keySet()) {
+            if (playerSession.get(battleId).get(address) == session) {
+                System.out.println("debug@cpf: " + address + "disConnect");
+            }
+        }
     }
 
 
@@ -328,15 +333,16 @@ public class BeforeBattle {
         else {
             List<Integer> typeTmp = castList(params.get("type"), Integer.class);
             List<Integer> type = new ArrayList<>();
-            if (typeTmp != null && typeTmp.size() != 0) {
-                for (int i = 0; i < typeTmp.size(); i++) {
-                    int item = typeTmp.get(i);
-                    while(item > 0) {
-                        type.add(type.size(), (i + 2) % 5 + 1);
-                        item -= 1;
-                    }
-                }
-            }
+//            if (typeTmp != null && typeTmp.size() != 0) {
+//                for (int i = 0; i < typeTmp.size(); i++) {
+//                    int item = typeTmp.get(i);
+//                    while(item > 0) {
+//                        type.add(type.size(), (i + 2) % 5 + 1);
+//                        item -= 1;
+//                    }
+//                }
+//            }
+            type = transformSoldierList(typeTmp);
             if (debug == 1) {
                 System.out.println("debug@cpf:" + type);
             }
@@ -346,7 +352,7 @@ public class BeforeBattle {
             String attackerAddress = battleData.get(battleId).getString("attackerAddress");
             String defenderAddress = battleData.get(battleId).getString("defenderAddress");
             // 当前round
-            int cRound = battleData.get(battleId).getInt("round");
+//            int cRound = battleData.get(battleId).getInt("round");
             if (type != null && type.size() > 0) {
                 int quantity = type.size();
                 double price = 0.;
@@ -384,6 +390,7 @@ public class BeforeBattle {
                                             .element("message", "bothReady");
                                     sendMsg(session, notification.toString());
                                     sendMsg(playerSession.get(battleId).get(opponent), notification.toString());
+                                    System.out.println("debug@cpf: " + playerSoldiersInit);
                                 }
                                 else {
                                     // 告知等待
@@ -550,6 +557,23 @@ public class BeforeBattle {
 
     static Map<String, JSONObject> getBattleData() {
         return battleData;
+    }
+
+    private List<Integer> transformSoldierList(List<Integer> originList) {
+        List<Integer> newList = new ArrayList<>();
+        if (originList == null || originList.size() == 0) {
+            newList = null;
+        }
+        else {
+            for (int i = 0; i < originList.size(); i++) {
+                int quantity = originList.get(i);
+                while(quantity > 0) {
+                    newList.add(newList.size(), i + 1);
+                    quantity -= 1;
+                }
+            }
+        }
+        return newList;
     }
 
 //    static void setplayerSoldiersInit(Map<String, Map<String, JSONObject>> map) {

@@ -67,8 +67,6 @@ public class SiegeController {
     @CrossOrigin
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) throws Exception{
-
-
 //        response.setHeader("Access-Control-Allow-Origin","*");
         final int precision = SiegeParams.getPrecision();
         final String deployAccountJson = Config.getDeployAccountJson();
@@ -88,7 +86,8 @@ public class SiegeController {
                 String issueResult = hyperchainService.issueCoin(address, value, symbol, deployAccountJson);
                 if (issueResult.equals("issue success")) {
                     JSONObject jsonObject = new JSONObject()
-                            .element("status", "success")
+                            .element("stage", "register")
+                            .element("status", true)
                             .element("account", newAccountJson);
                     return jsonObject.toString();
                 }
@@ -98,14 +97,16 @@ public class SiegeController {
             } catch (Exception e) {
                 System.out.println("Got a Exception：" + e.getMessage());
                 JSONObject jsonObject = new JSONObject()
-                        .element("status", "failed")
+                        .element("stage", "register")
+                        .element("status", false)
                         .element("account", "");
                 return jsonObject.toString();
             }
         }
         else {
             JSONObject jsonObject = new JSONObject()
-                    .element("status", "failed")
+                    .element("stage", "register")
+                    .element("status", false)
                     .element("account", "");
             return jsonObject.toString();
         }
@@ -118,68 +119,80 @@ public class SiegeController {
         // 检查用户信息
         String paramsString = params.toString();
         String address = params.getString("address");
-        try {
-            // 验证玩家是否注册信息，保证gameId = 0
-            String loginResult = hyperchainService.login(paramsString);
-            int gameId = Integer.valueOf(getValue(loginResult));
-            // 数据放入session中
-            session.setAttribute("isLogin", true);
-            session.setAttribute("playerAddress", params.getString("address"));
-            session.setAttribute("gameId", gameId);
-            // 对链上数据进行查询
-            // 获取用户信息
-            String playerInfo = hyperchainService.getPlayersStatus(address);
-            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
-                // 用户存在
-//                int gameId = Utils.returnInt(playerInfo, 0);
-                if (gameId != 0) {
-                    // 玩家已经成功匹配，处于游戏中
-                    // 查询指定gameId的游戏状态
-                    String globalInfo = hyperchainService.getGlobalTb(gameId);
-                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
-                        // 获取游戏阶段
-                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
-                        int gameStageInt = Utils.returnInt(globalInfo, 1);
-                        // 发送给前端
-                        JSONObject jsonObject = new JSONObject()
-                                .element("status", "success")
-                                .element("stage", "inGame")
-                                .element("gameId", gameId)
-                                .element("gameStage", gameStage[gameStageInt]);
-                        return jsonObject.toString();
-                    }
-                    else {
-                        // 找不到指定gameId的游戏阶段
-                        JSONObject jsonObject = new JSONObject()
-                                .element("status", "success")
-                                .element("stage", "error")
-                                .element("message", "game not exist");
-                        return jsonObject.toString();
-                    }
-                }
-                else {
-                    // 玩家未开始游戏，准备进入匹配
-                    JSONObject jsonObject = new JSONObject()
-                            .element("status", "success")
-                            .element("stage", "startGame")
-                            .element("gameId", 0);
-                    return jsonObject.toString();
-                }
-            }
-            else {
-                // 用户不存在，返回错误
-                JSONObject jsonObject = new JSONObject()
-                        .element("status", "success")
-                        .element("stage", "error")
-                        .element("message", "player not exist");
-                return jsonObject.toString();
-            }
-        } catch (Exception e) {
-            System.out.println("Got a Exception：" + e.getMessage());
-            JSONObject jsonObject = new JSONObject()
-                    .element("status", "failed");
-            return jsonObject.toString();
+        // 玩家登陆
+        JSONObject loginJson = new JSONObject();
+        String loginResult = hyperchainService.login(paramsString);
+        if (!loginResult.equals("contract calling error") && !loginResult.equals("unknown error")) {
+            loginJson.element("stage", "login")
+                     .element("status", true);
         }
+        else {
+            loginJson.element("stage", "login")
+                     .element("stage", false);
+        }
+        return loginJson.toString();
+//        try {
+//            // 验证玩家是否注册信息，保证gameId = 0
+////            String loginResult = hyperchainService.login(paramsString);
+////            int gameId = Integer.valueOf(getValue(loginResult));
+//            // 数据放入session中
+////            session.setAttribute("isLogin", true);
+////            session.setAttribute("playerAddress", params.getString("address"));
+////            session.setAttribute("gameId", gameId);
+//            // 对链上数据进行查询
+//            // 获取用户信息
+//            String playerInfo = hyperchainService.getPlayersStatus(address);
+//            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
+//                // 用户存在
+////                int gameId = Utils.returnInt(playerInfo, 0);
+//                if (gameId != 0) {
+//                    // 玩家已经成功匹配，处于游戏中
+//                    // 查询指定gameId的游戏状态
+//                    String globalInfo = hyperchainService.getGlobalTb(gameId);
+//                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
+//                        // 获取游戏阶段
+//                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+//                        int gameStageInt = Utils.returnInt(globalInfo, 1);
+//                        // 发送给前端
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("status", "success")
+//                                .element("stage", "inGame")
+//                                .element("gameId", gameId)
+//                                .element("gameStage", gameStage[gameStageInt]);
+//                        return jsonObject.toString();
+//                    }
+//                    else {
+//                        // 找不到指定gameId的游戏阶段
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("status", "success")
+//                                .element("stage", "error")
+//                                .element("message", "game not exist");
+//                        return jsonObject.toString();
+//                    }
+//                }
+//                else {
+//                    // 玩家未开始游戏，准备进入匹配
+//                    JSONObject jsonObject = new JSONObject()
+//                            .element("status", "success")
+//                            .element("stage", "startGame")
+//                            .element("gameId", 0);
+//                    return jsonObject.toString();
+//                }
+//            }
+//            else {
+//                // 用户不存在，返回错误
+//                JSONObject jsonObject = new JSONObject()
+//                        .element("status", "success")
+//                        .element("stage", "error")
+//                        .element("message", "player not exist");
+//                return jsonObject.toString();
+//            }
+//        } catch (Exception e) {
+//            System.out.println("Got a Exception：" + e.getMessage());
+//            JSONObject jsonObject = new JSONObject()
+//                    .element("status", "failed");
+//            return jsonObject.toString();
+//        }
     }
 
     @ResponseBody
@@ -836,42 +849,6 @@ public class SiegeController {
             return new ArrayList<>();
         }
     }
-
-//    private int match(String playerAddress) throws Exception {
-//        int len = matchQueue.size();
-//        // 暂时使用5人匹配做测试
-//        assert (len < 5);
-//        // 检查是否已经在匹配队列中
-//        if (matchQueue.contains(playerAddress)) {
-//            // 已经在匹配中，返回错误
-//            return -1;
-//        }
-//        else {
-//            // 将其加入匹配队列
-//            if (len == 4) {
-//                matchQueue.add(playerAddress);
-//                String[] array = new String[matchQueue.size()];
-//                for (int i = 0; i < matchQueue.size(); ++i) {
-//                    array[i] = matchQueue.get(i);
-//                }
-//                String result = hyperchainService.startGame(array, DEPLOY_ACCOUNT_JSON);
-//                if (result.equals("startGameSuccess")) {
-//                    matchQueue.clear();
-//                    // 匹配人数满，匹配成功
-//                    return 1;
-//                }
-//                else {
-//                    // 匹配过程出错
-//                    return -2;
-//                }
-//            }
-//            else {
-//                matchQueue.add(playerAddress);
-//                // 加入队列，匹配等待
-//                return 0;
-//            }
-//        }
-//    }
 
     private JSONObject checkPlayerStatus(String address) throws Exception {
         // 对链上数据进行查询

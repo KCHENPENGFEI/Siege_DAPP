@@ -154,7 +154,7 @@ public class SiegeParams {
 
 
     /******************************************************  游戏细节参数设置 ***********************************************/
-    private static long registrationReward = 100;
+    private static long registrationReward = 10000;
 
     public void setRegistrationReward(long rr) {
         registrationReward = rr;

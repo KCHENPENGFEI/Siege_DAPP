@@ -52,6 +52,11 @@ public class CityMap {
         playerNum -= 1;
         System.out.println("CityMap disConnect!");
         System.out.println("playerNum: " + playerNum);
+        for (String address: playerSession.get(gameId).keySet()) {
+            if (playerSession.get(gameId).get(address) == session) {
+                System.out.println("debug@cpf: " + address + "disConnect");
+            }
+        }
     }
 
     @OnMessage
@@ -383,6 +388,17 @@ public class CityMap {
                     int gameStageInt = Utils.returnInt(globalInfo, 1);
                     if (gameStage[gameStageInt].equals("running")) {
                         // gameId和gameStage均正确
+                        // 查询玩家状态
+                        String playerStage = Utils.returnString(playerInfo, 4);
+                        if (playerStage.equals("beAttackedRequest")) {
+                            // 正在被攻击
+                            String opponent = Utils.returnString(playerInfo, 2).toUpperCase();
+                            JSONObject notification = new JSONObject()
+                                    .element("stage", "notification")
+                                    .element("message", "beAttacked")
+                                    .element("opponent", opponent);
+                            sendMsg(session, notification.toString());
+                        }
                         return true;
                     }
                     else {

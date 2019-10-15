@@ -50,6 +50,11 @@ public class PlayersMatch {
     public void disConnect(Session session) {
         System.out.println("playersMatch disConnect");
 //        playersNum -= 1;
+        for (String address: playersSession.keySet()) {
+            if (playersSession.get(address) == session) {
+                System.out.println("debug@cpf: " + address);
+            }
+        }
     }
 
     @OnMessage

@@ -26,7 +26,7 @@ public class InBattle {
     private static int playerNum = 0;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     private static final Map<String, Boolean> gameStarted = new ConcurrentHashMap<>();
-    private static final Map<String, Map<String, Session>> playerSession = BeforeBattle.getPlayerSession();
+    private static final Map<String, Map<String, Session>> playerSession = new ConcurrentHashMap<>();
     private static final Map<String, Map<String, JSONObject>> playerSoldiers = BeforeBattle.getPlayerSoldiersInit();
     private static final Map<String, JSONObject> battleData = BeforeBattle.getBattleData();
     // 使用map来收集各个用户的Session
@@ -39,10 +39,10 @@ public class InBattle {
     private static int playersPerGame = 2;
 //    private static int buySoldiersTimer = 20;
     //    private static int round = 1;
-    private static int roundTimer = 20;
+    private static int roundTimer = 60;
 //    private static boolean isOver = false;
 
-    private static int debug = 0;
+    private static int debug = 1;
 
     @OnOpen
     public void connect(@PathParam("gameId") String gameId, @PathParam("battleId") String battleId, Session session) throws Exception{
@@ -57,6 +57,11 @@ public class InBattle {
         playerNum -= 1;
         System.out.println("InBattle disConnect!");
         System.out.println("playerNum: " + playerNum);
+        for (String address: playerSession.get(battleId).keySet()) {
+            if (playerSession.get(battleId).get(address) == session) {
+                System.out.println("debug@cpf: " + address + "disConnect");
+            }
+        }
     }
 
     @OnMessage
@@ -64,6 +69,11 @@ public class InBattle {
         JSONObject params = JSONObject.fromObject(msg);
         boolean first = params.getBoolean("first");
         String address = params.getString("address");
+        String[] information = battleId.split("&&");
+        String attackerAddress = information[0];
+        String defenderAddress = information[1];
+//                        int cityId = Integer.valueOf(information[2]);
+        String opponent = address.equals(attackerAddress)? defenderAddress: attackerAddress;
 
         if (first) {
             // 检查链上信息和后端信息是否相符
@@ -71,8 +81,9 @@ public class InBattle {
             if (matched) {
                 // 相符
                 // 检查是否注册
-                if (playerSession.get(battleId).containsKey(address)) {
-                    // 已注册
+                boolean registered = register(battleId, address, session);
+                if (registered) {
+                    // 如果第一次注册
                     if (playerSession.get(battleId).size() == playersPerGame && !gameStarted.get(battleId)) {
                         // 开启对战
                         gameStarted.replace(battleId, true);
@@ -83,24 +94,44 @@ public class InBattle {
                                 TimeUnit.SECONDS.sleep(2);
                                 // 当前round
                                 int cRound = battleData.get(battleId).getInt("round");
-                                String attackerAddress = battleData.get(battleId).getString("attackerAddress");
-                                String defenderAddress = battleData.get(battleId).getString("defenderAddress");
+//                                String attackerAddress = battleData.get(battleId).getString("attackerAddress");
+//                                String defenderAddress = battleData.get(battleId).getString("defenderAddress");
                                 // 开启一轮
                                 roundCountDown(roundTimer, gameId, battleId, cRound, attackerAddress, defenderAddress);
                             } catch (Exception e) {
                                 System.out.println("Got an exception: " + e.getMessage());
                             }
                         }).start();
+                        // 初始化对局
+                        GenerateBattleField(battleId, address, opponent, 0);
+                        GenerateBattleField(battleId, opponent, address, 0);
                     }
-                    // 初始化对局
-
                 }
                 else {
-                    // 未注册，非法连接
+                    // 重连
+//                    JSONObject jsonObject = new JSONObject()
+//                            .element("stage", "error")
+//                            .element("message", "battleId not match");
+//                    sendMsg(session, jsonObject.toString());
                     JSONObject jsonObject = new JSONObject()
-                            .element("stage", "error")
-                            .element("message", "battleId not match");
+                            .element("stage", "reConnect")
+                            .element("status", true);
                     sendMsg(session, jsonObject.toString());
+                    // 需要判断玩家当前出牌情况
+                    boolean myPick = playerSoldiers.get(battleId).get(address).getBoolean("pick");
+                    boolean opponentPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
+                    if (!myPick && opponentPick) {
+                        GenerateBattleField(battleId, address, opponent, 1);
+                        GenerateBattleField(battleId, opponent, address, 0);
+                    }
+                    else if (myPick && !opponentPick) {
+                        GenerateBattleField(battleId, address, opponent, 0);
+                        GenerateBattleField(battleId, opponent, address, 1);
+                    }
+                    else {
+                        GenerateBattleField(battleId, address, opponent, 0);
+                        GenerateBattleField(battleId, opponent, address, 0);
+                    }
                 }
             }
             else {
@@ -147,7 +178,32 @@ public class InBattle {
         }
     }
 
-    private void GenerateBattleField(String battleId, String address, String opponent) throws Exception {
+    private boolean register(String battleId, String address, Session session) {
+        if (!playerSession.containsKey(battleId)) {
+            // 构建战场
+            Map<String, Session> map = new ConcurrentHashMap<>();
+            map.put(address, session);
+            playerSession.put(battleId, map);
+            // 第一次注册，返回为真
+            return true;
+        }
+        else {
+            // 第一次注册，返回为真
+            if (!playerSession.get(battleId).containsKey(address)) {
+                Map<String, Session> map = playerSession.get(battleId);
+                map.put(address, session);
+                playerSession.put(battleId, map);
+                return true;
+            }
+            else {
+                // 已经注册过，返回为假
+                playerSession.get(battleId).replace(address, session);
+                return false;
+            }
+        }
+    }
+
+    private void GenerateBattleField(String battleId, String address, String opponent, int status) throws Exception {
         List<Integer> mySoldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
         double myPoint = playerSoldiers.get(battleId).get(address).getDouble("price");
         int myQuantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
@@ -159,7 +215,8 @@ public class InBattle {
         Session session = playerSession.get(battleId).get(address);
 
         JSONObject jsonObject = new JSONObject()
-                .element("stage", "GenerateBattleField")
+                .element("stage", "render");
+        JSONObject board = new JSONObject()
                 .element("opponent", opponent)
                 .element("mySoldiers", mySoldiers)
                 .element("myPoint", myPoint)
@@ -169,7 +226,18 @@ public class InBattle {
                 .element("opponentPoint", opponentPoint)
                 .element("opponentQuantity", opponentQuantity)
                 .element("opponentPick", opponentPick);
-        sendMsg(session, jsonObject.toString());
+        if (status == 0 || status == 2) {
+            // 初始化棋局 || 开牌阶段
+            int opponentSoldier = playerSoldiers.get(battleId).get(opponent).getInt("soldier");
+            board.element("opponentSoldier", opponentSoldier);
+            jsonObject.element("board", board);
+            sendMsg(session, jsonObject.toString());
+        }
+        else {
+            board.element("opponentSoldier", -1);
+            jsonObject.element("board", board);
+            sendMsg(session, jsonObject.toString());
+        }
     }
 
     private void roundCountDown(int seconds, String gameId, String battleId, int curRound, String attackerAddress, String defenderAddress) throws Exception {
@@ -196,7 +264,7 @@ public class InBattle {
                 if (round == curRound && !isOver) {
                     System.out.println("Round " + curRound + " time remains " + --curSec + " s");
                     JSONObject jsonObject = new JSONObject()
-                            .element("stage", "battle")
+                            .element("stage", "battleTimer")
                             .element("positive", true)
                             .element("round", curRound)
                             .element("timer", curSec)
@@ -214,7 +282,7 @@ public class InBattle {
         System.out.println("Round " + curRound + " time is out");
 
         // 假如玩家未出牌，自动出牌
-        if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("pick")) {
+        if (!playerSoldiers.get(battleId).get(attackerAddress).getBoolean("pick") && curRound == battleData.get(battleId).getInt("round")) {
             // 进攻者未出牌
             List<Integer> type = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
             if (type != null && type.size() != 0) {
@@ -224,7 +292,7 @@ public class InBattle {
                 pickSoldier(params, gameId, battleId, attackerAddress);
             }
         }
-        if (!playerSoldiers.get(battleId).get(defenderAddress).getBoolean("pick")) {
+        if (!playerSoldiers.get(battleId).get(defenderAddress).getBoolean("pick") && curRound == battleData.get(battleId).getInt("round")) {
             // 防守者未出牌
             List<Integer> type = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
             if (type != null && type.size() != 0) {
@@ -333,26 +401,18 @@ public class InBattle {
         // 更新数据
         playerSoldiers.get(battleId).get(address).element("soldier", soldier);
         playerSoldiers.get(battleId).get(address).element("pick", true);
+
+        pick(battleId, address);
         // 发送response
         JSONObject response = new JSONObject()
                 .element("stage", "response")
                 .element("operation", "pickSoldier")
                 .element("status", true);
         sendMsg(session, response.toString());
-        // 更新战场数据
-        new Thread(()-> {
-            try {
-                // 向双方发送战场信息
-                GenerateBattleField(battleId, address, opponent);
-                GenerateBattleField(battleId, opponent, address);
-            } catch (Exception e) {
-                System.out.println("Got an exception: " + e.getMessage());
-            }
-        }).start();
-
         // 检查对方是否出牌
         boolean allPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
         if (allPick) {
+
             // 链上执行判断
             int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
             int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
@@ -384,6 +444,16 @@ public class InBattle {
                         break;
                     }
                 }
+                // 更新战场数据(已开牌)
+                new Thread(()-> {
+                    try {
+                        // 向双方发送战场信息
+                        GenerateBattleField(battleId, address, opponent, 2);
+                        GenerateBattleField(battleId, opponent, address, 2);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
             }
             else {
                 // 链上执行失败
@@ -509,6 +579,16 @@ public class InBattle {
         else {
             // 告知玩家等待
             System.out.println("waiting opponent");
+            // 更新战场数据(未开牌状态)
+            new Thread(()-> {
+                try {
+                    // 向双方发送战场信息
+                    GenerateBattleField(battleId, address, opponent, 1);
+                    GenerateBattleField(battleId, opponent, address, 1);
+                } catch (Exception e) {
+                    System.out.println("Got an exception: " + e.getMessage());
+                }
+            }).start();
 //            try {
 //                JSONObject jsonObject = new JSONObject()
 //                        .element("operation", "pickSoldier")
@@ -604,6 +684,7 @@ public class InBattle {
             playerSoldiers.remove(battleId);
             playerSession.remove(battleId);
             battleData.remove(battleId);
+            gameStarted.remove(battleId);
         }
         else {
             // 游戏未结束，开启下一轮
@@ -628,7 +709,35 @@ public class InBattle {
         }
     }
 
-    private void win(String battleId, String address) throws NullPointerException, Exception {
+    private void pick(String battleId, String address) throws Exception {
+        // 士兵数量减一
+        int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+        playerSoldiers.get(battleId).get(address).element("quantity", quantity - 1);
+        // 士兵仓库减少
+        int soldier = playerSoldiers.get(battleId).get(address).getInt("soldier");
+        List<Integer> soldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+        if (debug == 1) {
+            System.out.println("debug@cpf: " + "soldiers: " + soldiers);
+            System.out.println("debug@cpf: " + "soldier: " + soldier);
+        }
+        if (soldiers.contains(soldier)) {
+            final CopyOnWriteArrayList<Integer> cowSoldiers = new CopyOnWriteArrayList<>(soldiers);
+            for (Integer item : cowSoldiers) {
+                if (item == soldier) {
+                    cowSoldiers.remove(item);
+                    break;
+                }
+            }
+            soldiers = cowSoldiers;
+        }
+        else {
+            throw new NullPointerException("士兵不存在");
+//            System.out.println("士兵不存在");
+        }
+        playerSoldiers.get(battleId).get(address).element("type", soldiers);
+    }
+
+    private void win(String battleId, String address) throws Exception {
         String attackerAddress = battleData.get(battleId).getString("attackerAddress");
         String defenderAddress = battleData.get(battleId).getString("defenderAddress");
         String opponent = address.equals(attackerAddress) ? defenderAddress : attackerAddress;
@@ -636,10 +745,10 @@ public class InBattle {
         playerSoldiers.get(battleId).get(address).element("result", "win");
         playerSoldiers.get(battleId).get(opponent).element("result", "lose");
         // 士兵数量减一
-        int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
-        int opponentQuantity = playerSoldiers.get(battleId).get(opponent).getInt("quantity");
-        playerSoldiers.get(battleId).get(address).element("quantity", quantity - 1);
-        playerSoldiers.get(battleId).get(opponent).element("quantity", opponentQuantity - 1);
+//        int quantity = playerSoldiers.get(battleId).get(address).getInt("quantity");
+//        int opponentQuantity = playerSoldiers.get(battleId).get(opponent).getInt("quantity");
+//        playerSoldiers.get(battleId).get(address).element("quantity", quantity - 1);
+//        playerSoldiers.get(battleId).get(opponent).element("quantity", opponentQuantity - 1);
         // 对手士兵战力下降
         int opponentSoldier = playerSoldiers.get(battleId).get(opponent).getInt("soldier");
         double opponentSoldierPoint = SiegeParams.getSoldiersPoint().get(opponentSoldier);
@@ -647,32 +756,32 @@ public class InBattle {
         double point = playerSoldiers.get(battleId).get(address).getDouble("price");
         playerSoldiers.get(battleId).get(opponent).element("price", opponentPoint - opponentSoldierPoint);
         // 士兵仓库减少
-        int soldier = playerSoldiers.get(battleId).get(address).getInt("soldier");
-        List<Integer> soldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
-        List<Integer> opponentSoldiers = castList(playerSoldiers.get(battleId).get(opponent).get("type"), Integer.class);
-        if (soldiers.contains(soldier) && opponentSoldiers.contains(opponentSoldier)) {
-            final CopyOnWriteArrayList<Integer> cowSoldiers = new CopyOnWriteArrayList<>(soldiers);
-            final CopyOnWriteArrayList<Integer> cowOpponentSoldiers = new CopyOnWriteArrayList<>(opponentSoldiers);
-            for (Integer item : cowSoldiers) {
-                if (item == soldier) {
-                    cowSoldiers.remove(item);
-                    break;
-                }
-            }
-            for (Integer item : cowOpponentSoldiers) {
-                if (item == opponentSoldier) {
-                    cowOpponentSoldiers.remove(item);
-                    break;
-                }
-            }
-            soldiers = cowSoldiers;
-            opponentSoldiers = cowOpponentSoldiers;
-        }
-        else {
-            throw new NullPointerException("士兵不存在");
-        }
-        playerSoldiers.get(battleId).get(address).element("type", soldiers);
-        playerSoldiers.get(battleId).get(opponent).element("type", opponentSoldiers);
+//        int soldier = playerSoldiers.get(battleId).get(address).getInt("soldier");
+//        List<Integer> soldiers = castList(playerSoldiers.get(battleId).get(address).get("type"), Integer.class);
+//        List<Integer> opponentSoldiers = castList(playerSoldiers.get(battleId).get(opponent).get("type"), Integer.class);
+//        if (soldiers.contains(soldier) && opponentSoldiers.contains(opponentSoldier)) {
+//            final CopyOnWriteArrayList<Integer> cowSoldiers = new CopyOnWriteArrayList<>(soldiers);
+//            final CopyOnWriteArrayList<Integer> cowOpponentSoldiers = new CopyOnWriteArrayList<>(opponentSoldiers);
+//            for (Integer item : cowSoldiers) {
+//                if (item == soldier) {
+//                    cowSoldiers.remove(item);
+//                    break;
+//                }
+//            }
+//            for (Integer item : cowOpponentSoldiers) {
+//                if (item == opponentSoldier) {
+//                    cowOpponentSoldiers.remove(item);
+//                    break;
+//                }
+//            }
+//            soldiers = cowSoldiers;
+//            opponentSoldiers = cowOpponentSoldiers;
+//        }
+//        else {
+//            throw new NullPointerException("士兵不存在");
+//        }
+//        playerSoldiers.get(battleId).get(address).element("type", soldiers);
+//        playerSoldiers.get(battleId).get(opponent).element("type", opponentSoldiers);
 
         Session winSession = playerSession.get(battleId).get(address);
         Session loseSession = playerSession.get(battleId).get(opponent);
@@ -718,10 +827,10 @@ public class InBattle {
         playerSoldiers.get(battleId).get(defenderAddress).element("result", "tie");
 
         // 士兵数量减一
-        int attackerQuantity = playerSoldiers.get(battleId).get(attackerAddress).getInt("quantity");
-        int defenderQuantity = playerSoldiers.get(battleId).get(defenderAddress).getInt("quantity");
-        playerSoldiers.get(battleId).get(attackerAddress).element("quantity", attackerQuantity - 1);
-        playerSoldiers.get(battleId).get(defenderAddress).element("quantity", defenderQuantity - 1);
+//        int attackerQuantity = playerSoldiers.get(battleId).get(attackerAddress).getInt("quantity");
+//        int defenderQuantity = playerSoldiers.get(battleId).get(defenderAddress).getInt("quantity");
+//        playerSoldiers.get(battleId).get(attackerAddress).element("quantity", attackerQuantity - 1);
+//        playerSoldiers.get(battleId).get(defenderAddress).element("quantity", defenderQuantity - 1);
         // 双方战力
         double attackerPoint = playerSoldiers.get(battleId).get(attackerAddress).getDouble("price");
         double defenderPoint = playerSoldiers.get(battleId).get(defenderAddress).getDouble("price");
@@ -735,30 +844,30 @@ public class InBattle {
         playerSoldiers.get(battleId).get(attackerAddress).element("price", attackerPoint);
         playerSoldiers.get(battleId).get(defenderAddress).element("price", defenderPoint);
 
-        List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
-        List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
-
-        if (attackerSoldiers.contains(attackerSoldier) && defenderSoldiers.contains(defenderSoldier)) {
-            final CopyOnWriteArrayList<Integer> cowAttackerSoldiers = new CopyOnWriteArrayList<>(attackerSoldiers);
-            final CopyOnWriteArrayList<Integer> cowDefenderSoldiers = new CopyOnWriteArrayList<>(defenderSoldiers);
-            for (Integer item : cowAttackerSoldiers) {
-                if (item == attackerSoldier) {
-                    cowAttackerSoldiers.remove(item);
-                    break;
-                }
-            }
-            for (Integer item : cowDefenderSoldiers) {
-                if (item == defenderSoldier) {
-                    cowDefenderSoldiers.remove(item);
-                    break;
-                }
-            }
-            attackerSoldiers = cowAttackerSoldiers;
-            defenderSoldiers = cowDefenderSoldiers;
-        }
-        else {
-            throw new NullPointerException("士兵不存在");
-        }
+//        List<Integer> attackerSoldiers = castList(playerSoldiers.get(battleId).get(attackerAddress).get("type"), Integer.class);
+//        List<Integer> defenderSoldiers = castList(playerSoldiers.get(battleId).get(defenderAddress).get("type"), Integer.class);
+//
+//        if (attackerSoldiers.contains(attackerSoldier) && defenderSoldiers.contains(defenderSoldier)) {
+//            final CopyOnWriteArrayList<Integer> cowAttackerSoldiers = new CopyOnWriteArrayList<>(attackerSoldiers);
+//            final CopyOnWriteArrayList<Integer> cowDefenderSoldiers = new CopyOnWriteArrayList<>(defenderSoldiers);
+//            for (Integer item : cowAttackerSoldiers) {
+//                if (item == attackerSoldier) {
+//                    cowAttackerSoldiers.remove(item);
+//                    break;
+//                }
+//            }
+//            for (Integer item : cowDefenderSoldiers) {
+//                if (item == defenderSoldier) {
+//                    cowDefenderSoldiers.remove(item);
+//                    break;
+//                }
+//            }
+//            attackerSoldiers = cowAttackerSoldiers;
+//            defenderSoldiers = cowDefenderSoldiers;
+//        }
+//        else {
+//            throw new NullPointerException("士兵不存在");
+//        }
 //        if (attackerSoldiers.contains(attackerSoldier) && defenderSoldiers.contains(defenderSoldier)) {
 //            attackerSoldiers.remove(attackerSoldier);
 //            defenderSoldiers.remove(defenderSoldier);
@@ -766,8 +875,8 @@ public class InBattle {
 //        else {
 //            throw new NullPointerException("士兵不存在");
 //        }
-        playerSoldiers.get(battleId).get(attackerAddress).element("type", attackerSoldiers);
-        playerSoldiers.get(battleId).get(defenderAddress).element("type", defenderSoldiers);
+//        playerSoldiers.get(battleId).get(attackerAddress).element("type", attackerSoldiers);
+//        playerSoldiers.get(battleId).get(defenderAddress).element("type", defenderSoldiers);
 
         // 本轮结束
 //        playerSoldiers.get(battleId).get(attackerAddress).element("round", true);
