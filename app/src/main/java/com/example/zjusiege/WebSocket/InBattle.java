@@ -623,6 +623,7 @@ public class InBattle {
                 switch (Utils.getValue(battleResult)) {
                     case "attacker wins the battle": {
                         // 转账给winner
+                        System.out.println("attacker wins the battle");
                         new Thread(() -> {
                             // 查询链上数据
                             try {
@@ -635,6 +636,7 @@ public class InBattle {
                         break;
                     }
                     case "defender wins the battle": {
+                        System.out.println("defender wins the battle");
                         new Thread(() -> {
                             // 查询链上数据
                             try {
@@ -647,6 +649,7 @@ public class InBattle {
                         break;
                     }
                     case "tie": {
+                        System.out.println("tie");
                         new Thread(() -> {
                             // 查询链上数据
                             try {

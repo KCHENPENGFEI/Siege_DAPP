@@ -1,6 +1,5 @@
 package com.example.zjusiege.Controller;
 
-import cn.hyperchain.sdk.rpc.account.Account;
 import com.example.zjusiege.AsyncTaskService;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.HyperchainService;
@@ -24,22 +23,6 @@ public class SiegeController {
     private HyperchainService hyperchainService = new HyperchainService();
 
     private final String DEPLOY_ACCOUNT_JSON = "{\"address\":\"11BD06F184F3767FC02C7F27E812F51BC6F28B39\",\"publicKey\":\"04D46EDF9AF28D2E911816973805B686539517177EE0598A34A21FA101F511B7AEE9E987509EE033CB1D6C222F44B86C37EC8869F93A551A1CF262D267A0668D56\",\"privateKey\":\"00C744D486012CBE1F32F618967DBCE69B706F9D74FC456A1430EFB94CA43E68AB\",\"privateKeyEncrypted\":false}";
-    private Account deployAccount = new Account(DEPLOY_ACCOUNT_JSON);
-
-    // 测试用
-    private final String address1 = "65F9B86F4CC7AD56511D7151374A21F0AE016807";
-    private final String address2 = "23A2CF0868CBA222A3807C30131822C1005DE126";
-    private final String address3 = "56FA774E503BA4530ADAB2BE41A12483DF583B57";
-    private final String address4 = "E524B1DC11951BAEF0A58603AB2D2BB3072282A8";
-    private final String address5 = "EB24F9CD77222EAB3E5E5F9B785A208530599FE3";
-
-    private List<String> matchQueue = new ArrayList<>();
-    private List<String> matchQueueBak = new ArrayList<>();
-
-
-
-    //uri 定义
-
 
 //    private HttpServletRequest request;
 //    private HttpSession session;
@@ -315,14 +298,6 @@ public class SiegeController {
     }
 
     @ResponseBody
-    @RequestMapping(value = "/assetTest", method = RequestMethod.POST)
-    public String assetTest(@RequestBody JSONObject params) throws Exception {
-        String sig = params.getString("signature");
-        String result = hyperchainService.assetTest(sig);
-        return result;
-    }
-
-    @ResponseBody
     @RequestMapping(value = "/clearCity", method = RequestMethod.POST)
     public String cityClear(@RequestBody JSONObject params) throws Exception {
         int gameId = params.getInt("gameId");
@@ -335,30 +310,6 @@ public class SiegeController {
         String address = params.getString("address");
         int pointer = params.getInt("pointer");
         return hyperchainService.getGameData(address, pointer);
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/setTestAddr", method = RequestMethod.POST)
-    public String setTestAddr(@RequestBody JSONObject params) throws Exception {
-        String address = params.getString("address");
-        String result = hyperchainService.setTestAddr(address);
-        return result;
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/getTestAddr", method = RequestMethod.POST)
-    public String getTestAddr(@RequestBody JSONObject params) throws Exception {
-//        String address = params.getString("address");
-        String result = hyperchainService.getTestAddr();
-        return result;
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/callTest", method = RequestMethod.POST)
-    public String callTest(@RequestBody JSONObject params) throws Exception {
-//        String address = params.getString("address");
-        String result = hyperchainService.callTest();
-        return result;
     }
 
     @ResponseBody
@@ -494,17 +445,6 @@ public class SiegeController {
 //            return "";
 //        }
 //    }
-
-    @ResponseBody
-    @RequestMapping(value = "/getPlayersTable", method = RequestMethod.POST)
-    public String getPlayersTable(@RequestBody JSONObject params) throws Exception {
-
-        String playerAddress = params.getString("playerAddress");
-        String signature = params.getString("signature");
-
-        String result = hyperchainService.getPlayersTable1(playerAddress, signature);
-        return result;
-    }
 
     @ResponseBody
     @RequestMapping(value = "/getBiddingTb", method = RequestMethod.POST)
@@ -706,58 +646,6 @@ public class SiegeController {
 
         String result = hyperchainService.supplyOf(symbol, ext);
         return getValue(result);
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/propertyOfGameItem", method = RequestMethod.POST)
-    public String propertyOfGameItem(@RequestBody JSONObject params) throws Exception {
-
-        String owner = params.getString("owner");
-        String signature = params.getString("signature");
-
-        String result = hyperchainService.propertyOf(owner, signature);
-        return result;
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/getUriGameItem", method = RequestMethod.POST)
-    public String getUriGameItem(@RequestBody JSONObject params) throws Exception {
-
-        long id = params.getLong("id");
-        String signature = params.getString("signature");
-
-        String result = hyperchainService.getUri(id, signature);
-        return result;
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/rtest", method = RequestMethod.POST)
-    public String test(@RequestBody JSONObject params) throws Exception {
-
-        // 耗时1.1~1.2s
-        String owner = params.getString("owner");
-        String signature = params.getString("signature");
-
-        String result = hyperchainService.propertyOf(owner, signature);
-        JSONArray jsonArray = JSONArray.fromObject(result);
-        JSONObject a = jsonArray.getJSONObject(0);
-        JSONArray b = a.getJSONArray("value");
-        List<Long> s = new ArrayList<>();
-        List<String> l = new ArrayList<>();
-        System.out.println(b);
-        for (int i = 0; i < b.size(); i++) {
-            JSONObject tmp = b.getJSONObject(i);
-            long m = Long.valueOf(tmp.getString("value"));
-            if (!s.contains(m)) {
-                s.add(m);
-                l.add("11BD06F184F3767FC02C7F27E812F51BC6F28B39");
-            }
-        }
-        System.out.println(s);
-        System.out.println(l);
-        String r = hyperchainService.balanceOfBatch(l, s, signature);
-        System.out.println(r);
-        return r;
     }
 
     @ResponseBody
