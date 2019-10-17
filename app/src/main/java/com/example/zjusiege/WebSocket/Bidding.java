@@ -38,6 +38,8 @@ public class Bidding {
     private static final Map<String, Map<String, Boolean>> ifPayed = new ConcurrentHashMap<>();
     // 保存出价最高的n个数据
     private static Map<String, List<JSONObject>> topNPrice = new ConcurrentHashMap<>();
+
+    private int debug = 1;
 //    private static List<JSONObject> topNPrice = new ArrayList<>();
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
 //    private Session session;
@@ -57,6 +59,7 @@ public class Bidding {
         // 减少在线人数
         playerNum -= 1;
         System.out.println("playerNum: " + playerNum);
+        // 打印掉线玩家地址
         for (String address: playerSession.get(gameId).keySet()) {
             if (playerSession.get(gameId).get(address) == session) {
                 System.out.println("debug@cpf: " + address + "disConnect");
@@ -86,56 +89,58 @@ public class Bidding {
                                 .element("stage", "ready")
                                 .element("timer", biddingTimer);
                         sendAll(playerSession.get(gameId), jsonObject.toString());
-                        // 延迟3秒
-                        TimeUnit.SECONDS.sleep(3);
+                        // 延迟2秒
+                        TimeUnit.SECONDS.sleep(2);
                         // 开启bidding倒计时
                         new Thread(()-> {
-                            int full = biddingTimes;
-                            while (biddingTimes > 0) {
-                                try {
-                                    gameStarted.replace(gameId, true);
-                                    // 30秒倒计时
-                                    countDown(biddingTimer, gameId, full - biddingTimes + 1);
-                                    // 对竞标价格进行排序
-                                    if (topNPrice.get(gameId).size() > 0) {
-                                        sortedTopNPrice(gameId);
-                                        // 开启一个线程将数据发送至链上
-                                        new Thread(() -> {
-                                            int i = 1;
-                                            List<Integer> ranking = new ArrayList<>();
-                                            List<String> playerAddresses = new ArrayList<>();
-                                            List<Long> price = new ArrayList<>();
-                                            List<Long> time = new ArrayList<>();
-                                            for (JSONObject item: topNPrice.get(gameId)) {
-                                                ranking.add(i);
-                                                playerAddresses.add(item.getString("address"));
-                                                price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
-                                                time.add(item.getLong("time"));
-                                                i += 1;
-                                            }
-//                                    System.out.println(ranking);
-//                                    System.out.println(playerAddresses);
-//                                    System.out.println(price);
-//                                    System.out.println(time);
-                                            try {
-                                                hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
-                                            } catch (Exception e) {
-                                                System.out.println("Got an exception: " + e.getMessage());
-                                            }
-                                        }).start();
-                                    }
-                                    TimeUnit.SECONDS.sleep(3);
-                                } catch (Exception e) {
-                                    System.out.println("Got an exception: " + e.getMessage());
-                                }
-                                biddingTimes -= 1;
+//                            int full = biddingTimes;
+//                            while (biddingTimes > 0) {
+//                                try {
+//                                    gameStarted.replace(gameId, true);
+//                                    // 30秒倒计时
+//                                    countDown(biddingTimer, gameId, full - biddingTimes + 1);
+//                                    // 对竞标价格进行排序
+//                                    if (topNPrice.get(gameId).size() > 0) {
+//                                        sortedTopNPrice(gameId);
+//                                        // 开启一个线程将数据发送至链上
+//                                        new Thread(() -> {
+//                                            int i = 1;
+//                                            List<Integer> ranking = new ArrayList<>();
+//                                            List<String> playerAddresses = new ArrayList<>();
+//                                            List<Long> price = new ArrayList<>();
+//                                            List<Long> time = new ArrayList<>();
+//                                            for (JSONObject item: topNPrice.get(gameId)) {
+//                                                ranking.add(i);
+//                                                playerAddresses.add(item.getString("address"));
+//                                                price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
+//                                                time.add(item.getLong("time"));
+//                                                i += 1;
+//                                            }
+//                                            try {
+//                                                hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
+//                                            } catch (Exception e) {
+//                                                System.out.println("Got an exception: " + e.getMessage());
+//                                            }
+//                                        }).start();
+//                                    }
+//                                    TimeUnit.SECONDS.sleep(3);
+//                                } catch (Exception e) {
+//                                    System.out.println("Got an exception: " + e.getMessage());
+//                                }
+//                                biddingTimes -= 1;
+//                            }
+
+                            try {
+                                biddingStart(gameId);
+                            } catch (Exception e) {
+                                printException(e);
                             }
 
                             // 竞标结束，向得标者发送缴纳尾款数据
                             try {
-                                payBiddingFee(payingTimer, gameId);
+                                payBiddingFeeCountDown(payingTimer, gameId);
                             } catch (Exception e) {
-                                System.out.println("Got an exception: " + e.getMessage());
+                                printException(e);
                             }
 
                             // 尾款缴纳结束，分配城池
@@ -143,7 +148,7 @@ public class Bidding {
                                 TimeUnit.SECONDS.sleep(3);
                                 allocateCity(allocateTimer, gameId);
                             } catch (Exception e) {
-                                System.out.println("Got an exception: " + e.getMessage());
+                                printException(e);
                             }
 
                             // 清除数据
@@ -161,8 +166,8 @@ public class Bidding {
                 }
             }
             else {
-                // 不匹配
-                System.out.println("gameId not match");
+                // 不匹配，此时不用发送错误数据，在检查时已经发送
+                System.out.println("playerStatus not correct");
             }
         }
         else {
@@ -170,91 +175,95 @@ public class Bidding {
             // 不是第一次连接
             if (params.getBoolean("bidding")) {
                 System.out.println("params---- " + params);
+                double price = params.getDouble("price");
                 // 竞标阶段
                 // 查询是否注册
-                assert (playerSession.get(gameId).containsKey(address));
-                double price = params.getDouble("price");
-                SimpleDateFormat sdf = new SimpleDateFormat();  // 格式化时间
-                sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");  // a为am/pm的标记
-                Date date = new Date();
-                JSONObject jsonObject = new JSONObject()
-                        .element("price", price)
-                        .element("address", address)
-                        .element("time", date.getTime());
-                // 由前端保证一轮内只能竞标一次
-                // 若已经竞过标则将前一次数据覆盖
-                boolean unique = true;
-                for (JSONObject item: topNPrice.get(gameId)) {
-                    String currentAddress = item.getString("address");
-                    if (currentAddress.equals(address)) {
-                        int i = topNPrice.get(gameId).indexOf(item);
-                        topNPrice.get(gameId).set(i, jsonObject);
-                        unique = false;
-                        break;
-                    }
-                }
-                if (unique) {
-                    topNPrice.get(gameId).add(jsonObject);
-                }
-                JSONObject response = new JSONObject()
-                        .element("stage", "bid")
-                        .element("status", true);
-                sendMsg(session, response.toString());
+//                assert (playerSession.get(gameId).containsKey(address));
+//                SimpleDateFormat sdf = new SimpleDateFormat();  // 格式化时间
+//                sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");  // a为am/pm的标记
+//                Date date = new Date();
+//                JSONObject jsonObject = new JSONObject()
+//                        .element("price", price)
+//                        .element("address", address)
+//                        .element("time", date.getTime());
+//                // 由前端保证一轮内只能竞标一次
+//                // 若已经竞过标则将前一次数据覆盖
+//                boolean unique = true;
+//                for (JSONObject item: topNPrice.get(gameId)) {
+//                    String currentAddress = item.getString("address");
+//                    if (currentAddress.equals(address)) {
+//                        int i = topNPrice.get(gameId).indexOf(item);
+//                        topNPrice.get(gameId).set(i, jsonObject);
+//                        unique = false;
+//                        break;
+//                    }
+//                }
+//                if (unique) {
+//                    topNPrice.get(gameId).add(jsonObject);
+//                }
+//                JSONObject response = new JSONObject()
+//                        .element("stage", "bid")
+//                        .element("status", true);
+//                sendMsg(session, response.toString());
+                bidding(gameId, address, price, session);
             }
             else {
                 // 缴纳尾款阶段
                 double price = params.getDouble("price");
                 String signature = params.getString("signature");
-                System.out.println(address);
-                // 验证缴纳款是否正确
-                boolean exist = false;
-                boolean match = false;
-                for (JSONObject item: topNPrice.get(gameId)) {
-                    if (address.equals(item.getString("address"))) {
-                        exist = true;
-                        if (item.getDouble("price") == price) {
-                            match = true;
-                        }
-                        break;
-                    }
-                }
-                if (!exist) {
-                    System.out.println("Players not exist");
-                }
-                else {
-                    if (match) {
-                        // 价格匹配，说明上交尾款
-                        try {
-//                            HyperchainService hyperchainService = new HyperchainService();
-                            long value = new Double(price * SiegeParams.getPrecision()).longValue();
-                            String to = Config.getDeployAccount().getAddress();
-                            String symbol = "SIG";
-                            String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
-//                            String result = "transfer success";
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("stage", "transfer")
-                                    .element("status", result.equals("transfer success"));
-                            sendMsg(session, jsonObject.toString());
-                            ifPayed.get(gameId).replace(address, true);
-                            // 删除该用户数据
-//                            playerSession.get(gameId).remove(address);
-                        } catch (Exception e) {
-                            System.out.println("Got an exception: " + e.getMessage());
-                        }
-                    }
-                    else {
-                        // 价格不匹配，缴纳失败
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "transfer")
-                                .element("status", false);
-                        sendMsg(session, jsonObject.toString());
-                    }
-                }
-                if (playerSession.get(gameId).size() == 0) {
-                    // 如果所有人都清除了
-                    playerSession.remove(gameId);
-                    topNPrice.remove(gameId);
-                }
+//                if (debug == 1) {
+//                    System.out.println("debug@cpf: address " + address);
+//                }
+//                // 验证缴纳款是否正确
+//                boolean exist = false;
+//                boolean match = false;
+//                // 判断是否在竞标表中
+//                for (JSONObject item: topNPrice.get(gameId)) {
+//                    if (address.equals(item.getString("address"))) {
+//                        exist = true;
+//                        if (item.getDouble("price") == price) {
+//                            match = true;
+//                        }
+//                        break;
+//                    }
+//                }
+//                if (!exist) {
+//                    if (debug == 1) {
+//                        System.out.println("Players not exist");
+//                    }
+//                    JSONObject jsonObject = new JSONObject()
+//                            .element("stage", "error")
+//                            .element("message", "not in bidding table");
+//                    sendMsg(session, jsonObject.toString());
+//                }
+//                else {
+//                    if (match) {
+//                        // 价格匹配，说明上交尾款
+//                        long value = new Double(price * SiegeParams.getPrecision()).longValue();
+//                        String to = Config.getDeployAccount().getAddress();
+//                        String symbol = "SIG";
+//                        String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
+////                            String result = "transfer success";
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("stage", "transfer")
+//                                .element("status", result.equals("transfer success"));
+//                        sendMsg(session, jsonObject.toString());
+//                        ifPayed.get(gameId).replace(address, true);
+//                    }
+//                    else {
+//                        // 价格不匹配，缴纳失败
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("stage", "transfer")
+//                                .element("status", false);
+//                        sendMsg(session, jsonObject.toString());
+//                    }
+//                }
+//                if (playerSession.get(gameId).size() == 0) {
+//                    // 如果所有人都清除了
+//                    playerSession.remove(gameId);
+//                    topNPrice.remove(gameId);
+//                }
+                payBiddingFee(gameId, address, price, signature, session);
             }
         }
     }
@@ -282,10 +291,17 @@ public class Bidding {
                 String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
-                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    String[] gameStageList = new String[]{"start", "bidding", "running", "settling", "ending"};
                     int gameStageInt = Utils.returnInt(globalInfo, 1);
-                    if (gameStage[gameStageInt].equals("bidding")) {
+                    String gameStage = gameStageList[gameStageInt];
+                    if (gameStage.equals("bidding")) {
                         // gameId和gameStage均正确
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "checkPlayerStatus")
+                                .element("status", true)
+                                .element("gameStage", gameStage)
+                                .element("gameId", gameId);
+                        sendMsg(session, jsonObject.toString());
                         return true;
                     }
                     else {
@@ -373,13 +389,53 @@ public class Bidding {
         ifPayed.remove(gameId);
     }
 
-    private void sendMsg(Session session, String msg) throws Exception {
-        session.getBasicRemote().sendText(msg);
+    private void sendMsg(Session session, String msg) {
+        try {
+            session.getBasicRemote().sendText(msg);
+        } catch (Exception e) {
+            printException(e);
+        }
+
     }
 
-    private void sendAll(Map<String, Session> map, String msg) throws Exception {
+    private void sendAll(Map<String, Session> map, String msg) {
         for (String address: map.keySet()) {
             sendMsg(map.get(address), msg);
+        }
+    }
+
+    private void biddingStart(String gameId) throws InterruptedException {
+        gameStarted.replace(gameId, true);
+        int full = biddingTimes;
+        while (biddingTimes > 0) {
+            // 30秒倒计时
+            countDown(biddingTimer, gameId, full - biddingTimes + 1);
+            // 对竞标价格进行排序
+            if (topNPrice.get(gameId).size() > 0) {
+                sortedTopNPrice(gameId);
+                // 开启一个线程将数据发送至链上
+                new Thread(() -> {
+                    int i = 1;
+                    List<Integer> ranking = new ArrayList<>();
+                    List<String> playerAddresses = new ArrayList<>();
+                    List<Long> price = new ArrayList<>();
+                    List<Long> time = new ArrayList<>();
+                    for (JSONObject item: topNPrice.get(gameId)) {
+                        ranking.add(i);
+                        playerAddresses.add(item.getString("address"));
+                        price.add(new Double(item.getDouble("price") * SiegeParams.getPrecision()).longValue());
+                        time.add(item.getLong("time"));
+                        i += 1;
+                    }
+                    try {
+                        hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
+                    } catch (Exception e) {
+                        System.out.println("Class===" + getClassName() + " Line===" + getLineNumber() + " Message===updateRankTb error!");
+                    }
+                }).start();
+            }
+            TimeUnit.SECONDS.sleep(3);
+            biddingTimes -= 1;
         }
     }
 
@@ -396,12 +452,7 @@ public class Bidding {
                         .element("stage", "bidding")
                         .element("timer", curSec)
                         .element("round", round);
-                try {
-                    sendAll(map, jsonObject.toString());
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
-
+                sendAll(map, jsonObject.toString());
             }
         },0,1000);
         TimeUnit.SECONDS.sleep(seconds);
@@ -409,7 +460,95 @@ public class Bidding {
         System.out.println("Time is out");
     }
 
-    private void payBiddingFee(int seconds, String gameId) throws InterruptedException {
+    private void bidding(String gameId, String address, double price, Session session) throws Exception {
+//        System.out.println("params---- " + params);
+        // 竞标阶段
+        // 查询是否注册
+        assert (playerSession.get(gameId).containsKey(address));
+        SimpleDateFormat sdf = new SimpleDateFormat();  // 格式化时间
+        sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");  // a为am/pm的标记
+        Date date = new Date();
+        JSONObject jsonObject = new JSONObject()
+                .element("price", price)
+                .element("address", address)
+                .element("time", date.getTime());
+        // 由前端保证一轮内只能竞标一次
+        // 若已经竞过标则将前一次数据覆盖
+        boolean unique = true;
+        for (JSONObject item: topNPrice.get(gameId)) {
+            String currentAddress = item.getString("address");
+            if (currentAddress.equals(address)) {
+                int i = topNPrice.get(gameId).indexOf(item);
+                topNPrice.get(gameId).set(i, jsonObject);
+                unique = false;
+                break;
+            }
+        }
+        if (unique) {
+            topNPrice.get(gameId).add(jsonObject);
+        }
+        JSONObject response = new JSONObject()
+                .element("stage", "bid")
+                .element("status", true);
+        sendMsg(session, response.toString());
+    }
+
+    private void payBiddingFee(String gameId, String address, double price, String signature, Session session) throws Exception {
+        if (debug == 1) {
+            System.out.println("debug@cpf: address " + address);
+        }
+        // 验证缴纳款是否正确
+        boolean exist = false;
+        boolean match = false;
+        // 判断是否在竞标表中
+        for (JSONObject item: topNPrice.get(gameId)) {
+            if (address.equals(item.getString("address"))) {
+                exist = true;
+                if (item.getDouble("price") == price) {
+                    match = true;
+                }
+                break;
+            }
+        }
+        if (!exist) {
+            if (debug == 1) {
+                System.out.println("Players not exist");
+            }
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "transfer")
+                    .element("status", false);
+            sendMsg(session, jsonObject.toString());
+        }
+        else {
+            if (match) {
+                // 价格匹配，说明上交尾款
+                long value = new Double(price * SiegeParams.getPrecision()).longValue();
+                String to = Config.getDeployAccount().getAddress();
+                String symbol = "SIG";
+                String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
+//                            String result = "transfer success";
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "transfer")
+                        .element("status", result.equals("transfer success"));
+                sendMsg(session, jsonObject.toString());
+                ifPayed.get(gameId).replace(address, true);
+            }
+            else {
+                // 价格不匹配，缴纳失败
+                JSONObject jsonObject = new JSONObject()
+                        .element("stage", "transfer")
+                        .element("status", false);
+                sendMsg(session, jsonObject.toString());
+            }
+        }
+        if (playerSession.get(gameId).size() == 0) {
+            // 如果所有人都清除了
+            playerSession.remove(gameId);
+            topNPrice.remove(gameId);
+        }
+    }
+
+    private void payBiddingFeeCountDown(int seconds, String gameId) throws InterruptedException {
         System.out.println("payBiddingFee---- count down from " + seconds + " s ");
 
         Timer timer = new Timer();
@@ -538,7 +677,7 @@ public class Bidding {
                     sendAll(map, jsonObject.toString());
                 }
             } catch (Exception e) {
-                System.out.println("Got an exception: " + e.getMessage());
+                printException(e);
             }
         }).start();
         TimeUnit.SECONDS.sleep(seconds);
@@ -578,5 +717,21 @@ public class Bidding {
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
         }
+    }
+
+    private static int getLineNumber() {
+        StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
+        StackTraceElement e = stacktrace[2];
+        return e.getLineNumber();
+    }
+
+    private static String getClassName() {
+        StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
+        StackTraceElement e = stacktrace[2];
+        return e.getClassName();
+    }
+
+    private void printException(Exception e) {
+        System.out.println("Class===" + getClassName() + " Line===" + getLineNumber() + " Message===" + e.getMessage());
     }
 }

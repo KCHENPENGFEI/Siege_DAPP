@@ -8,12 +8,12 @@ public class SiegeParams {
     /******************************************************  游戏参数设置 ***********************************************/
     private static int precision = 10000;
     private static int cityNum = 5;
-    private static int playerNum = 10;
+    private static int playerNum = 5;
     private static int enterFee = 50;
     private static int cityPrice = 6;
     private static int soldierNum = 5;
     private static int interval = 10;
-    private static int gameDuration = 3600;
+    private static int gameDuration = 1800;
 
     private static List<Integer> soldiersPoint = Arrays.asList(0, 10, 15, 20, 25, 30);
     private static List<String> soldiersName = Arrays.asList("none", "infantry", "spearman", "shieldman", "archer", "cavalry");

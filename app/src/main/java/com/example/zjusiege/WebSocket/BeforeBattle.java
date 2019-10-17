@@ -247,6 +247,12 @@ public class BeforeBattle {
 //                            return false;
 //                        }
                         if ((address.equals(attackerAddress) && opponent.equals(defenderAddress)) || (address.equals(defenderAddress) && opponent.equals(attackerAddress))) {
+                            JSONObject jsonObject = new JSONObject()
+                                    .element("stage", "checkPlayerStatus")
+                                    .element("status", true)
+                                    .element("gameStage", gameStage)
+                                    .element("gameId", gameId);
+                            sendMsg(session, jsonObject.toString());
                             return true;
                         }
                         else {

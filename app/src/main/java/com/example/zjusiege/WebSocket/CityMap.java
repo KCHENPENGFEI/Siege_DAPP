@@ -24,7 +24,7 @@ public class CityMap {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int runningTimer = 3600;
+    private static int runningTimer = SiegeParams.getGameDuration();
     private static int interval = 10;
     private static int intervalNum = runningTimer / interval;
     private static int attackTimer = 60;
@@ -81,12 +81,12 @@ public class CityMap {
                         // 需要解决两个线程同步的问题
                         new Thread(()-> {
                             try {
-                                // 简单延时3秒
-                                TimeUnit.SECONDS.sleep(3);
+                                // 简单延时1秒
+                                TimeUnit.SECONDS.sleep(1);
                                 // 游戏开始倒计时
                                 countDown(runningTimer, gameId);
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                printException(e);
                             }
                         }).start();
 
@@ -96,7 +96,7 @@ public class CityMap {
                                 TimeUnit.SECONDS.sleep(2);
                                 updateCityMap(runningTimer, gameId);
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                printException(e);
                             }
                         }).start();
                     }
@@ -112,16 +112,16 @@ public class CityMap {
                 try {
                     initMap(gameId, session);
                 } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
+                    printException(e);
+                    JSONObject jsonObject = new JSONObject()
+                            .element("stage", "error")
+                            .element("message", "initMap error");
+                    sendMsg(session, jsonObject.toString());
                 }
             }
             else {
-                // 不相符
+                // 不相符，不用发送消息
                 System.out.println("gameId not match");
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "error")
-                        .element("message", "gameId not match");
-                sendMsg(session, jsonObject.toString());
             }
         }
         else {
@@ -384,10 +384,17 @@ public class CityMap {
                 String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
-                    String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
+                    String[] gameStageList = new String[]{"start", "bidding", "running", "settling", "ending"};
                     int gameStageInt = Utils.returnInt(globalInfo, 1);
-                    if (gameStage[gameStageInt].equals("running")) {
+                    String gameStage = gameStageList[gameStageInt];
+                    if (gameStage.equals("running")) {
                         // gameId和gameStage均正确
+                        JSONObject jsonObject = new JSONObject()
+                                .element("stage", "checkPlayerStatus")
+                                .element("status", true)
+                                .element("gameStage", gameStage)
+                                .element("gameId", gameId);
+                        sendMsg(session, jsonObject.toString());
                         // 查询玩家状态
                         String playerStage = Utils.returnString(playerInfo, 4);
                         if (playerStage.equals("beAttackedRequest")) {
@@ -445,6 +452,9 @@ public class CityMap {
             map.put(address, session);
             playerSession.put(gameId, map);
             // 返回第一次注册为真
+//            if (debug == 1) {
+//                System.out.println("debug@cpf: " + playerSession);
+//            }
             return true;
         }
         else {
@@ -453,11 +463,17 @@ public class CityMap {
                 Map<String, Session> map = playerSession.get(gameId);
                 map.put(address, session);
                 playerSession.put(gameId, map);
+//                if (debug == 1) {
+//                    System.out.println("debug@cpf: " + playerSession);
+//                }
                 return true;
             }
             else {
                 // 已经注册过，返回第一次注册为假
                 playerSession.get(gameId).replace(address, session);
+//                if (debug == 1) {
+//                    System.out.println("debug@cpf: " + playerSession);
+//                }
                 return false;
             }
         }
@@ -562,7 +578,16 @@ public class CityMap {
                         .element("status", false);
                 sendMsg(session, response.toString());
                 // 给用户退款
-//                                hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "Refund", Config.getDeployAccountJson());
+                String refundResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "occupy refund", Config.getDeployAccountJson());
+                if (!refundResult.equals("transfer success")) {
+                    // 告知玩家退款失败
+                    JSONObject refund = new JSONObject()
+                            .element("stage", "response")
+                            .element("operation", "occupy")
+                            .element("status", false)
+                            .element("message", "refund failed");
+                    sendMsg(session, refund.toString());
+                }
             }
         }
         else {
@@ -604,7 +629,7 @@ public class CityMap {
                             try {
                                 updateMap(gameId);
                             } catch (Exception e) {
-                                System.out.println("Got an exception: " + e.getMessage());
+                                printException(e);
                             }
                         }).start();
                     }
@@ -680,10 +705,9 @@ public class CityMap {
                 try {
                     attackCountDown(attackTimer, gameId, concat);
                 } catch (InterruptedException e) {
-                    System.out.println("Got an exception: " + e.getMessage());
+                    printException(e);
                 }
             }).start();
-            System.out.println("attack");
 //            JSONObject response = new JSONObject()
 //                    .element("stage", "response")
 //                    .element("operation", "attack")
@@ -744,7 +768,7 @@ public class CityMap {
                                 try {
                                     updateMap(gameId);
                                 } catch (Exception e) {
-                                    System.out.println("Got an exception: " + e.getMessage());
+                                    printException(e);
                                 }
                             }).start();
                             // 更新响应表
@@ -767,11 +791,13 @@ public class CityMap {
                     else {
                         // 操作失败
                         // 告知双方系统错误
-                        JSONObject jsonObject = new JSONObject()
-                                .element("stage", "notification")
-                                .element("situation", "systemError");
-                        sendMsg(session, jsonObject.toString());
-                        sendMsg(targetSession, jsonObject.toString());
+//                        JSONObject jsonObject = new JSONObject()
+//                                .element("stage", "notification")
+//                                .element("situation", "systemError");
+//                        sendMsg(session, jsonObject.toString());
+//                        sendMsg(targetSession, jsonObject.toString());
+                        errorMsg(session, "leave error");
+                        errorMsg(targetSession, "leave error");
                     }
                 }
                 else {
@@ -817,21 +843,25 @@ public class CityMap {
             else {
                 // 操作失败
                 // 告知双方系统错误
-                JSONObject jsonObject = new JSONObject()
-                        .element("stage", "notification")
-                        .element("situation", "systemError");
-                sendMsg(session, jsonObject.toString());
-                sendMsg(targetSession, jsonObject.toString());
+//                JSONObject jsonObject = new JSONObject()
+//                        .element("stage", "notification")
+//                        .element("situation", "systemError");
+//                sendMsg(session, jsonObject.toString());
+//                sendMsg(targetSession, jsonObject.toString());
+                errorMsg(session, "cityId error");
+                errorMsg(targetSession, "cityId error");
             }
         }
         else {
             // 操作失败
             // 告知双方系统错误
-            JSONObject jsonObject = new JSONObject()
-                    .element("stage", "notification")
-                    .element("situation", "systemError");
-            sendMsg(session, jsonObject.toString());
-            sendMsg(targetSession, jsonObject.toString());
+//            JSONObject jsonObject = new JSONObject()
+//                    .element("stage", "notification")
+//                    .element("situation", "systemError");
+//            sendMsg(session, jsonObject.toString());
+//            sendMsg(targetSession, jsonObject.toString());
+            errorMsg(session, "defense error");
+            errorMsg(targetSession, "defense error");
         }
     }
 
@@ -839,11 +869,16 @@ public class CityMap {
 
     }
 
-    private void sendMsg(Session session, String msg) throws Exception {
-        session.getBasicRemote().sendText(msg);
+    private void sendMsg(Session session, String msg) {
+        try {
+            session.getBasicRemote().sendText(msg);
+        } catch (Exception e) {
+            printException(e);
+        }
+
     }
 
-    private void sendAll(Map<String, Session> map, String msg) throws Exception {
+    private void sendAll(Map<String, Session> map, String msg) {
         for (String address: map.keySet()) {
             sendMsg(map.get(address), msg);
         }
@@ -862,11 +897,7 @@ public class CityMap {
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "countDown")
                         .element("timer", curSec);
-                try {
-                    sendAll(map, jsonObject.toString());
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
+                sendAll(map, jsonObject.toString());
             }
         }, 0, 1000);
         TimeUnit.SECONDS.sleep(seconds);
@@ -896,7 +927,14 @@ public class CityMap {
                     sendAll(map, jsonObject.toString());
                     System.out.println("num---: " + num);
                 } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
+                    printException(e);
+                    for (String address: map.keySet()) {
+                        try {
+                            errorMsg(playerSession.get(gameId).get(address), "updateCityMap error");
+                        } catch (Exception ex) {
+                            printException(ex);
+                        }
+                    }
                 }
             }
         }, interval * 1000, interval * 1000);
@@ -933,7 +971,7 @@ public class CityMap {
                         sendMsg(playerSession.get(gameId).get(attacker), attackerJsonObject.toString());
                         sendMsg(playerSession.get(gameId).get(defender), defenderJsonObject.toString());
                     } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
+                        printException(e);
                     }
                 }
             }
@@ -947,7 +985,7 @@ public class CityMap {
             try {
                 defense(gameId, playerSession.get(gameId).get(defender), defender, attacker, 0, "SIG");
             } catch (Exception e) {
-                System.out.println("Got an exception: " + e.getMessage());
+                printException(e);
             }
         }
     }
@@ -1004,5 +1042,21 @@ public class CityMap {
                 .element("situation", "systemError")
                 .element("message", message);
         sendMsg(session, jsonObject.toString());
+    }
+
+    private static int getLineNumber() {
+        StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
+        StackTraceElement e = stacktrace[2];
+        return e.getLineNumber();
+    }
+
+    private static String getClassName() {
+        StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
+        StackTraceElement e = stacktrace[2];
+        return e.getClassName();
+    }
+
+    private void printException(Exception e) {
+        System.out.println("Class===" + getClassName() + " Line===" + getLineNumber() + " Message===" + e.getMessage());
     }
 }
