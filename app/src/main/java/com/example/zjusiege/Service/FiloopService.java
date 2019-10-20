@@ -96,11 +96,11 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("login()").decodeResult(bytes);
-            log("调用register, code: " + code);
+            List<?> objects = SiegeMainAbi.getFunction("login(address)").decodeResult(bytes);
+            log("调用login, code: " + code);
             return objects.toString();
         } catch (Exception e) {
-            log("调用register失败!");
+            log("调用login失败!");
             return "contract calling error";
         }
     }
@@ -161,7 +161,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("updateCityBonus()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("updateCityBonus(uint256,uint256)").decodeResult(bytes);
             log("调用updateCityBonus, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -205,7 +205,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("startGame()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("startGame(uint256[])").decodeResult(bytes);
             log("调用startGame, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -416,7 +416,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("pickAndBattle()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("pickAndBattle(uint256,address,address,uint256,uint256)").decodeResult(bytes);
             log("调用pickAndBattle, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -441,7 +441,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("battleEnd()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("battleEnd(uint256,address,address,uint256)").decodeResult(bytes);
             log("调用battleEnd, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -505,7 +505,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getPlayersStatus()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getPlayersStatus(address)").decodeResult(bytes);
             log("调用getPlayersStatus, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -528,7 +528,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getCitiesTb()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getCitiesTb(uint256,uint256)").decodeResult(bytes);
             log("调用getCitiesTb, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -551,7 +551,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getBiddingTb()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getBiddingTb(uint256,uint256)").decodeResult(bytes);
             log("调用getBiddingTb, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -573,7 +573,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getGlobalTb()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getGlobalTb(uint256)").decodeResult(bytes);
             log("调用getGlobalTb, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -595,7 +595,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getFrozenTb()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getFrozenTb(address)").decodeResult(bytes);
             log("调用getFrozenTb, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -617,7 +617,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getStage()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getStage(uint256)").decodeResult(bytes);
             log("调用getStage, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -640,7 +640,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("getGameData()").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("getGameData(address,uint256)").decodeResult(bytes);
             log("调用getGameData, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -1132,7 +1132,7 @@ public class FiloopService {
         params.addParams(symbol);
         params.addParams(type);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(assetDeployAccount.getAddress()).invoke(assetAddress, "create(address,uint256,string, uint8)", SiegeAssetAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(assetDeployAccount.getAddress()).invoke(assetAddress, "create(address,uint256,string,uint8)", SiegeAssetAbi, params).build();
         // 签名
         transaction.sign(assetDeployAccount);
         // 通过sdkClient调用合约
@@ -1182,7 +1182,7 @@ public class FiloopService {
         params.addParams(symbol);
         params.addParams(data);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(signAccount.getAddress()).invoke(assetAddress, "transfer(address,address, uint256,string, bytes)", SiegeAssetAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(signAccount.getAddress()).invoke(assetAddress, "transfer(address,address,uint256,string,bytes)", SiegeAssetAbi, params).build();
         // 签名
         transaction.sign(signAccount);
         // 通过sdkClient调用合约
@@ -1203,7 +1203,7 @@ public class FiloopService {
         params.addParams(symbol);
         params.addParams(ext);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(assetDeployAccount.getAddress()).invoke(assetAddress, "supplyOf(string, uint8)", SiegeAssetAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(assetDeployAccount.getAddress()).invoke(assetAddress, "supplyOf(string,uint8)", SiegeAssetAbi, params).build();
         // 签名
         transaction.sign(assetDeployAccount);
         // 通过sdkClient调用合约
@@ -1211,7 +1211,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeAsset.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeAssetAbi.getFunction("supplyOf()").decodeResult(bytes);
+            List<?> objects = SiegeAssetAbi.getFunction("supplyOf(string,uint8)").decodeResult(bytes);
             log("调用supplyOf, code: " + code);
             return objects.toString();
         } catch (Exception e) {
@@ -1234,7 +1234,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeAsset.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeAssetAbi.getFunction("balanceOf()").decodeResult(bytes);
+            List<?> objects = SiegeAssetAbi.getFunction("balanceOf(address,string)").decodeResult(bytes);
             log("调用balanceOf, code: " + code);
             return objects.toString();
         } catch (Exception e) {

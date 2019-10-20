@@ -50,17 +50,14 @@ public class SiegeController {
     @ResponseBody
 //    @CrossOrigin
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public String register(@RequestBody String params, HttpServletRequest request, HttpServletResponse response, HttpSession session) {
-        JSONObject pa = JSONObject.fromObject(params);
-        System.out.println(params);
-        System.out.println(pa);
+    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) {
 //        response.setHeader("Access-Control-Allow-Origin","*");
         final int precision = SiegeParams.getPrecision();
         final String deployAccountJson = Config.getDeployAccountJson();
 
         final String symbol = "SIG";   // 以后保存到参数类中
         final long value = SiegeParams.getRegistrationReward() * precision;
-        boolean isRegister = pa.getBoolean("register");
+        boolean isRegister = params.getBoolean("register");
         if (isRegister){
             try {
                 // 考虑加入request验证，防止玩家恶意注册多个账号
@@ -108,7 +105,7 @@ public class SiegeController {
     @ResponseBody
     @CrossOrigin
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
+    public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) {
         // 检查用户信息
         String paramsString = params.toString();
         String address = params.getString("address");
@@ -130,12 +127,13 @@ public class SiegeController {
 
     @ResponseBody
     @RequestMapping(value = "/jsonTest", method = RequestMethod.POST)
-    public String jsonTest(@RequestBody String params) {
-        System.out.println(params);
+    public String jsonTest() {
+//        System.out.println(params);
 //        String test = "{\"ni\": \"wo\"}";
 //        JSONObject jsonObject = JSONObject.fromObject(test);
         String jsonMese = "{\"语文\":\"88\",\"数学\":\"78\",\"计算机\":\"99\"}";
-        JSONObject  myJson = JSONObject.fromObject(jsonMese);
+        JSONObject myJson = JSONObject.fromObject(jsonMese);
+//        JSONObject m =
 //        System.out.println(jsonObject);
         JSONObject yy = new JSONObject()
                 .element("a", "a");
