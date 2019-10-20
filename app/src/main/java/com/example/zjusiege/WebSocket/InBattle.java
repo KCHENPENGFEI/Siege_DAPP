@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
@@ -20,7 +20,9 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/inBattle/{gameId}/{battleId}")
 @Component
 public class InBattle {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+    private FiloopService filoopService = new FiloopService();
+//    private HyperchainService hyperchainService = new HyperchainService();
     private Account deployAccount = Config.getDeployAccount();
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
@@ -312,14 +314,16 @@ public class InBattle {
         int cityId = Integer.valueOf(information[2]);
         // 对链上数据进行查询
         // 获取用户信息
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameIdOnChain = Utils.returnInt(playerInfo, 0);
             if (gameIdOnChain == Integer.valueOf(gameId)) {
                 // 链上gameId和后端gameId相匹配
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -416,7 +420,8 @@ public class InBattle {
             // 链上执行判断
             int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
             int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
-            String result = hyperchainService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
+            // TODO
+            String result = filoopService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
             System.out.println("result: " + result);
             if (!result.equals("contract calling error") && !result.equals("unknown error")) {
                 switch (Utils.getValue(result)) {
@@ -616,7 +621,8 @@ public class InBattle {
             battleData.get(battleId).element("isOver", true);
             // 链上判定谁获胜
             int cityId = battleData.get(battleId).getInt("cityId");
-            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
+            // TODO
+            String battleResult = filoopService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
 //                            String battleResult = "attacker wins the battle";
             if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
 //                            if (!battleResult.equals("")) {
@@ -915,28 +921,32 @@ public class InBattle {
     }
 
     private void battleSettlement(String winner, String loser, boolean tie) throws Exception{
-        String winnerInfo = hyperchainService.getPlayersStatus(winner);
-        String loserInfo = hyperchainService.getPlayersStatus(loser);
+        // TODO
+        String winnerInfo = filoopService.getPlayersStatus(winner);
+        String loserInfo = filoopService.getPlayersStatus(loser);
         int winnerPointer = getPointer(winnerInfo, 5);
         int loserPointer = getPointer(loserInfo, 5);
         winnerPointer = decreasePointer(winnerPointer);
         loserPointer = decreasePointer(loserPointer);
-        String winnerGameData = hyperchainService.getGameData(winner, winnerPointer);
-        String loserGameData = hyperchainService.getGameData(loser, loserPointer);
+        // TODO
+        String winnerGameData = filoopService.getGameData(winner, winnerPointer);
+        String loserGameData = filoopService.getGameData(loser, loserPointer);
         long winnerPrice = getPrice(winnerGameData, 1);
         long loserPrice = getPrice(loserGameData, 1);
         String symbol = "SIG";
         if (!tie) {
             // 获胜者拿回80%的费用
-            String back = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
+            // TODO
+//            String back = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
             // 获胜者获得失败者70%的费用
-            String award = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
-            assert (back.equals("transfer success") && award.equals("transfer success"));
+//            String award = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
+//            assert (back.equals("transfer success") && award.equals("transfer success"));
         }
         else {
-            String returnBack1 = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
-            String returnBack2=  hyperchainService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
-            assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
+            // TODO
+//            String returnBack1 = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+//            String returnBack2=  filoopService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+//            assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
         }
     }
 

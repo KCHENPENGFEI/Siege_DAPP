@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONObject;
@@ -18,7 +18,9 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/beforeBattle/{gameId}/{battleId}")
 @Component
 public class BeforeBattle {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+//    private HyperchainService hyperchainService = new HyperchainService();
+    private FiloopService filoopService = new FiloopService();
     private Account deployAccount = Config.getDeployAccount();
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
@@ -221,14 +223,16 @@ public class BeforeBattle {
         int cityId = Integer.valueOf(information[2]);
         // 对链上数据进行查询
         // 获取用户信息
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameIdOnChain = Utils.returnInt(playerInfo, 0);
             if (gameIdOnChain == Integer.valueOf(gameId)) {
                 // 链上gameId和后端gameId相匹配
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -367,13 +371,17 @@ public class BeforeBattle {
                 }
                 if (price <= 100) {
                     // 首先进行缴费
-                    String transferResult = hyperchainService.transfer(address, deployAccount.getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
+                    // TODO
+//                    String transferResult = filoopService.transfer(address, deployAccount.getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
+                    String transferResult = "transfer success";
                     if (transferResult.equals("transfer success")) {
                         // 链上执行buySoldiers操作
-                        String buyResult = hyperchainService.buySoldiers(Integer.valueOf(gameId), address, new Double(price * SiegeParams.getPrecision()).longValue(), type, new Double(price * SiegeParams.getPrecision()).longValue(), quantity);
+                        // TODO
+                        String buyResult = filoopService.buySoldiers(Integer.valueOf(gameId), address, new Double(price * SiegeParams.getPrecision()).longValue(), type, new Double(price * SiegeParams.getPrecision()).longValue(), quantity);
                         if (buyResult.equals("success")) {
                             // 链上执行departure
-                            String departureResult = hyperchainService.departure(Integer.valueOf(gameId), address);
+                            // TODO
+                            String departureResult = filoopService.departure(Integer.valueOf(gameId), address);
                             if (departureResult.equals("success")) {
                                 // 成功
                                 updatePlayerSoldiers(battleId, address, type, price, price, quantity, true, false, 1, 0, false, "none");

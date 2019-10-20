@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
@@ -19,7 +19,9 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/cityMap/{gameId}")
 @Component
 public class CityMap {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+//    private HyperchainService hyperchainService = new HyperchainService();
+    private FiloopService filoopService = new FiloopService();
     private Account deployAccount = Config.getDeployAccount();
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
@@ -304,17 +306,18 @@ public class CityMap {
                 case "settle": {
                     List<String> cityOwners = castList(params.get("cityOwners"), String.class);
                     try {
-//                        HyperchainService hyperchainService = new HyperchainService();
-                        String updateStage = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
+                        // TODO
+                        String updateStage = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
                         assert (updateStage.equals("success"));
-
-                        String result = hyperchainService.settlement(Integer.valueOf(gameId), cityOwners);
+                        // TODO
+                        String result = filoopService.settlement(Integer.valueOf(gameId), cityOwners);
                         if (result.equals("success")) {
                             // 成功
                             JSONObject jsonObject = new JSONObject()
                                     .element("operation", "settle")
                                     .element("status", true);
                             sendAll(playerSession.get(gameId), jsonObject.toString());
+                            // TODO 向玩家发放奖金
                         }
                         else {
                             JSONObject jsonObject = new JSONObject()
@@ -326,10 +329,11 @@ public class CityMap {
                         // 执行endGame操作
                         List<String> allPlayers = new ArrayList<>();
                         allPlayers.addAll(playerSession.get(gameId).keySet());
-                        String updateStage1 = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.ENDING.ordinal());
+                        // TODO
+                        String updateStage1 = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.ENDING.ordinal());
                         assert (updateStage1.equals("success"));
-
-                        String result1 = hyperchainService.endGame(Integer.valueOf(gameId), allPlayers);
+                        // TODO
+                        String result1 = filoopService.endGame(Integer.valueOf(gameId), allPlayers);
                         if (result1.equals("success")) {
                             // 成功
                             System.out.println("endGame success");
@@ -374,14 +378,16 @@ public class CityMap {
     private boolean checkPlayerInfo(String gameId, String address, Session session) throws Exception {
         // 对链上数据进行查询
         // 获取用户信息
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameIdOnChain = Utils.returnInt(playerInfo, 0);
             if (gameIdOnChain == Integer.valueOf(gameId)) {
                 // 链上gameId和后端gameId相匹配
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStageList = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -496,9 +502,9 @@ public class CityMap {
         JSONObject jsonObject = new JSONObject()
                 .element("stage", "initMap");
         JSONArray jsonArray = new JSONArray();
-//        HyperchainService hyperchainService = new HyperchainService();
         for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-            String result = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+            // TODO
+            String result = filoopService.getCitiesTb(Integer.valueOf(gameId), i);
             String cityName = Utils.returnString(result, 0);
             double defenseIndex = Utils.returnDouble(result, 1);
             double realtimePrice = Utils.returnDouble(result, 2);
@@ -524,9 +530,9 @@ public class CityMap {
         JSONObject jsonObject = new JSONObject()
                 .element("stage", "updateCityMap");
         JSONArray jsonArray = new JSONArray();
-//        HyperchainService hyperchainService = new HyperchainService();
         for (int i = 1; i <= SiegeParams.getCityNum(); ++i) {
-            String result1 = hyperchainService.getCitiesTable(Integer.valueOf(gameId), i);
+            // TODO
+            String result1 = filoopService.getCitiesTb(Integer.valueOf(gameId), i);
             String cityName = Utils.returnString(result1, 0);
             double defenseIndex = Utils.returnDouble(result1, 1);
             double realtimePrice = Utils.returnDouble(result1, 2);
@@ -549,11 +555,12 @@ public class CityMap {
 
     private void occupy(String gameId, Session session, String address, int cityId, long price, String symbol, String signature) throws Exception {
         // 先进行转账
-//        HyperchainService hyperchainService = new HyperchainService();
-        String transferResult = hyperchainService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
-//                        String transferResult = "transfer success";
+        // TODO
+//        String transferResult = filoopService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
+        String transferResult = "transfer success";
         if (transferResult.equals("transfer success")) {
-            String result = hyperchainService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
+            // TODO
+            String result = filoopService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
 //                            String result = "success";
             if (result.equals("success")) {
                 // 告知玩家占领成功
@@ -578,7 +585,9 @@ public class CityMap {
                         .element("status", false);
                 sendMsg(session, response.toString());
                 // 给用户退款
-                String refundResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "occupy refund", Config.getDeployAccountJson());
+                // TODO
+//                String refundResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "occupy refund", Config.getDeployAccountJson());
+                String refundResult = "transfer success";
                 if (!refundResult.equals("transfer success")) {
                     // 告知玩家退款失败
                     JSONObject refund = new JSONObject()
@@ -602,20 +611,23 @@ public class CityMap {
 
     private void leave(String gameId, Session session, String address, String symbol) throws Exception {
         // 首先进行转账
-//        HyperchainService hyperchainService = new HyperchainService();
         // 查询该城池的bonus
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             int cityId = Utils.returnInt(playerInfo, 3);
             assert (cityId <= 5 && cityId >= 1);
-            String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
+            // TODO
+            String cityInfo = filoopService.getCitiesTb(Integer.valueOf(gameId), cityId);
             if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
                 long bonus = Utils.returnLong(cityInfo, 5);
                 assert (bonus != 0);
-                String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
-//                        String transferResult = "transfer success";
+                // TODO
+//                String transferResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+                String transferResult = "transfer success";
                 if (transferResult.equals("transfer success")) {
-                    String result = hyperchainService.leaveCity(Integer.valueOf(gameId), address);
+                    // TODO
+                    String result = filoopService.leaveCity(Integer.valueOf(gameId), address);
 //                            String result = "success";
                     if (result.equals("success")) {
                         // 离开成功
@@ -671,9 +683,9 @@ public class CityMap {
     }
 
     private void attack(String gameId, Session session, String address, String target) throws Exception {
-//        HyperchainService hyperchainService = new HyperchainService();
         target = target.toUpperCase();
-        String result = hyperchainService.attack(Integer.valueOf(gameId), address, target);
+        // TODO
+        String result = filoopService.attack(Integer.valueOf(gameId), address, target);
         String concat = address + "&&" + target;
         if (debug == 1) {
             System.out.println("debug@cpf: " + target);
@@ -735,21 +747,25 @@ public class CityMap {
     private void defense(String gameId, Session session, String address, String target, int choice, String symbol) throws Exception {
         String concat = target + "&&" + address;
         Session targetSession = playerSession.get(gameId).get(target);
-//        HyperchainService hyperchainService = new HyperchainService();
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
 
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             int cityId = Utils.returnInt(playerInfo, 3);
             assert (cityId <= 5 && cityId >= 1);
-            String cityInfo = hyperchainService.getCitiesTable(Integer.valueOf(gameId), cityId);
+            // TODO
+            String cityInfo = filoopService.getCitiesTb(Integer.valueOf(gameId), cityId);
             if (!cityInfo.equals("contract calling error") && !cityInfo.equals("unknown error")) {
                 if (choice == 0) {
                     // 玩家离城
                     long bonus = Utils.returnLong(cityInfo, 5);
                     assert (bonus != 0);
-                    String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+                    // TODO
+//                    String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+                    String transferResult = "transfer success";
                     if (transferResult.equals("transfer success")) {
-                        String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+                        // TODO
+                        String result = filoopService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
                         if (result.equals("success")) {
                             // 告知进攻者获得城池
                             JSONObject notification = new JSONObject()
@@ -802,7 +818,8 @@ public class CityMap {
                 }
                 else {
                     // 玩家选择防守
-                    String result = hyperchainService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
+                    // TODO
+                    String result = filoopService.defense(Integer.valueOf(gameId), address, target, cityId, choice);
 //                    String result = "success";
                     if (result.equals("success")) {
                         // 玩家选择防守
@@ -914,8 +931,8 @@ public class CityMap {
             public void run() {
                 num -= 1;
                 try {
-//                    HyperchainService hyperchainService = new HyperchainService();
-                    String result = hyperchainService.updateCityBonus(Integer.valueOf(gameId), (long) num);
+                    // TODO
+                    String result = filoopService.updateCityBonus(Integer.valueOf(gameId), (long) num);
                     double produceRate = getProduceRate(result);
                     double bonusPool = getBonusPool(result);
                     JSONArray cityBonus = getCityBonus(result);
