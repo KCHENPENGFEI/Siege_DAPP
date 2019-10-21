@@ -48,7 +48,7 @@ public class SiegeController {
 //    }
 
     @ResponseBody
-//    @CrossOrigin
+    @CrossOrigin
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) {
 //        response.setHeader("Access-Control-Allow-Origin","*");
@@ -246,6 +246,7 @@ public class SiegeController {
         String result7 = filoopService.getCityPrice();
         String result8 = filoopService.getSoldierNum();
         String result9 = filoopService.getInterval();
+        String result10 = filoopService.getGameAssetAddr();
 
         System.out.println("result1" + result1);
         System.out.println("result2" + result2);
@@ -256,6 +257,7 @@ public class SiegeController {
         System.out.println("result7" + result7);
         System.out.println("result8" + result8);
         System.out.println("result9" + result9);
+        System.out.println("result10" + result10);
 //        System.out.println("result10" + result10);
         return "11";
     }
@@ -422,6 +424,13 @@ public class SiegeController {
 //    }
 
     @ResponseBody
+    @RequestMapping(value = "/getRoot", method = RequestMethod.POST)
+    public String getRoot() throws Exception {
+        return filoopService.getRoot();
+    }
+
+
+    @ResponseBody
     @RequestMapping(value = "/getBiddingTb", method = RequestMethod.POST)
     public String getBiddingTb(@RequestBody JSONObject params) throws Exception {
 
@@ -524,7 +533,7 @@ public class SiegeController {
         List<Integer> cityDefenseIndex = SiegeParams.getCityDefenseIndex();
 
         try {
-//            String result1 = hyperchainService.setAssetAddr(assetAddress);
+            String result1 = filoopService.setAssetAddr(assetAddress);
             // TODO
 //            String result2 = hyperchainService.setPrecision(precision);
 //            String result3 = hyperchainService.setCityNum(cityNum);
@@ -548,7 +557,8 @@ public class SiegeController {
             String result10 = filoopService.setCityDefenseIndex(cityDefenseIndex);
 
 //            if (result7.equals("success")) {
-            if (result2.equals("success")
+            if (result1.equals("success")
+                    && result2.equals("success")
                     && result3.equals("success")
                     && result4.equals("success")
                     && result5.equals("success")

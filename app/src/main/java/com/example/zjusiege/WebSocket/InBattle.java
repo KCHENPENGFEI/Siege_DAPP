@@ -41,7 +41,7 @@ public class InBattle {
     private static int playersPerGame = 2;
 //    private static int buySoldiersTimer = 20;
     //    private static int round = 1;
-    private static int roundTimer = 60;
+    private static int roundTimer = 20;
 //    private static boolean isOver = false;
 
     private static int debug = 1;
@@ -402,71 +402,73 @@ public class InBattle {
         // 确定对手
         String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
 //        double point = params.getDouble("point");
-        // 更新数据
-        playerSoldiers.get(battleId).get(address).element("soldier", soldier);
-        playerSoldiers.get(battleId).get(address).element("pick", true);
+        boolean myPick = playerSoldiers.get(battleId).get(address).getBoolean("pick");
+        if (!myPick) {
+            // 更新数据
+            playerSoldiers.get(battleId).get(address).element("soldier", soldier);
+            playerSoldiers.get(battleId).get(address).element("pick", true);
 
-        pick(battleId, address);
-        // 发送response
-        JSONObject response = new JSONObject()
-                .element("stage", "response")
-                .element("operation", "pickSoldier")
-                .element("status", true);
-        sendMsg(session, response.toString());
-        // 检查对方是否出牌
-        boolean allPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
-        if (allPick) {
+            pick(battleId, address);
+            // 发送response
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "pickSoldier")
+                    .element("status", true);
+            sendMsg(session, response.toString());
+            // 检查对方是否出牌
+            boolean allPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
+            if (allPick) {
 
-            // 链上执行判断
-            int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
-            int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
-            // TODO
-            String result = filoopService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
-            System.out.println("result: " + result);
-            if (!result.equals("contract calling error") && !result.equals("unknown error")) {
-                switch (Utils.getValue(result)) {
-                    case "attacker wins this round": {
-                        // 进攻者获胜
-                        win(battleId, attackerAddress);
-                        System.out.println("进攻者获胜");
-                        break;
+                // 链上执行判断
+                int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
+                int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
+                // TODO
+                String result = filoopService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
+                System.out.println("result: " + result);
+                if (!result.equals("contract calling error") && !result.equals("unknown error")) {
+                    switch (Utils.returnString(result, 0)) {
+                        case "attacker wins this round": {
+                            // 进攻者获胜
+                            win(battleId, attackerAddress);
+                            System.out.println("进攻者获胜");
+                            break;
+                        }
+                        case "defender wins this round": {
+                            // 防守者获胜
+                            win(battleId, defenderAddress);
+                            System.out.println("防守者获胜");
+                            break;
+                        }
+                        case "tie": {
+                            // 战平
+                            tie(battleId);
+                            System.out.println("平局");
+                            break;
+                        }
+                        default: {
+                            // error
+                            System.out.println("error");
+                            break;
+                        }
                     }
-                    case "defender wins this round": {
-                        // 防守者获胜
-                        win(battleId, defenderAddress);
-                        System.out.println("防守者获胜");
-                        break;
-                    }
-                    case "tie": {
-                        // 战平
-                        tie(battleId);
-                        System.out.println("平局");
-                        break;
-                    }
-                    default: {
-                        // error
-                        System.out.println("error");
-                        break;
-                    }
+                    // 更新战场数据(已开牌)
+                    new Thread(()-> {
+                        try {
+                            // 向双方发送战场信息
+                            GenerateBattleField(battleId, address, opponent, 2);
+                            GenerateBattleField(battleId, opponent, address, 2);
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
+                    }).start();
                 }
-                // 更新战场数据(已开牌)
+                else {
+                    // 链上执行失败
+                    errorMsg(attackerSession, "judge error");
+                    errorMsg(defenderSession, "judge error");
+                }
+                // 本轮结束，重置标志位，并且检查游戏是否结束
                 new Thread(()-> {
-                    try {
-                        // 向双方发送战场信息
-                        GenerateBattleField(battleId, address, opponent, 2);
-                        GenerateBattleField(battleId, opponent, address, 2);
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
-                }).start();
-            }
-            else {
-                // 链上执行失败
-                errorMsg(attackerSession, "judge error");
-                errorMsg(defenderSession, "judge error");
-            }
-            // 本轮结束，重置标志位，并且检查游戏是否结束
-            new Thread(()-> {
 //                playerSoldiers.get(battleId).get(attackerAddress).element("pick", false);
 //                playerSoldiers.get(battleId).get(defenderAddress).element("pick", false);
 //
@@ -574,26 +576,26 @@ public class InBattle {
 //                        System.out.println("Got an exception: " + e.getMessage());
 //                    }
 //                }
-                try {
-                    roundEnd(gameId, battleId, attackerAddress, defenderAddress, attackerSession, defenderSession);
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
-            }).start();
-        }
-        else {
-            // 告知玩家等待
-            System.out.println("waiting opponent");
-            // 更新战场数据(未开牌状态)
-            new Thread(()-> {
-                try {
-                    // 向双方发送战场信息
-                    GenerateBattleField(battleId, address, opponent, 1);
-                    GenerateBattleField(battleId, opponent, address, 1);
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
-            }).start();
+                    try {
+                        roundEnd(gameId, battleId, attackerAddress, defenderAddress, attackerSession, defenderSession);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
+            }
+            else {
+                // 告知玩家等待
+                System.out.println("waiting opponent");
+                // 更新战场数据(未开牌状态)
+                new Thread(()-> {
+                    try {
+                        // 向双方发送战场信息
+                        GenerateBattleField(battleId, address, opponent, 1);
+                        GenerateBattleField(battleId, opponent, address, 1);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
 //            try {
 //                JSONObject jsonObject = new JSONObject()
 //                        .element("operation", "pickSoldier")
@@ -603,8 +605,15 @@ public class InBattle {
 //            } catch (Exception e) {
 //                System.out.println("Got an exception: " + e.getMessage());
 //            }
+            }
         }
-
+        else {
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "pickSoldier")
+                    .element("status", false);
+            sendMsg(session, jsonObject.toString());
+        }
     }
 
     private void roundEnd(String gameId, String battleId, String attackerAddress, String defenderAddress, Session attackerSession, Session defenderSession) throws Exception {
@@ -626,7 +635,7 @@ public class InBattle {
 //                            String battleResult = "attacker wins the battle";
             if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
 //                            if (!battleResult.equals("")) {
-                switch (Utils.getValue(battleResult)) {
+                switch (Utils.returnString(battleResult, 0)) {
                     case "attacker wins the battle": {
                         // 转账给winner
                         System.out.println("attacker wins the battle");

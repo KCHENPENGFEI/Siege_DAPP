@@ -8,7 +8,7 @@ public class SiegeParams {
     /******************************************************  游戏参数设置 ***********************************************/
     private static int precision = 10000;
     private static int cityNum = 5;
-    private static int playerNum = 5;
+    private static int playerNum = 10;
     private static int enterFee = 50;
     private static int cityPrice = 6;
     private static int soldierNum = 5;

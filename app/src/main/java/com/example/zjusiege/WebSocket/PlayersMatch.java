@@ -24,7 +24,7 @@ public class PlayersMatch {
 //    private final String deployAccountJson = Config.getDeployAccountJson();
     private Account deployAccount = Config.getDeployAccount();
 
-    private static int matched = 2;
+    private static int matched = 4;
     // 进入匹配玩家的Session集合
     private static final Map<String, Session> playersSession = new ConcurrentHashMap<>();
     // 匹配成功玩家集合
@@ -191,7 +191,7 @@ public class PlayersMatch {
                 String result = filoopService.startGame(playersAddresses);
                 // 匹配完成后获取gameId
                 if (!result.equals("contract calling error") && !result.equals("unknown error")) {
-                    int gameId = Integer.valueOf(Utils.getValue(result));
+                    int gameId = Utils.returnInt(result, 0);
                     if (gameId != 0) {
                         // 更新游戏阶段值bidding
                         // TODO

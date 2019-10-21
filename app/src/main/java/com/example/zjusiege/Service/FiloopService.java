@@ -12,6 +12,8 @@ import cn.hyperchain.sdk.service.AccountService;
 import cn.hyperchain.sdk.service.ServiceManager;
 import cn.hyperchain.sdk.transaction.Transaction;
 import com.example.zjusiege.Config.Config;
+import com.example.zjusiege.Utils.Utils;
+import net.sf.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,7 +62,13 @@ public class FiloopService {
         // 生成新账户
         AccountService accountService = ServiceManager.getAccountService(sdkClientSiegeMain.getProviderManager());
         Account newAccount = accountService.genAccount(Algo.SMRAW);
-        String address = newAccount.getAddress();
+        JSONObject newAccountUppercase = new JSONObject()
+                .element("address", newAccount.getAddress().toUpperCase())
+                .element("publicKey", newAccount.getPublicKey().toUpperCase())
+                .element("privateKey", newAccount.getPrivateKey().toUpperCase())
+                .element("version", newAccount.getVersion())
+                .element("algo", newAccount.getAlgo());
+        String address = newAccount.getAddress().toUpperCase();
         // 构造交易参数
         FuncParams params = new FuncParams();
         params.addParams(address);
@@ -73,7 +81,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             log("调用register, code: " + code);
-            return newAccount.toString();
+            return newAccountUppercase.toString();
         } catch (Exception e) {
             log("调用register失败");
             return "contract calling error";
@@ -98,7 +106,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("login(address)").decodeResult(bytes);
             log("调用login, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用login失败!");
             return "contract calling error";
@@ -163,7 +171,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("updateCityBonus(uint256,uint256)").decodeResult(bytes);
             log("调用updateCityBonus, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用updateCityBonus失败!");
             return "contract calling error";
@@ -197,7 +205,7 @@ public class FiloopService {
         FuncParams params = new FuncParams();
         params.addParams(playersAddresses);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(deployAccount.getAddress()).invoke(contractAddress, "startGame(uint256[])", SiegeMainAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(deployAccount.getAddress()).invoke(contractAddress, "startGame(address[])", SiegeMainAbi, params).build();
         // 签名
         transaction.sign(deployAccount);
         // 通过sdkClient调用合约
@@ -205,9 +213,9 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("startGame(uint256[])").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("startGame(address[])").decodeResult(bytes);
             log("调用startGame, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用startGame失败!");
             return "contract calling error";
@@ -418,7 +426,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("pickAndBattle(uint256,address,address,uint256,uint256)").decodeResult(bytes);
             log("调用pickAndBattle, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用pickAndBattle失败!");
             return "contract calling error";
@@ -443,7 +451,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("battleEnd(uint256,address,address,uint256)").decodeResult(bytes);
             log("调用battleEnd, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用battleEnd失败!");
             return "contract calling error";
@@ -507,7 +515,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getPlayersStatus(address)").decodeResult(bytes);
             log("调用getPlayersStatus, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getPlayersStatus失败!");
             return "contract calling error";
@@ -530,7 +538,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getCitiesTb(uint256,uint256)").decodeResult(bytes);
             log("调用getCitiesTb, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getCitiesTb失败!");
             return "contract calling error";
@@ -553,7 +561,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getBiddingTb(uint256,uint256)").decodeResult(bytes);
             log("调用getBiddingTb, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getBiddingTb失败!");
             return "contract calling error";
@@ -575,7 +583,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getGlobalTb(uint256)").decodeResult(bytes);
             log("调用getGlobalTb, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getGlobalTb失败!");
             return "contract calling error";
@@ -597,7 +605,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getFrozenTb(address)").decodeResult(bytes);
             log("调用getFrozenTb, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getFrozenTb失败!");
             return "contract calling error";
@@ -619,7 +627,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getStage(uint256)").decodeResult(bytes);
             log("调用getStage, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getStage失败!");
             return "contract calling error";
@@ -642,7 +650,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getGameData(address,uint256)").decodeResult(bytes);
             log("调用getGameData, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getGameData失败!");
             return "contract calling error";
@@ -704,7 +712,7 @@ public class FiloopService {
             List<?> objects = SiegeMainAbi.getFunction("getCityName()").decodeResult(bytes);
             System.out.println("object: " + objects);
             log("调用getCityName, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getCityName失败!");
             return "contract calling error";
@@ -725,7 +733,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getSo()").decodeResult(bytes);
             log("调用getSo, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getSo失败!");
             return "contract calling error";
@@ -746,7 +754,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getDe()").decodeResult(bytes);
             log("调用getDe, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getDe失败!");
             return "contract calling error";
@@ -767,7 +775,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getPrecision()").decodeResult(bytes);
             log("调用getPrecision, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getPrecision失败!");
             return "contract calling error";
@@ -788,7 +796,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getCityNum()").decodeResult(bytes);
             log("调用getCityNum, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getCityNum失败!");
             return "contract calling error";
@@ -809,7 +817,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getEnterFee()").decodeResult(bytes);
             log("调用getEnterFee, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getEnterFee失败!");
             return "contract calling error";
@@ -830,7 +838,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getCityPrice()").decodeResult(bytes);
             log("调用getCityPrice, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getCityPrice失败!");
             return "contract calling error";
@@ -851,7 +859,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getSoldierNum()").decodeResult(bytes);
             log("调用getSoldierNum, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getSoldierNum失败!");
             return "contract calling error";
@@ -872,7 +880,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getInterval()").decodeResult(bytes);
             log("调用getInterval, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getInterval失败!");
             return "contract calling error";
@@ -893,7 +901,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getGameAssetAddr()").decodeResult(bytes);
             log("调用getGameAssetAddr, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getGameAssetAddr失败!");
             return "contract calling error";
@@ -914,7 +922,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeMainAbi.getFunction("getRoot()").decodeResult(bytes);
             log("调用getRoot, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用getRoot失败!");
             return "contract calling error";
@@ -1213,7 +1221,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeAssetAbi.getFunction("supplyOf(string,uint8)").decodeResult(bytes);
             log("调用supplyOf, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用supplyOf失败!");
             return "contract calling error";
@@ -1236,7 +1244,7 @@ public class FiloopService {
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
             List<?> objects = SiegeAssetAbi.getFunction("balanceOf(address,string)").decodeResult(bytes);
             log("调用balanceOf, code: " + code);
-            return objects.toString();
+            return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
             log("调用balanceOf失败!");
             return "contract calling error";

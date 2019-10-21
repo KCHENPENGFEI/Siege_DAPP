@@ -1008,11 +1008,19 @@ public class CityMap {
     }
 
     private double getProduceRate(String input) {
+//        try {
+//            JSONArray jsonArray = JSONArray.fromObject(input);
+//            JSONObject jsonObject = jsonArray.getJSONObject(0);
+//            String valueStr = jsonObject.getString("value");
+//            double value = Double.valueOf(valueStr);
+//            return value / SiegeParams.getPrecision();
+//        } catch (Exception e) {
+//            System.out.println("Got an exception: " + e.getMessage());
+//            return 0.;
+//        }
         try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(0);
-            String valueStr = jsonObject.getString("value");
-            double value = Double.valueOf(valueStr);
+            JSONObject jsonObject = JSONObject.fromObject(input);
+            double value = (double) jsonObject.getInt("0");
             return value / SiegeParams.getPrecision();
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
@@ -1021,11 +1029,19 @@ public class CityMap {
     }
 
     private double getBonusPool(String input) {
+//        try {
+//            JSONArray jsonArray = JSONArray.fromObject(input);
+//            JSONObject jsonObject = jsonArray.getJSONObject(1);
+//            String valueStr = jsonObject.getString("value");
+//            double value = Double.valueOf(valueStr);
+//            return value / SiegeParams.getPrecision();
+//        } catch (Exception e) {
+//            System.out.println("Got an exception: " + e.getMessage());
+//            return 0.;
+//        }
         try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(1);
-            String valueStr = jsonObject.getString("value");
-            double value = Double.valueOf(valueStr);
+            JSONObject jsonObject = JSONObject.fromObject(input);
+            double value = (double) jsonObject.getInt("1");
             return value / SiegeParams.getPrecision();
         } catch (Exception e) {
             System.out.println("Got an exception: " + e.getMessage());
@@ -1035,15 +1051,29 @@ public class CityMap {
 
     private JSONArray getCityBonus(String input) {
         JSONArray cityBonus = new JSONArray();
+//        try {
+//            JSONArray jsonArray = JSONArray.fromObject(input);
+//            JSONObject jsonObject = jsonArray.getJSONObject(2);
+//            JSONArray mayValue = jsonObject.getJSONArray("mayvalue");
+//            for (int i = 0; i < mayValue.size(); ++i) {
+//                JSONObject item = (JSONObject) mayValue.get(i);
+//                JSONObject bonus = new JSONObject()
+//                        .element("cityId", i + 1)
+//                        .element("producedBonus", ((double) item.getLong("value")) / SiegeParams.getPrecision());
+//                cityBonus.add(bonus);
+//            }
+//            return cityBonus;
+//        } catch (Exception e) {
+//            System.out.println("Got an exception: " + e.getMessage());
+//            return new JSONArray();
+//        }
         try {
-            JSONArray jsonArray = JSONArray.fromObject(input);
-            JSONObject jsonObject = jsonArray.getJSONObject(2);
-            JSONArray mayValue = jsonObject.getJSONArray("mayvalue");
-            for (int i = 0; i < mayValue.size(); ++i) {
-                JSONObject item = (JSONObject) mayValue.get(i);
+            JSONObject jsonObject = JSONObject.fromObject(input);
+            List<Integer> value= castList(jsonObject.get("2"), Integer.class);
+            for (int i = 0; i < value.size(); ++i) {
                 JSONObject bonus = new JSONObject()
                         .element("cityId", i + 1)
-                        .element("producedBonus", ((double) item.getLong("value")) / SiegeParams.getPrecision());
+                        .element("producedBonus", ((double) value.get(i) / SiegeParams.getPrecision()));
                 cityBonus.add(bonus);
             }
             return cityBonus;

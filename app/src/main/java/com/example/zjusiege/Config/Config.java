@@ -46,7 +46,7 @@ public class Config {
     // 游戏合约地址
     private static String contractAddress = "0x465fca46ae4fca06c138e4fbf92d41616a1d9ce2";
     // 资产地址
-    private static String AssetAddress = "0xb39cc933a670c766c03141052e72bc9489cd79e8";
+    private static String AssetAddress = "0x4869b2c8cad6465d499f57f76419cac1ebed6f43";
 
     public static SDKClient getSdkClientSiegeMain() {
         return sdkClientSiegeMain;

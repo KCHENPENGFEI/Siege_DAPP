@@ -26,11 +26,11 @@ public class Bidding {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int playersPerGame = 2;
+    private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
-    private static int biddingTimer = 10;
-    private static int biddingTimes = 5;
-    private static int payingTimer = 20;
+    private static int biddingTimer = 5;
+    private static int biddingTimes = 1;
+    private static int payingTimer = 10;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();

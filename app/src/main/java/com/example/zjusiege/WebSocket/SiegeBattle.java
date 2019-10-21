@@ -781,7 +781,7 @@ public class SiegeBattle {
             String result = filoopService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
             System.out.println("result: " + result);
             if (!result.equals("contract calling error") && !result.equals("unknown error")) {
-                switch (Utils.getValue(result)) {
+                switch (Utils.returnString(result, 0)) {
                     case "attacker wins this round": {
                         // 进攻者获胜
                         win(battleId, attackerAddress);
@@ -829,7 +829,7 @@ public class SiegeBattle {
 //                            String battleResult = "attacker wins the battle";
                         if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
 //                            if (!battleResult.equals("")) {
-                            switch (Utils.getValue(battleResult)) {
+                            switch (Utils.returnString(battleResult, 0)) {
                                 case "attacker wins the battle": {
                                     winner = attackerAddress;
                                     loser = defenderAddress;
