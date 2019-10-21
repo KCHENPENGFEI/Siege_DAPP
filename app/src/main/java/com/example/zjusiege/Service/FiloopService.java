@@ -416,7 +416,7 @@ public class FiloopService {
         params.addParams(aType);
         params.addParams(dType);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(deployAccount.getAddress()).invoke(contractAddress, "pickAndBattle(uint256,address,address,uint256,uint256)", SiegeMainAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(deployAccount.getAddress()).invoke(contractAddress, "pickAndBattle(uint256,address,address,uint8,uint8)", SiegeMainAbi, params).build();
         // 签名
         transaction.sign(deployAccount);
         // 通过sdkClient调用合约
@@ -424,7 +424,7 @@ public class FiloopService {
             ReceiptResponse receiptResponse = sdkClientSiegeMain.invoke(transaction);
             int code = receiptResponse.getCode();
             byte[] bytes = ByteUtil.fromHex(receiptResponse.getRet());
-            List<?> objects = SiegeMainAbi.getFunction("pickAndBattle(uint256,address,address,uint256,uint256)").decodeResult(bytes);
+            List<?> objects = SiegeMainAbi.getFunction("pickAndBattle(uint256,address,address,uint8,uint8)").decodeResult(bytes);
             log("调用pickAndBattle, code: " + code);
             return Utils.decodeResultTransform(objects);
         } catch (Exception e) {
