@@ -26,7 +26,7 @@ public class Bidding {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int playersPerGame = 4;
+    private static int playersPerGame = 2;
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 10;
     private static int biddingTimes = 5;

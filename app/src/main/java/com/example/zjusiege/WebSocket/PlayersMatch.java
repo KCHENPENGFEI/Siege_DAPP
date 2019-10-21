@@ -24,7 +24,7 @@ public class PlayersMatch {
 //    private final String deployAccountJson = Config.getDeployAccountJson();
     private Account deployAccount = Config.getDeployAccount();
 
-    private static int matched = 4;
+    private static int matched = 2;
     // 进入匹配玩家的Session集合
     private static final Map<String, Session> playersSession = new ConcurrentHashMap<>();
     // 匹配成功玩家集合
