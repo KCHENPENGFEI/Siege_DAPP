@@ -66,24 +66,22 @@ public class SiegeController {
                 JSONObject newAccountJson = JSONObject.fromObject(newAccountString);
                 // 获取账号地址
                 String address = newAccountJson.getString("address");
-                JSONObject jsonObject = new JSONObject()
+//                JSONObject jsonObject = new JSONObject()
+//                            .element("stage", "register")
+//                            .element("status", true)
+//                            .element("account", newAccountJson);
+                // 发放注册奖励
+                String issueResult = filoopService.issueCoin(address, value, symbol, deployAccountJson);
+                if (issueResult.equals("issue success")) {
+                    JSONObject jsonObject = new JSONObject()
                             .element("stage", "register")
                             .element("status", true)
                             .element("account", newAccountJson);
                     return jsonObject.toString();
-                // 发放注册奖励
-                // TODO
-//                String issueResult = filoopService.issueCoin(address, value, symbol, deployAccountJson);
-//                if (issueResult.equals("issue success")) {
-//                    JSONObject jsonObject = new JSONObject()
-//                            .element("stage", "register")
-//                            .element("status", true)
-//                            .element("account", newAccountJson);
-//                    return jsonObject.toString();
-//                }
-//                else {
-//                    return "register failed";
-//                }
+                }
+                else {
+                    return "register failed";
+                }
             } catch (Exception e) {
                 System.out.println("Got a Exception：" + e.getMessage());
                 JSONObject jsonObject = new JSONObject()

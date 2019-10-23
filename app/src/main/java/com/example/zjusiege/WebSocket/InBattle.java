@@ -946,16 +946,16 @@ public class InBattle {
         if (!tie) {
             // 获胜者拿回80%的费用
             // TODO
-//            String back = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
+            String back = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
             // 获胜者获得失败者70%的费用
-//            String award = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
-//            assert (back.equals("transfer success") && award.equals("transfer success"));
+            String award = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
+            assert (back.equals("transfer success") && award.equals("transfer success"));
         }
         else {
             // TODO
-//            String returnBack1 = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
-//            String returnBack2=  filoopService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
-//            assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
+            String returnBack1 = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            String returnBack2=  filoopService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
         }
     }
 

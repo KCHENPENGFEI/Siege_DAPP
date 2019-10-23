@@ -26,7 +26,7 @@ public class Bidding {
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
-    private static int playersPerGame = 4;
+    private static int playersPerGame = 2;
     private static int N = playersPerGame / 2;
     private static int biddingTimer = 5;
     private static int biddingTimes = 1;
@@ -530,9 +530,10 @@ public class Bidding {
                 long value = new Double(price * SiegeParams.getPrecision()).longValue();
                 String to = Config.getDeployAccount().getAddress();
                 String symbol = "SIG";
-                // TODO 取消付款
+                // TODO
 //                String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
-                String result = "transfer success";
+                String result = filoopService.transfer(address, to, value, symbol, "pay bidding fee", signature);
+//                String result = "transfer success";
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "transfer")
                         .element("status", result.equals("transfer success"));

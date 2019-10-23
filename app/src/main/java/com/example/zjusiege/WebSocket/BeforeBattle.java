@@ -372,8 +372,8 @@ public class BeforeBattle {
                 if (price <= 100) {
                     // 首先进行缴费
                     // TODO
-//                    String transferResult = filoopService.transfer(address, deployAccount.getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
-                    String transferResult = "transfer success";
+                    String transferResult = filoopService.transfer(address, deployAccount.getAddress(), new Double(price * SiegeParams.getPrecision()).longValue(), symbol, "buy soldiers", signature);
+//                    String transferResult = "transfer success";
                     if (transferResult.equals("transfer success")) {
                         // 链上执行buySoldiers操作
                         // TODO

@@ -39,18 +39,11 @@ public class FiloopService {
 
     {
         try {
-            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/Siege.abi");
-            String SiegeMainAbiStr = FileUtil.readFile(inputStream);
+            InputStream inputStream1 = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/Siege.abi");
+            InputStream inputStream2 = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/NewAsset.abi");
+            String SiegeMainAbiStr = FileUtil.readFile(inputStream1);
+            String SiegeAssetAbiStr = FileUtil.readFile(inputStream2);
             SiegeMainAbi = Abi.fromJson(SiegeMainAbiStr);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    {
-        try {
-            InputStream inputStream1 = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/OasisAsset.abi");
-            String SiegeAssetAbiStr = FileUtil.readFile(inputStream1);
             SiegeAssetAbi = Abi.fromJson(SiegeAssetAbiStr);
         } catch (IOException e) {
             e.printStackTrace();

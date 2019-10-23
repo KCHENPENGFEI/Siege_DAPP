@@ -30,7 +30,7 @@ public class Config {
         // SiegeAsset配置
         sdkClientSiegeAsset.setAppKey("T6QNqmZEUrxXC1az3mZx");
         sdkClientSiegeAsset.setAppSecret("MAKuoWV5mtbv9DX7JV37icCW7d5I7w");
-        sdkClientSiegeAsset.setUuid("aa80c45d-ecbe-11e9-8005-000000000000");
+        sdkClientSiegeAsset.setUuid("761e155b-f57a-11e9-8068-000000000000");
         sdkClientSiegeAsset.init();
     }
 
@@ -46,7 +46,7 @@ public class Config {
     // 游戏合约地址
     private static String contractAddress = "0x465fca46ae4fca06c138e4fbf92d41616a1d9ce2";
     // 资产地址
-    private static String AssetAddress = "0xf63585760b383b2aa789fbb0cfa6edce68abdb13";
+    private static String AssetAddress = "0xb14b5024904c7cca2d674fa1964aefa6fd3f7a64";
 
     public static SDKClient getSdkClientSiegeMain() {
         return sdkClientSiegeMain;

@@ -556,8 +556,8 @@ public class CityMap {
     private void occupy(String gameId, Session session, String address, int cityId, long price, String symbol, String signature) throws Exception {
         // 先进行转账
         // TODO
-//        String transferResult = filoopService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
-        String transferResult = "transfer success";
+        String transferResult = filoopService.transfer(address, Config.getDeployAccount().getAddress(), price, symbol, "player occupies city", signature);
+//        String transferResult = "transfer success";
         if (transferResult.equals("transfer success")) {
             // TODO
             String result = filoopService.occupyCity(Integer.valueOf(gameId), address, cityId, price, signature);
@@ -586,8 +586,8 @@ public class CityMap {
                 sendMsg(session, response.toString());
                 // 给用户退款
                 // TODO
-//                String refundResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "occupy refund", Config.getDeployAccountJson());
-                String refundResult = "transfer success";
+                String refundResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, price, symbol, "occupy refund", Config.getDeployAccountJson());
+//                String refundResult = "transfer success";
                 if (!refundResult.equals("transfer success")) {
                     // 告知玩家退款失败
                     JSONObject refund = new JSONObject()
@@ -623,8 +623,8 @@ public class CityMap {
                 long bonus = Utils.returnLong(cityInfo, 5);
                 assert (bonus != 0);
                 // TODO
-//                String transferResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
-                String transferResult = "transfer success";
+                String transferResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+//                String transferResult = "transfer success";
                 if (transferResult.equals("transfer success")) {
                     // TODO
                     String result = filoopService.leaveCity(Integer.valueOf(gameId), address);
@@ -761,8 +761,8 @@ public class CityMap {
                     long bonus = Utils.returnLong(cityInfo, 5);
                     assert (bonus != 0);
                     // TODO
-//                    String transferResult = hyperchainService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
-                    String transferResult = "transfer success";
+                    String transferResult = filoopService.transfer(Config.getDeployAccount().getAddress(), address, bonus, symbol, "settle bonus", Config.getDeployAccountJson());
+//                    String transferResult = "transfer success";
                     if (transferResult.equals("transfer success")) {
                         // TODO
                         String result = filoopService.defense(Integer.valueOf(gameId), address, target, cityId, choice);

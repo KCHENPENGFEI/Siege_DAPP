@@ -24,7 +24,7 @@ public class PlayersMatch {
 //    private final String deployAccountJson = Config.getDeployAccountJson();
     private Account deployAccount = Config.getDeployAccount();
 
-    private static int matched = 4;
+    private static int matched = 2;
     // 进入匹配玩家的Session集合
     private static final Map<String, Session> playersSession = new ConcurrentHashMap<>();
     // 匹配成功玩家集合
@@ -88,9 +88,9 @@ public class PlayersMatch {
                 String to = deployAccount.getAddress();
                 int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
                 String data = "enter fee";
-                // TODO 取消入场费
-//                String transferResult = filoopService.transfer(address, to, value, sigSymbol, data, signature);
-                String transferResult = "transfer success";
+                // TODO
+                String transferResult = filoopService.transfer(address, to, value, sigSymbol, data, signature);
+//                String transferResult = "transfer success";
                 if (transferResult.equals("transfer success")) {
 //            if(true){
                     // 转账成功，加入匹配
