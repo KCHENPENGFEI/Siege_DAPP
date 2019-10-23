@@ -11,13 +11,13 @@ public class Config {
     private static SDKClient sdkClientSiegeAsset = new SDKClient();
 
     // SiegeMain部署账户
-    private final String DEPLOY_ACCOUNT_JSON = "{\"address\":\"11BD06F184F3767FC02C7F27E812F51BC6F28B39\",\"publicKey\":\"04D46EDF9AF28D2E911816973805B686539517177EE0598A34A21FA101F511B7AEE9E987509EE033CB1D6C222F44B86C37EC8869F93A551A1CF262D267A0668D56\",\"privateKey\":\"00C744D486012CBE1F32F618967DBCE69B706F9D74FC456A1430EFB94CA43E68AB\",\"privateKeyEncrypted\":false}";
+//    private final String DEPLOY_ACCOUNT_JSON = "{\"address\":\"11BD06F184F3767FC02C7F27E812F51BC6F28B39\",\"publicKey\":\"04D46EDF9AF28D2E911816973805B686539517177EE0598A34A21FA101F511B7AEE9E987509EE033CB1D6C222F44B86C37EC8869F93A551A1CF262D267A0668D56\",\"privateKey\":\"00C744D486012CBE1F32F618967DBCE69B706F9D74FC456A1430EFB94CA43E68AB\",\"privateKeyEncrypted\":false}";
     private static String deployAccountJson = "{\"address\":\"0x7e60981445116b9f3938fb8097e217340192de25\",\"algo\":\"0x03\",\"encrypted\":\"05701baf54dce7bc9eb221fe7651b7b3e959aec17fe0812d338f9aa20beb476e\",\"version\":\"2.0\",\"privateKeyEncrypted\":false}";
     private static AccountService accountService = ServiceManager.getAccountService(sdkClientSiegeMain.getProviderManager());
     private static Account deployAccount = accountService.fromAccountJson(deployAccountJson);
 
     // SiegeAsset部署账户
-    private static final String assetDeployAccountJson = "{\"address\":\"0xb39cc933a670c766c03141052e72bc9489cd79e8\",\"algo\":\"0x03\",\"encrypted\":\"cf05b04906017a1fe3c3af43e096eae5124a3347a43c1c3a475dfd4c8ae95c01\",\"version\":\"2.0\",\"privateKeyEncrypted\":false}";
+    private static final String assetDeployAccountJson = "{\"address\":\"0x7e60981445116b9f3938fb8097e217340192de25\",\"algo\":\"0x03\",\"encrypted\":\"05701baf54dce7bc9eb221fe7651b7b3e959aec17fe0812d338f9aa20beb476e\",\"version\":\"2.0\",\"privateKeyEncrypted\":false}";
     private static AccountService accountService1 = ServiceManager.getAccountService(sdkClientSiegeAsset.getProviderManager());
     private static Account assetDeployAccount = accountService1.fromAccountJson(assetDeployAccountJson);
     static {
@@ -28,10 +28,10 @@ public class Config {
         sdkClientSiegeMain.setUuid("aa80c45d-ecbe-11e9-8005-000000000000");
         sdkClientSiegeMain.init();
         // SiegeAsset配置
-//        sdkClientSiegeAsset.setAppKey("T6QNqmZEUrxXC1az3mZx");
-//        sdkClientSiegeAsset.setAppSecret("MAKuoWV5mtbv9DX7JV37icCW7d5I7w");
-//        sdkClientSiegeAsset.setUuid("07c59363-f242-11e9-8016-000000000000");
-//        sdkClientSiegeAsset.init();
+        sdkClientSiegeAsset.setAppKey("T6QNqmZEUrxXC1az3mZx");
+        sdkClientSiegeAsset.setAppSecret("MAKuoWV5mtbv9DX7JV37icCW7d5I7w");
+        sdkClientSiegeAsset.setUuid("aa80c45d-ecbe-11e9-8005-000000000000");
+        sdkClientSiegeAsset.init();
     }
 
     // 部署账户
@@ -46,7 +46,7 @@ public class Config {
     // 游戏合约地址
     private static String contractAddress = "0x465fca46ae4fca06c138e4fbf92d41616a1d9ce2";
     // 资产地址
-    private static String AssetAddress = "0x4869b2c8cad6465d499f57f76419cac1ebed6f43";
+    private static String AssetAddress = "0xf63585760b383b2aa789fbb0cfa6edce68abdb13";
 
     public static SDKClient getSdkClientSiegeMain() {
         return sdkClientSiegeMain;

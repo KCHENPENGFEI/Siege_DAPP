@@ -49,8 +49,8 @@ public class FiloopService {
 
     {
         try {
-            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/Siege.abi");
-            String SiegeAssetAbiStr = FileUtil.readFile(inputStream);
+            InputStream inputStream1 = Thread.currentThread().getContextClassLoader().getResourceAsStream("contract/build/Siege_0.4.15/OasisAsset.abi");
+            String SiegeAssetAbiStr = FileUtil.readFile(inputStream1);
             SiegeAssetAbi = Abi.fromJson(SiegeAssetAbiStr);
         } catch (IOException e) {
             e.printStackTrace();
