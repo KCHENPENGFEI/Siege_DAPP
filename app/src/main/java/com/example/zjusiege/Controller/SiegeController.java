@@ -71,7 +71,7 @@ public class SiegeController {
 //                            .element("status", true)
 //                            .element("account", newAccountJson);
                 // 发放注册奖励
-                String issueResult = filoopService.issueCoin(address, value, symbol, deployAccountJson);
+                String issueResult = filoopService.issueCoin(address, value, symbol, "issue", deployAccountJson);
                 if (issueResult.equals("issue success")) {
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "register")
@@ -603,7 +603,7 @@ public class SiegeController {
         // TODO
 //        String result = hyperchainService.issueCoin(to, value, symbol, signature);
 //        return result;
-        return filoopService.issueCoin(to, value, symbol, signature);
+        return filoopService.issueCoin(to, value, symbol, "issue", signature);
     }
 
     @ResponseBody

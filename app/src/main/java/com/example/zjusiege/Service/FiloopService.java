@@ -1148,7 +1148,7 @@ public class FiloopService {
         }
     }
 
-    public String issueCoin(String to, long value, String symbol, String issuerAccountString) {
+    public String issueCoin(String to, long value, String symbol, String data,  String issuerAccountString) {
         AccountService accountService = ServiceManager.getAccountService(sdkClientSiegeAsset.getProviderManager());
         Account issueAccount = accountService.fromAccountJson(issuerAccountString);
         // 构造交易参数
@@ -1156,8 +1156,9 @@ public class FiloopService {
         params.addParams(to);
         params.addParams(value);
         params.addParams(symbol);
+        params.addParams(data);
         // 构造交易
-        Transaction transaction = new Transaction.EVMBuilder(issueAccount.getAddress()).invoke(assetAddress, "issueCoin(address,uint256,string)", SiegeAssetAbi, params).build();
+        Transaction transaction = new Transaction.EVMBuilder(issueAccount.getAddress()).invoke(assetAddress, "issueCoin(address,uint256,string,bytes)", SiegeAssetAbi, params).build();
         // 签名
         transaction.sign(issueAccount);
         // 通过sdkClient调用合约

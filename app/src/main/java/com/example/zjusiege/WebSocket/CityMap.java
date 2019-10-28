@@ -309,22 +309,24 @@ public class CityMap {
                         // TODO
                         String updateStage = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
                         assert (updateStage.equals("success"));
-                        // TODO
-                        String result = filoopService.settlement(Integer.valueOf(gameId), cityOwners);
-                        if (result.equals("success")) {
-                            // 成功
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("operation", "settle")
-                                    .element("status", true);
-                            sendAll(playerSession.get(gameId), jsonObject.toString());
-                            // TODO 向玩家发放奖金
-                        }
-                        else {
-                            JSONObject jsonObject = new JSONObject()
-                                    .element("operation", "settle")
-                                    .element("status", false);
-                            sendAll(playerSession.get(gameId), jsonObject.toString());
-                        }
+                        // TODO 向玩家发放奖金
+
+//                        String result = filoopService.settlement(Integer.valueOf(gameId), cityOwners);
+//                        if (result.equals("success")) {
+//                            // 成功
+//                            JSONObject jsonObject = new JSONObject()
+//                                    .element("operation", "settle")
+//                                    .element("status", true);
+//                            sendAll(playerSession.get(gameId), jsonObject.toString());
+//                            // TODO 向玩家发放奖金
+//
+//                        }
+//                        else {
+//                            JSONObject jsonObject = new JSONObject()
+//                                    .element("operation", "settle")
+//                                    .element("status", false);
+//                            sendAll(playerSession.get(gameId), jsonObject.toString());
+//                        }
                         TimeUnit.SECONDS.sleep(3);
                         // 执行endGame操作
                         List<String> allPlayers = new ArrayList<>();
@@ -882,8 +884,50 @@ public class CityMap {
         }
     }
 
-    private void settle() {
+    private void settle(String gameId) {
+        try {
+            // TODO
+            String updateStage = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.SETTLING.ordinal());
+            assert (updateStage.equals("success"));
+            // TODO 向玩家发放奖金
 
+//                        String result = filoopService.settlement(Integer.valueOf(gameId), cityOwners);
+//                        if (result.equals("success")) {
+//                            // 成功
+//                            JSONObject jsonObject = new JSONObject()
+//                                    .element("operation", "settle")
+//                                    .element("status", true);
+//                            sendAll(playerSession.get(gameId), jsonObject.toString());
+//                            // TODO 向玩家发放奖金
+//
+//                        }
+//                        else {
+//                            JSONObject jsonObject = new JSONObject()
+//                                    .element("operation", "settle")
+//                                    .element("status", false);
+//                            sendAll(playerSession.get(gameId), jsonObject.toString());
+//                        }
+            TimeUnit.SECONDS.sleep(3);
+            // 执行endGame操作
+            List<String> allPlayers = new ArrayList<>();
+            allPlayers.addAll(playerSession.get(gameId).keySet());
+            // TODO
+            String updateStage1 = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.ENDING.ordinal());
+            assert (updateStage1.equals("success"));
+            // TODO
+            String result1 = filoopService.endGame(Integer.valueOf(gameId), allPlayers);
+            if (result1.equals("success")) {
+                // 成功
+                System.out.println("endGame success");
+            }
+            else {
+                System.out.println("endGame failed");
+            }
+            // 删除本次游戏数据
+            playerSession.remove(gameId);
+        } catch (Exception e) {
+            System.out.println("Got an exception: " + e.getMessage());
+        }
     }
 
     private void sendMsg(Session session, String msg) {
@@ -920,6 +964,8 @@ public class CityMap {
         TimeUnit.SECONDS.sleep(seconds);
         timer.cancel();
         System.out.println("Game time is out");
+
+        settle(gameId);
     }
 
     private void updateCityMap(int seconds, String gameId) throws InterruptedException {

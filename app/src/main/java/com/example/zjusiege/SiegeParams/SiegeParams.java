@@ -13,7 +13,7 @@ public class SiegeParams {
     private static int cityPrice = 6;
     private static int soldierNum = 5;
     private static int interval = 10;
-    private static int gameDuration = 1800;
+    private static int gameDuration = 60;
 
     private static List<Integer> soldiersPoint = Arrays.asList(0, 10, 15, 20, 25, 30);
     private static List<String> soldiersName = Arrays.asList("none", "infantry", "spearman", "shieldman", "archer", "cavalry");
