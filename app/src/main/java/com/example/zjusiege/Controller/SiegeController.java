@@ -1,7 +1,5 @@
 package com.example.zjusiege.Controller;
 
-
-import com.example.zjusiege.AsyncTaskService;
 import com.example.zjusiege.Config.Config;
 import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
@@ -661,16 +659,6 @@ public class SiegeController {
             System.out.println("存在session，browser=" + sessionBrowser.toString());
         }
         return "111";
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/thread", method = RequestMethod.POST)
-    public String thread(@RequestBody JSONObject params) {
-        AsyncTaskService asyncTaskService = new AsyncTaskService();
-        for (int i = 0; i < 20; i++) {
-            asyncTaskService.executeAsyncTask(i);
-        }
-        return "ss";
     }
 
     @ResponseBody
