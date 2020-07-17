@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONObject;
@@ -19,16 +19,18 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/bidding/{gameId}")
 @Component
 public class Bidding {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+//    private HyperchainService hyperchainService = new HyperchainService();
+    private FiloopService filoopService = new FiloopService();
     private Account deployAccount = Config.getDeployAccount();
 
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
     private static int playersPerGame = 4;
     private static int N = playersPerGame / 2;
-    private static int biddingTimer = 10;
+    private static int biddingTimer = 30;
     private static int biddingTimes = 5;
-    private static int payingTimer = 20;
+    private static int payingTimer = 30;
     private static int allocateTimer = 3;
     //concurrent包的线程安全Set，用来存放每个客户端对应的SiegeWebSocket对象。
     //private static CopyOnWriteArraySet<SiegeBattle> webSocketSet = new CopyOnWriteArraySet<SiegeBattle>();
@@ -281,14 +283,16 @@ public class Bidding {
     private boolean checkPlayerInfo(String gameId, String address, Session session) throws Exception {
         // 对链上数据进行查询
         // 获取用户信息
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameIdOnChain = Utils.returnInt(playerInfo, 0);
             if (gameIdOnChain == Integer.valueOf(gameId)) {
                 // 链上gameId和后端gameId相匹配
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStageList = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -428,7 +432,8 @@ public class Bidding {
                         i += 1;
                     }
                     try {
-                        hyperchainService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
+                        // TODO
+                        filoopService.updateRankingTb(Integer.valueOf(gameId), ranking, playerAddresses, price, time);
                     } catch (Exception e) {
                         System.out.println("Class===" + getClassName() + " Line===" + getLineNumber() + " Message===updateRankTb error!");
                     }
@@ -525,8 +530,10 @@ public class Bidding {
                 long value = new Double(price * SiegeParams.getPrecision()).longValue();
                 String to = Config.getDeployAccount().getAddress();
                 String symbol = "SIG";
-                String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
-//                            String result = "transfer success";
+                // TODO
+//                String result = hyperchainService.transfer(address, to, value, symbol, "pay bidding fee", signature);
+                String result = filoopService.transfer(address, to, value, symbol, "pay bidding fee", signature);
+//                String result = "transfer success";
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "transfer")
                         .element("status", result.equals("transfer success"));
@@ -614,8 +621,8 @@ public class Bidding {
         }
         try {
             if (addr.size() > 0) {
-//                HyperchainService hyperchainService = new HyperchainService();
-                String result = hyperchainService.freezePlayer(addr, rank, time);
+                // TODO
+                String result = filoopService.freezePlayer(addr, rank, time);
                 JSONObject jsonObject = new JSONObject()
                         .element("stage", "frozen")
                         .element("status", result.equals("success"));
@@ -658,12 +665,13 @@ public class Bidding {
             System.out.println(cityId);
             System.out.println(price);
             try {
-//                HyperchainService hyperchainService = new HyperchainService();
-                String result = hyperchainService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
+                // TODO
+                String result = filoopService.allocateCity(Integer.valueOf(gameId), playerAddresses, cityId, price);
 //                String result = "success";
                 if (result.equals("success")) {
                     // 更新游戏阶段值RUNNING
-                    String updateStage = hyperchainService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.RUNNING.ordinal());
+                    // TODO
+                    String updateStage = filoopService.updateGameStage(Integer.valueOf(gameId), SiegeParams.gameStage.RUNNING.ordinal());
                     assert (updateStage.equals("success"));
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "allocate")

@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.*;
 public class JsonController {
     @ResponseBody
     @RequestMapping(value = "/json", method = RequestMethod.POST)
-    public String getByJson(@RequestBody JSONObject jsonParams){
-        System.out.println(jsonParams.toString());
+    public String getByJson(@RequestBody JSONObject aa){
+//        System.out.println(jsonParams.toString());
 
         JSONObject result = new JSONObject();
         result.put("msg", "ok");

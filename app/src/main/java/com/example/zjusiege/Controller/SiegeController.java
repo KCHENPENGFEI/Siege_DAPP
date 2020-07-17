@@ -1,8 +1,7 @@
 package com.example.zjusiege.Controller;
 
-import com.example.zjusiege.AsyncTaskService;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
@@ -20,8 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 public class SiegeController {
-    private HyperchainService hyperchainService = new HyperchainService();
-
+//    private HyperchainService hyperchainService = new HyperchainService();
+    private FiloopService filoopService = new FiloopService();
     private final String DEPLOY_ACCOUNT_JSON = "{\"address\":\"11BD06F184F3767FC02C7F27E812F51BC6F28B39\",\"publicKey\":\"04D46EDF9AF28D2E911816973805B686539517177EE0598A34A21FA101F511B7AEE9E987509EE033CB1D6C222F44B86C37EC8869F93A551A1CF262D267A0668D56\",\"privateKey\":\"00C744D486012CBE1F32F618967DBCE69B706F9D74FC456A1430EFB94CA43E68AB\",\"privateKeyEncrypted\":false}";
 
 //    private HttpServletRequest request;
@@ -49,7 +48,7 @@ public class SiegeController {
     @ResponseBody
     @CrossOrigin
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) throws Exception{
+    public String register(@RequestBody JSONObject params, HttpServletRequest request, HttpServletResponse response, HttpSession session) {
 //        response.setHeader("Access-Control-Allow-Origin","*");
         final int precision = SiegeParams.getPrecision();
         final String deployAccountJson = Config.getDeployAccountJson();
@@ -61,12 +60,16 @@ public class SiegeController {
             try {
                 // 考虑加入request验证，防止玩家恶意注册多个账号
                 // 注册新账号
-                String newAccountString = hyperchainService.register();
+                String newAccountString = filoopService.register();
                 JSONObject newAccountJson = JSONObject.fromObject(newAccountString);
                 // 获取账号地址
                 String address = newAccountJson.getString("address");
+//                JSONObject jsonObject = new JSONObject()
+//                            .element("stage", "register")
+//                            .element("status", true)
+//                            .element("account", newAccountJson);
                 // 发放注册奖励
-                String issueResult = hyperchainService.issueCoin(address, value, symbol, deployAccountJson);
+                String issueResult = filoopService.issueCoin(address, value, symbol, "issue", deployAccountJson);
                 if (issueResult.equals("issue success")) {
                     JSONObject jsonObject = new JSONObject()
                             .element("stage", "register")
@@ -98,13 +101,15 @@ public class SiegeController {
     @ResponseBody
     @CrossOrigin
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws Exception{
+    public String login(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) {
         // 检查用户信息
         String paramsString = params.toString();
         String address = params.getString("address");
         // 玩家登陆
         JSONObject loginJson = new JSONObject();
-        String loginResult = hyperchainService.login(paramsString);
+        //TODO
+//        String loginResult = hyperchainService.login(paramsString);
+        String loginResult = filoopService.login(paramsString);
         if (!loginResult.equals("contract calling error") && !loginResult.equals("unknown error")) {
             loginJson.element("stage", "login")
                      .element("status", true);
@@ -114,68 +119,22 @@ public class SiegeController {
                      .element("stage", false);
         }
         return loginJson.toString();
-//        try {
-//            // 验证玩家是否注册信息，保证gameId = 0
-////            String loginResult = hyperchainService.login(paramsString);
-////            int gameId = Integer.valueOf(getValue(loginResult));
-//            // 数据放入session中
-////            session.setAttribute("isLogin", true);
-////            session.setAttribute("playerAddress", params.getString("address"));
-////            session.setAttribute("gameId", gameId);
-//            // 对链上数据进行查询
-//            // 获取用户信息
-//            String playerInfo = hyperchainService.getPlayersStatus(address);
-//            if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
-//                // 用户存在
-////                int gameId = Utils.returnInt(playerInfo, 0);
-//                if (gameId != 0) {
-//                    // 玩家已经成功匹配，处于游戏中
-//                    // 查询指定gameId的游戏状态
-//                    String globalInfo = hyperchainService.getGlobalTb(gameId);
-//                    if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
-//                        // 获取游戏阶段
-//                        String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
-//                        int gameStageInt = Utils.returnInt(globalInfo, 1);
-//                        // 发送给前端
-//                        JSONObject jsonObject = new JSONObject()
-//                                .element("status", "success")
-//                                .element("stage", "inGame")
-//                                .element("gameId", gameId)
-//                                .element("gameStage", gameStage[gameStageInt]);
-//                        return jsonObject.toString();
-//                    }
-//                    else {
-//                        // 找不到指定gameId的游戏阶段
-//                        JSONObject jsonObject = new JSONObject()
-//                                .element("status", "success")
-//                                .element("stage", "error")
-//                                .element("message", "game not exist");
-//                        return jsonObject.toString();
-//                    }
-//                }
-//                else {
-//                    // 玩家未开始游戏，准备进入匹配
-//                    JSONObject jsonObject = new JSONObject()
-//                            .element("status", "success")
-//                            .element("stage", "startGame")
-//                            .element("gameId", 0);
-//                    return jsonObject.toString();
-//                }
-//            }
-//            else {
-//                // 用户不存在，返回错误
-//                JSONObject jsonObject = new JSONObject()
-//                        .element("status", "success")
-//                        .element("stage", "error")
-//                        .element("message", "player not exist");
-//                return jsonObject.toString();
-//            }
-//        } catch (Exception e) {
-//            System.out.println("Got a Exception：" + e.getMessage());
-//            JSONObject jsonObject = new JSONObject()
-//                    .element("status", "failed");
-//            return jsonObject.toString();
-//        }
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/jsonTest", method = RequestMethod.POST)
+    public String jsonTest() {
+//        System.out.println(params);
+//        String test = "{\"ni\": \"wo\"}";
+//        JSONObject jsonObject = JSONObject.fromObject(test);
+        String jsonMese = "{\"语文\":\"88\",\"数学\":\"78\",\"计算机\":\"99\"}";
+        JSONObject myJson = JSONObject.fromObject(jsonMese);
+//        JSONObject m =
+//        System.out.println(jsonObject);
+        JSONObject yy = new JSONObject()
+                .element("a", "a");
+        System.out.println("yy" + yy);
+        return "aaa";
     }
 
     @ResponseBody
@@ -194,10 +153,15 @@ public class SiegeController {
         String add2 = params.getString("address2");
         String add3 = params.getString("address3");
         String add4 = params.getString("address4");
-        hyperchainService.cp(add1);
-        hyperchainService.cp(add2);
-        hyperchainService.cp(add3);
-        hyperchainService.cp(add4);
+        // TODO
+//        hyperchainService.cp(add1);
+//        hyperchainService.cp(add2);
+//        hyperchainService.cp(add3);
+//        hyperchainService.cp(add4);
+        filoopService.cp(add1);
+        filoopService.cp(add2);
+        filoopService.cp(add3);
+        filoopService.cp(add4);
         return "success";
     }
 
@@ -206,7 +170,9 @@ public class SiegeController {
     public String setRemain(@RequestBody JSONObject params) throws Exception {
         int gameId = params.getInt("gameId");
         int num = params.getInt("num");
-        return hyperchainService.setRemain(gameId, num);
+        // TODO
+//        return hyperchainService.setRemain(gameId, num);
+        return filoopService.setRemain(gameId, num);
     }
 
     @ResponseBody
@@ -216,8 +182,9 @@ public class SiegeController {
         String attacker = params.getString("attacker");
         String defender = params.getString("defender");
         int cityId = params.getInt("cityId");
-
-        return hyperchainService.battleEnd(gameId, attacker, defender, cityId);
+        // TODO
+//        return hyperchainService.battleEnd(gameId, attacker, defender, cityId);
+        return filoopService.battleEnd(gameId, attacker, defender, cityId);
     }
 
     @ResponseBody
@@ -253,36 +220,29 @@ public class SiegeController {
     }
 
     @ResponseBody
-    @RequestMapping(value = "/startGame", method = RequestMethod.POST)
-    public String startGame(@RequestBody JSONObject params, HttpServletRequest request, HttpSession session) throws  Exception {
-        String[] a = new String[]{"D817B5187CCDDDC2DB1B5118BDA5103458E2182E",
-                "A550ABB4D96C7036944AB27F1FCA4438F93920A3",
-                "6754B4E3C346E714195C0DA6B27566F615A0D06C",
-                "545B7E7F41C744F8109847BF4621EBAF7EC56B26",
-                "37908FB0843370549C584EE54EAE1B9FBB1D663D",
-                "94267A422EA798F1573E949B8B17BD821D11E2C1",
-                "F4D1DD19224BAF6BD65B5022E9B04844F25BB609",
-                "E7817E353D66255400BB4AC8460E464EEDE5956A",
-                "B5444F8A2C1BFF6A7DDA3EC7894D37C62B2BDE68",
-                "80EC87A061EB915E52ADB1A4E05B3B7EE69A8DA7"};
-        String result = hyperchainService.startGame(a);
-        return result;
-    }
-
-
-    @ResponseBody
     @RequestMapping(value = "/get", method = RequestMethod.POST)
     public String gett() throws Exception {
-        String result1 = hyperchainService.getCity();
-        String result2 = hyperchainService.getSo();
-        String result3 = hyperchainService.getDe();
-        String result4 = hyperchainService.getPrecision();
-        String result5 = hyperchainService.getCityNum();
-        String result6 = hyperchainService.getEnterFee();
-        String result7 = hyperchainService.getCityPrice();
-        String result8 = hyperchainService.getSoldierNum();
-        String result9 = hyperchainService.getInterval();
-        String result10 = hyperchainService.getGameAssetAddr();
+        // TODO
+//        String result1 = hyperchainService.getCity();
+//        String result2 = hyperchainService.getSo();
+//        String result3 = hyperchainService.getDe();
+//        String result4 = hyperchainService.getPrecision();
+//        String result5 = hyperchainService.getCityNum();
+//        String result6 = hyperchainService.getEnterFee();
+//        String result7 = hyperchainService.getCityPrice();
+//        String result8 = hyperchainService.getSoldierNum();
+//        String result9 = hyperchainService.getInterval();
+//        String result10 = hyperchainService.getGameAssetAddr();
+        String result1 = filoopService.getCity();
+        String result2 = filoopService.getSo();
+        String result3 = filoopService.getDe();
+        String result4 = filoopService.getPrecision();
+        String result5 = filoopService.getCityNum();
+        String result6 = filoopService.getEnterFee();
+        String result7 = filoopService.getCityPrice();
+        String result8 = filoopService.getSoldierNum();
+        String result9 = filoopService.getInterval();
+        String result10 = filoopService.getGameAssetAddr();
 
         System.out.println("result1" + result1);
         System.out.println("result2" + result2);
@@ -294,6 +254,7 @@ public class SiegeController {
         System.out.println("result8" + result8);
         System.out.println("result9" + result9);
         System.out.println("result10" + result10);
+//        System.out.println("result10" + result10);
         return "11";
     }
 
@@ -301,7 +262,9 @@ public class SiegeController {
     @RequestMapping(value = "/clearCity", method = RequestMethod.POST)
     public String cityClear(@RequestBody JSONObject params) throws Exception {
         int gameId = params.getInt("gameId");
-        return hyperchainService.cc(gameId);
+        // TODO
+//        return hyperchainService.cc(gameId);
+        return filoopService.cc(gameId);
     }
 
     @ResponseBody
@@ -309,7 +272,9 @@ public class SiegeController {
     public String getGameData(@RequestBody JSONObject params) throws Exception {
         String address = params.getString("address");
         int pointer = params.getInt("pointer");
-        return hyperchainService.getGameData(address, pointer);
+        // TODO
+//        return hyperchainService.getGameData(address, pointer);
+        return filoopService.getGameData(address, pointer);
     }
 
     @ResponseBody
@@ -328,7 +293,9 @@ public class SiegeController {
         price.add(Long.valueOf(200000));
         time.add(new Date().getTime());
         time.add(new Date().getTime());
-        String result = hyperchainService.updateRankingTb(10, ranking, playerAddresses, price, time);
+        // TODO
+//        String result = hyperchainService.updateRankingTb(10, ranking, playerAddresses, price, time);
+        String result = filoopService.updateRankingTb(10, ranking, playerAddresses, price, time);
         System.out.println(result);
     }
 
@@ -336,16 +303,20 @@ public class SiegeController {
     @RequestMapping(value = "/getGlobalTb", method = RequestMethod.POST)
     public String getG(@RequestBody JSONObject params) throws Exception {
         int gameId = params.getInt("gameId");
-        String result = hyperchainService.getGlobalTb(gameId);
-        return result;
+        // TODO
+//        String result = hyperchainService.getGlobalTb(gameId);
+//        return result;
+        return filoopService.getGlobalTb(gameId);
     }
 
     @ResponseBody
     @RequestMapping(value = "/getFrozenTb", method = RequestMethod.POST)
     public String getFrozenTb(@RequestBody JSONObject params) throws Exception {
         String address = params.getString("address");
-        String result = hyperchainService.getFrozenTb(address);
-        return result;
+        // TODO
+//        String result = hyperchainService.getFrozenTb(address);
+//        return result;
+        return filoopService.getFrozenTb(address);
     }
 
     @ResponseBody
@@ -361,8 +332,10 @@ public class SiegeController {
         cityId.add(2);
         price.add(Long.valueOf(99200));
         price.add(Long.valueOf(80000));
-        String result = hyperchainService.allocateCity(10, players, cityId, price);
-        return result;
+        // TODO
+//        String result = hyperchainService.allocateCity(10, players, cityId, price);
+//        return result;
+        return filoopService.allocateCity(10, players, cityId, price);
     }
 
 //    @ResponseBody
@@ -447,14 +420,22 @@ public class SiegeController {
 //    }
 
     @ResponseBody
+    @RequestMapping(value = "/getRoot", method = RequestMethod.POST)
+    public String getRoot() throws Exception {
+        return filoopService.getRoot();
+    }
+
+
+    @ResponseBody
     @RequestMapping(value = "/getBiddingTb", method = RequestMethod.POST)
     public String getBiddingTb(@RequestBody JSONObject params) throws Exception {
 
         int gameId = params.getInt("gameId");
         int rankId = params.getInt("rankId");
-
-        String result = hyperchainService.getBiddingTb(gameId, rankId);
-        return result;
+        // TODO
+//        String result = hyperchainService.getBiddingTb(gameId, rankId);
+//        return result;
+        return filoopService.getBiddingTb(gameId, rankId);
     }
 
     @ResponseBody
@@ -463,9 +444,10 @@ public class SiegeController {
 
         long gameId = params.getLong("gameId");
         long cityId = params.getLong("cityId");
-
-        String result = hyperchainService.getCitiesTable(gameId, cityId);
-        return result;
+        // TODO
+        return filoopService.getCitiesTb(gameId, cityId);
+//        String result = hyperchainService.getCitiesTable(gameId, cityId);
+//        return result;
     }
 
     @ResponseBody
@@ -473,9 +455,10 @@ public class SiegeController {
     public String getPlayersStatus(@RequestBody JSONObject params) throws Exception {
 
         String address = params.getString("address");
-
-        String result = hyperchainService.getPlayersStatus(address);
-        return result;
+        // TODO
+        return filoopService.getPlayersStatus(address);
+//        String result = hyperchainService.getPlayersStatus(address);
+//        return result;
     }
 
     @ResponseBody
@@ -484,9 +467,10 @@ public class SiegeController {
 
         int gameId = params.getInt("gameId");
         long leftIntervalNum = params.getLong("leftIntervalNum");
-
-        String result = hyperchainService.updateCityBonus(gameId, leftIntervalNum);
-        return result;
+        // TODO
+//        String result = hyperchainService.updateCityBonus(gameId, leftIntervalNum);
+//        return result;
+        return filoopService.updateCityBonus(gameId, leftIntervalNum);
     }
 
     @ResponseBody
@@ -498,10 +482,10 @@ public class SiegeController {
         int cityId = params.getInt("cityId");
         long amount = new Double(params.getDouble("amount") * SiegeParams.getPrecision()).longValue();
         String signature = params.getString("signature");
-
-
-        String result = hyperchainService.occupyCity(gameId, address, cityId, amount, signature);
-        return result;
+        // TODO
+//        String result = hyperchainService.occupyCity(gameId, address, cityId, amount, signature);
+//        return result;
+        return filoopService.occupyCity(gameId, address, cityId, amount, signature);
     }
 
     @ResponseBody
@@ -510,10 +494,10 @@ public class SiegeController {
 
         int gameId = params.getInt("gameId");
         int stage = params.getInt("stage");
-
-
-        String result = hyperchainService.updateGameStage(gameId, stage);
-        return result;
+        // TODO
+//        String result = hyperchainService.updateGameStage(gameId, stage);
+//        return result;
+        return filoopService.updateGameStage(gameId, stage);
     }
 
     @ResponseBody
@@ -521,12 +505,11 @@ public class SiegeController {
     public String getStage(@RequestBody JSONObject params) throws Exception {
 
         int gameId = params.getInt("gameId");
-
-        String result = hyperchainService.getStage(gameId);
-        return result;
+        // TODO
+//        String result = hyperchainService.getStage(gameId);
+//        return result;
+        return filoopService.getStage(gameId);
     }
-
-
 
     /*********************************************  Siege Params Configuration **************************************/
 
@@ -546,21 +529,30 @@ public class SiegeController {
         List<Integer> cityDefenseIndex = SiegeParams.getCityDefenseIndex();
 
         try {
-            String result1 = hyperchainService.setAssetAddr(assetAddress);
-            String result2 = hyperchainService.setPrecision(precision);
-            String result3 = hyperchainService.setCityNum(cityNum);
-            String result4 = hyperchainService.setEnterFee(enterFee);
-            String result5 = hyperchainService.setCityPrice(cityPrice);
-            String result6 = hyperchainService.setSoldierNum(soldierNum);
-            String result7 = hyperchainService.setTime(interval, duration);
-            String result8 = hyperchainService.setSoldiersPoint(soldiersPoint);
+            String result1 = filoopService.setAssetAddr(assetAddress);
+            // TODO
+//            String result2 = hyperchainService.setPrecision(precision);
+//            String result3 = hyperchainService.setCityNum(cityNum);
+//            String result4 = hyperchainService.setEnterFee(enterFee);
+//            String result5 = hyperchainService.setCityPrice(cityPrice);
+//            String result6 = hyperchainService.setSoldierNum(soldierNum);
+//            String result7 = hyperchainService.setTime(interval, duration);
+//            String result8 = hyperchainService.setSoldiersPoint(soldiersPoint);
+            String result2 = filoopService.setPrecision(precision);
+            String result3 = filoopService.setCityNum(cityNum);
+            String result4 = filoopService.setEnterFee(enterFee);
+            String result5 = filoopService.setCityPrice(cityPrice);
+            String result6 = filoopService.setSoldierNum(soldierNum);
+            String result7 = filoopService.setTime(interval, duration);
+            String result8 = filoopService.setSoldiersPoint(soldiersPoint);
             List<byte[]> cityNameBytes = new ArrayList<>();
             for (String name : cityName) {
                 cityNameBytes.add(name.getBytes());
             }
-            String result9 = hyperchainService.setCityName(cityNameBytes);
-            String result10 = hyperchainService.setCityDefenseIndex(cityDefenseIndex);
+            String result9 = filoopService.setCityName(cityNameBytes);
+            String result10 = filoopService.setCityDefenseIndex(cityDefenseIndex);
 
+//            if (result7.equals("success")) {
             if (result1.equals("success")
                     && result2.equals("success")
                     && result3.equals("success")
@@ -592,9 +584,10 @@ public class SiegeController {
         long value = params.getLong("value") * SiegeParams.getPrecision();
         String symbol = params.getString("symbol");
         int type = params.getInt("type");
-
-        String result = hyperchainService.create(issuer, value, symbol, type);
-        return result;
+        // TODO
+//        String result = hyperchainService.create(issuer, value, symbol, type);
+//        return result;
+        return filoopService.create(issuer, value, symbol, type);
     }
 
     @ResponseBody
@@ -605,9 +598,10 @@ public class SiegeController {
         long value = params.getLong("value") * SiegeParams.getPrecision();
         String symbol = params.getString("symbol");
         String signature = params.getString("signature");
-
-        String result = hyperchainService.issueCoin(to, value, symbol, signature);
-        return result;
+        // TODO
+//        String result = hyperchainService.issueCoin(to, value, symbol, signature);
+//        return result;
+        return filoopService.issueCoin(to, value, symbol, "issue", signature);
     }
 
     @ResponseBody
@@ -621,9 +615,10 @@ public class SiegeController {
         String symbol = "SIG";
         String data = params.getString("data");
         String signature = params.getString("signature");
-
-        String result = hyperchainService.transfer(from, to, value, symbol, data, signature);
-        return result;
+        // TODO
+//        String result = hyperchainService.transfer(from, to, value, symbol, data, signature);
+//        return result;
+        return filoopService.transfer(from, to, value, symbol, data, signature);
     }
 
     @ResponseBody
@@ -632,8 +627,9 @@ public class SiegeController {
 
         String owner = params.getString("owner");
         String symbol = params.getString("symbol");
-
-        String result = hyperchainService.balanceOf(owner, symbol);
+        // TODO
+//        String result = hyperchainService.balanceOf(owner, symbol);
+        String result = filoopService.balanceOf(owner, symbol);
         return getValue(result);
     }
 
@@ -643,8 +639,9 @@ public class SiegeController {
 
         String symbol = params.getString("symbol");
         int ext = params.getInt("ext");
-
-        String result = hyperchainService.supplyOf(symbol, ext);
+        // TODO
+//        String result = hyperchainService.supplyOf(symbol, ext);
+        String result = filoopService.supplyOf(symbol, ext);
         return getValue(result);
     }
 
@@ -662,16 +659,6 @@ public class SiegeController {
             System.out.println("存在session，browser=" + sessionBrowser.toString());
         }
         return "111";
-    }
-
-    @ResponseBody
-    @RequestMapping(value = "/thread", method = RequestMethod.POST)
-    public String thread(@RequestBody JSONObject params) {
-        AsyncTaskService asyncTaskService = new AsyncTaskService();
-        for (int i = 0; i < 20; i++) {
-            asyncTaskService.executeAsyncTask(i);
-        }
-        return "ss";
     }
 
     @ResponseBody
@@ -742,7 +729,8 @@ public class SiegeController {
         // 对链上数据进行查询
         // 获取用户信息
         JSONObject response = new JSONObject();
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameId = Utils.returnInt(playerInfo, 0);
@@ -753,7 +741,8 @@ public class SiegeController {
             if (gameId != 0) {
                 // 玩家已经成功匹配，处于游戏中
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameId);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameId);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -770,7 +759,8 @@ public class SiegeController {
                             // 处于准备对战或者对战界面
                             if (cityId == 0) {
                                 // 玩家为进攻者，需要查询对手的城池id
-                                String opponentInfo = hyperchainService.getPlayersStatus(opponent);
+                                // TODO
+                                String opponentInfo = filoopService.getPlayersStatus(opponent);
                                 cityId = Utils.returnInt(opponentInfo, 3);
                             }
                             response.element("playerStage", playerStage)

@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONArray;
@@ -20,7 +20,9 @@ import java.util.concurrent.TimeUnit;
 @ServerEndpoint("/WebSocket/inBattle/{gameId}/{battleId}")
 @Component
 public class InBattle {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+    private FiloopService filoopService = new FiloopService();
+//    private HyperchainService hyperchainService = new HyperchainService();
     private Account deployAccount = Config.getDeployAccount();
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int playerNum = 0;
@@ -39,7 +41,7 @@ public class InBattle {
     private static int playersPerGame = 2;
 //    private static int buySoldiersTimer = 20;
     //    private static int round = 1;
-    private static int roundTimer = 60;
+    private static int roundTimer = 20;
 //    private static boolean isOver = false;
 
     private static int debug = 1;
@@ -312,14 +314,16 @@ public class InBattle {
         int cityId = Integer.valueOf(information[2]);
         // 对链上数据进行查询
         // 获取用户信息
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameIdOnChain = Utils.returnInt(playerInfo, 0);
             if (gameIdOnChain == Integer.valueOf(gameId)) {
                 // 链上gameId和后端gameId相匹配
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameIdOnChain);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameIdOnChain);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
@@ -398,70 +402,73 @@ public class InBattle {
         // 确定对手
         String opponent = address.equals(attackerAddress) ? defenderAddress: attackerAddress;
 //        double point = params.getDouble("point");
-        // 更新数据
-        playerSoldiers.get(battleId).get(address).element("soldier", soldier);
-        playerSoldiers.get(battleId).get(address).element("pick", true);
+        boolean myPick = playerSoldiers.get(battleId).get(address).getBoolean("pick");
+        if (!myPick) {
+            // 更新数据
+            playerSoldiers.get(battleId).get(address).element("soldier", soldier);
+            playerSoldiers.get(battleId).get(address).element("pick", true);
 
-        pick(battleId, address);
-        // 发送response
-        JSONObject response = new JSONObject()
-                .element("stage", "response")
-                .element("operation", "pickSoldier")
-                .element("status", true);
-        sendMsg(session, response.toString());
-        // 检查对方是否出牌
-        boolean allPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
-        if (allPick) {
+            pick(battleId, address);
+            // 发送response
+            JSONObject response = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "pickSoldier")
+                    .element("status", true);
+            sendMsg(session, response.toString());
+            // 检查对方是否出牌
+            boolean allPick = playerSoldiers.get(battleId).get(opponent).getBoolean("pick");
+            if (allPick) {
 
-            // 链上执行判断
-            int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
-            int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
-            String result = hyperchainService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
-            System.out.println("result: " + result);
-            if (!result.equals("contract calling error") && !result.equals("unknown error")) {
-                switch (Utils.getValue(result)) {
-                    case "attacker wins this round": {
-                        // 进攻者获胜
-                        win(battleId, attackerAddress);
-                        System.out.println("进攻者获胜");
-                        break;
+                // 链上执行判断
+                int aType = playerSoldiers.get(battleId).get(attackerAddress).getInt("soldier");
+                int dType = playerSoldiers.get(battleId).get(defenderAddress).getInt("soldier");
+                // TODO
+                String result = filoopService.pickAndBattle(Integer.valueOf(gameId), attackerAddress, defenderAddress, aType, dType);
+                System.out.println("result: " + result);
+                if (!result.equals("contract calling error") && !result.equals("unknown error")) {
+                    switch (Utils.returnString(result, 0)) {
+                        case "attacker wins this round": {
+                            // 进攻者获胜
+                            win(battleId, attackerAddress);
+                            System.out.println("进攻者获胜");
+                            break;
+                        }
+                        case "defender wins this round": {
+                            // 防守者获胜
+                            win(battleId, defenderAddress);
+                            System.out.println("防守者获胜");
+                            break;
+                        }
+                        case "tie": {
+                            // 战平
+                            tie(battleId);
+                            System.out.println("平局");
+                            break;
+                        }
+                        default: {
+                            // error
+                            System.out.println("error");
+                            break;
+                        }
                     }
-                    case "defender wins this round": {
-                        // 防守者获胜
-                        win(battleId, defenderAddress);
-                        System.out.println("防守者获胜");
-                        break;
-                    }
-                    case "tie": {
-                        // 战平
-                        tie(battleId);
-                        System.out.println("平局");
-                        break;
-                    }
-                    default: {
-                        // error
-                        System.out.println("error");
-                        break;
-                    }
+                    // 更新战场数据(已开牌)
+                    new Thread(()-> {
+                        try {
+                            // 向双方发送战场信息
+                            GenerateBattleField(battleId, address, opponent, 2);
+                            GenerateBattleField(battleId, opponent, address, 2);
+                        } catch (Exception e) {
+                            System.out.println("Got an exception: " + e.getMessage());
+                        }
+                    }).start();
                 }
-                // 更新战场数据(已开牌)
+                else {
+                    // 链上执行失败
+                    errorMsg(attackerSession, "judge error");
+                    errorMsg(defenderSession, "judge error");
+                }
+                // 本轮结束，重置标志位，并且检查游戏是否结束
                 new Thread(()-> {
-                    try {
-                        // 向双方发送战场信息
-                        GenerateBattleField(battleId, address, opponent, 2);
-                        GenerateBattleField(battleId, opponent, address, 2);
-                    } catch (Exception e) {
-                        System.out.println("Got an exception: " + e.getMessage());
-                    }
-                }).start();
-            }
-            else {
-                // 链上执行失败
-                errorMsg(attackerSession, "judge error");
-                errorMsg(defenderSession, "judge error");
-            }
-            // 本轮结束，重置标志位，并且检查游戏是否结束
-            new Thread(()-> {
 //                playerSoldiers.get(battleId).get(attackerAddress).element("pick", false);
 //                playerSoldiers.get(battleId).get(defenderAddress).element("pick", false);
 //
@@ -569,26 +576,26 @@ public class InBattle {
 //                        System.out.println("Got an exception: " + e.getMessage());
 //                    }
 //                }
-                try {
-                    roundEnd(gameId, battleId, attackerAddress, defenderAddress, attackerSession, defenderSession);
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
-            }).start();
-        }
-        else {
-            // 告知玩家等待
-            System.out.println("waiting opponent");
-            // 更新战场数据(未开牌状态)
-            new Thread(()-> {
-                try {
-                    // 向双方发送战场信息
-                    GenerateBattleField(battleId, address, opponent, 1);
-                    GenerateBattleField(battleId, opponent, address, 1);
-                } catch (Exception e) {
-                    System.out.println("Got an exception: " + e.getMessage());
-                }
-            }).start();
+                    try {
+                        roundEnd(gameId, battleId, attackerAddress, defenderAddress, attackerSession, defenderSession);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
+            }
+            else {
+                // 告知玩家等待
+                System.out.println("waiting opponent");
+                // 更新战场数据(未开牌状态)
+                new Thread(()-> {
+                    try {
+                        // 向双方发送战场信息
+                        GenerateBattleField(battleId, address, opponent, 1);
+                        GenerateBattleField(battleId, opponent, address, 1);
+                    } catch (Exception e) {
+                        System.out.println("Got an exception: " + e.getMessage());
+                    }
+                }).start();
 //            try {
 //                JSONObject jsonObject = new JSONObject()
 //                        .element("operation", "pickSoldier")
@@ -598,8 +605,15 @@ public class InBattle {
 //            } catch (Exception e) {
 //                System.out.println("Got an exception: " + e.getMessage());
 //            }
+            }
         }
-
+        else {
+            JSONObject jsonObject = new JSONObject()
+                    .element("stage", "response")
+                    .element("operation", "pickSoldier")
+                    .element("status", false);
+            sendMsg(session, jsonObject.toString());
+        }
     }
 
     private void roundEnd(String gameId, String battleId, String attackerAddress, String defenderAddress, Session attackerSession, Session defenderSession) throws Exception {
@@ -616,11 +630,12 @@ public class InBattle {
             battleData.get(battleId).element("isOver", true);
             // 链上判定谁获胜
             int cityId = battleData.get(battleId).getInt("cityId");
-            String battleResult = hyperchainService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
+            // TODO
+            String battleResult = filoopService.battleEnd(Integer.valueOf(gameId), attackerAddress, defenderAddress, cityId);
 //                            String battleResult = "attacker wins the battle";
             if (!battleResult.equals("contract calling error") && !battleResult.equals("unknown error")) {
 //                            if (!battleResult.equals("")) {
-                switch (Utils.getValue(battleResult)) {
+                switch (Utils.returnString(battleResult, 0)) {
                     case "attacker wins the battle": {
                         // 转账给winner
                         System.out.println("attacker wins the battle");
@@ -915,27 +930,31 @@ public class InBattle {
     }
 
     private void battleSettlement(String winner, String loser, boolean tie) throws Exception{
-        String winnerInfo = hyperchainService.getPlayersStatus(winner);
-        String loserInfo = hyperchainService.getPlayersStatus(loser);
+        // TODO
+        String winnerInfo = filoopService.getPlayersStatus(winner);
+        String loserInfo = filoopService.getPlayersStatus(loser);
         int winnerPointer = getPointer(winnerInfo, 5);
         int loserPointer = getPointer(loserInfo, 5);
         winnerPointer = decreasePointer(winnerPointer);
         loserPointer = decreasePointer(loserPointer);
-        String winnerGameData = hyperchainService.getGameData(winner, winnerPointer);
-        String loserGameData = hyperchainService.getGameData(loser, loserPointer);
+        // TODO
+        String winnerGameData = filoopService.getGameData(winner, winnerPointer);
+        String loserGameData = filoopService.getGameData(loser, loserPointer);
         long winnerPrice = getPrice(winnerGameData, 1);
         long loserPrice = getPrice(loserGameData, 1);
         String symbol = "SIG";
         if (!tie) {
             // 获胜者拿回80%的费用
-            String back = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
+            // TODO
+            String back = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice * 0.8).longValue(), symbol, "back", Config.getDeployAccountJson());
             // 获胜者获得失败者70%的费用
-            String award = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
+            String award = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(loserPrice * 0.7).longValue(), symbol, "award", Config.getDeployAccountJson());
             assert (back.equals("transfer success") && award.equals("transfer success"));
         }
         else {
-            String returnBack1 = hyperchainService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
-            String returnBack2=  hyperchainService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            // TODO
+            String returnBack1 = filoopService.transfer(Config.getDeployAccount().getAddress(), winner, new Double(winnerPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
+            String returnBack2=  filoopService.transfer(Config.getDeployAccount().getAddress(), loser, new Double(loserPrice).longValue(), symbol, "tie", Config.getDeployAccountJson());
             assert (returnBack1.equals("transfer success") && returnBack2.equals("transfer success"));
         }
     }

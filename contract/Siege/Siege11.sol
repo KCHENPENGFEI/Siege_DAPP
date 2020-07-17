@@ -1013,7 +1013,7 @@ contract Siege {
     function endGame(uint256 gameId, address[] playerAddresses) external onlyRoot() {
         // 确保游戏状态正确
         require(globalTable[gameId].game_stage == gameStage.END);
-        require(playerAddresses.length < PLAYER_NUM);
+        require(playerAddresses.length <= PLAYER_NUM);
 
         clearGlobalTable(gameId);
         clearCitiesTable(gameId);

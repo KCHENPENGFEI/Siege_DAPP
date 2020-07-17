@@ -1,8 +1,8 @@
 package com.example.zjusiege.WebSocket;
 
-import cn.hyperchain.sdk.rpc.account.Account;
+import cn.hyperchain.sdk.account.Account;
 import com.example.zjusiege.Config.Config;
-import com.example.zjusiege.Service.HyperchainService;
+import com.example.zjusiege.Service.FiloopService;
 import com.example.zjusiege.SiegeParams.SiegeParams;
 import com.example.zjusiege.Utils.Utils;
 import net.sf.json.JSONObject;
@@ -18,7 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint("/WebSocket/playersMatch")
 @Component
 public class PlayersMatch {
-    private HyperchainService hyperchainService = new HyperchainService();
+    // TODO
+//    private HyperchainService hyperchainService = new HyperchainService();
+    private FiloopService filoopService = new FiloopService();
 //    private final String deployAccountJson = Config.getDeployAccountJson();
     private Account deployAccount = Config.getDeployAccount();
 
@@ -86,8 +88,9 @@ public class PlayersMatch {
                 String to = deployAccount.getAddress();
                 int value = SiegeParams.getEnterFee() * SiegeParams.getPrecision();
                 String data = "enter fee";
-                String transferResult = hyperchainService.transfer(address, to, value, sigSymbol, data, signature);
-
+                // TODO
+                String transferResult = filoopService.transfer(address, to, value, sigSymbol, data, signature);
+//                String transferResult = "transfer success";
                 if (transferResult.equals("transfer success")) {
 //            if(true){
                     // 转账成功，加入匹配
@@ -184,13 +187,15 @@ public class PlayersMatch {
             boolean b = list.addAll(map.keySet());
             String[] playersAddresses = list.toArray(new String[0]);
             try {
-                String result = hyperchainService.startGame(playersAddresses);
+                // TODO
+                String result = filoopService.startGame(playersAddresses);
                 // 匹配完成后获取gameId
                 if (!result.equals("contract calling error") && !result.equals("unknown error")) {
-                    int gameId = Integer.valueOf(Utils.getValue(result));
+                    int gameId = Utils.returnInt(result, 0);
                     if (gameId != 0) {
                         // 更新游戏阶段值bidding
-                        String updateStage = hyperchainService.updateGameStage(gameId, SiegeParams.gameStage.BIDDING.ordinal());
+                        // TODO
+                        String updateStage = filoopService.updateGameStage(gameId, SiegeParams.gameStage.BIDDING.ordinal());
                         if (updateStage.equals("success")) {
                             // 匹配成功，发送信息
                             for (String address: map.keySet()) {
@@ -258,14 +263,16 @@ public class PlayersMatch {
 //    }
 
     private boolean checkPlayerStatus(String address, Session session) throws Exception {
-        String playerInfo = hyperchainService.getPlayersStatus(address);
+        // TODO
+        String playerInfo = filoopService.getPlayersStatus(address);
         if (!playerInfo.equals("contract calling error") && !playerInfo.equals("unknown error")) {
             // 用户存在
             int gameId = Utils.returnInt(playerInfo, 0);
             if (gameId != 0) {
                 // 玩家已经成功匹配，处于游戏中
                 // 查询指定gameId的游戏状态
-                String globalInfo = hyperchainService.getGlobalTb(gameId);
+                // TODO
+                String globalInfo = filoopService.getGlobalTb(gameId);
                 if (!globalInfo.equals("contract calling error") && !globalInfo.equals("unknown error")) {
                     // 获取游戏阶段
                     String[] gameStage = new String[]{"start", "bidding", "running", "settling", "ending"};
